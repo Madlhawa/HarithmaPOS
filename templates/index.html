@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %} Home {% endblock %}
+{% block body %} 
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success" role="alert">
+                        {{message}}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <table class="table table-success table-striped table-hover" border="1">
+            <thead class="thread-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Contact</th>
+                    <th scope="col">Vehicals</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                    <tr>
+                        <td class="align-middle"  scope="row">{{customer.id}}</td>
+                        <td class="align-middle">{{customer.name}}</td>
+                        <td class="align-middle">{{customer.contact}}</td>
+                        <td>
+                            {% for vehical in customer.vehicals %}
+                                <a href="/update_vehical/{{vehical.id}}" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#update_vehical{{vehical.id}}">{{vehical.number}}</a>
+                                <!-- Modal for updating a vehical -->
+                                <div id="update_vehical{{vehical.id}}" class="modal fade" role="dialog">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h4 class="modal-title">Update Vehical</h4>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form action="{{url_for('update_vehical')}}" method="POST">
+                                                    <div class="form-group">
+                                                        <label>Number:</label>
+                                                        <input type="hidden"  name="id" value="{{vehical.id}}">
+                                                        <input type="text" class="form-control" name="number" required="1" value="{{vehical.number}}">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Make:</label>
+                                                        <input type="text" class="form-control" name="make" value="{{vehical.make}}">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Model:</label>
+                                                        <input type="text" class="form-control" name="model" value="{{vehical.model}}">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Year:</label>
+                                                        <input type="text" class="form-control" name="year" value="{{vehical.year}}">
+                                                        <input type="hidden"  name="owner_id" value="{{vehical.owner_id}}">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <button class="btn btn-warning mt-4" type="submit">Update vehical</button>
+                                                        <a href="/delete_vehical/{{vehical.id}}" class="btn btn-danger mt-4" onclick="return confirm('Are you sure to delete?')">Delete</a>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <a href="/update_customer/{{customer.id}}" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}">Update</a>
+                            <a href="/delete_customer/{{customer.id}}" class="btn btn-danger" onclick="return confirm('Are you sure to delete?')">Delete</a>
+                            <a href="/insert_vehical/{{customer.id}}" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}">Add Vehical</a>
+                        </td>
+                    </tr>
+
+                    <!-- Model for updating customer -->
+                    <div id="update_customer{{customer.id}}" class="modal fade" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">Update Customer</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{url_for('update_customer')}}" method="POST">
+                                        <div class="form-group">
+                                            <label>Name:</label>
+                                            <input type="hidden"  name="id" value="{{customer.id}}">
+                                            <input type="text" class="form-control" name="name" value="{{customer.name}}" >
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Contact:</label>
+                                            <input type="number" class="form-control" name="contact" value="{{customer.contact}}">
+                                        </div>
+                                        <div class="form-group">
+                                            <button class="btn btn-warning mt-4" type="submit">Update Customer</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal for inserting a vehical -->
+                    <div id="insert_vehical{{customer.id}}" class="modal fade" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">Add a new vehical for {{customer.name}}</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{url_for('insert_vehical')}}" method="POST">
+                                        <div class="form-group">
+                                            <label>Number:</label>
+                                            <input type="text" class="form-control" name="number" required="1">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Make:</label>
+                                            <input type="text" class="form-control" name="make">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Model:</label>
+                                            <input type="text" class="form-control" name="model">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Year:</label>
+                                            <input type="text" class="form-control" name="year">
+                                            <input type="hidden"  name="owner_id" value="{{customer.id}}">
+                                        </div>
+                                        <div class="form-group">
+                                            <button class="btn btn-primary mt-4" type="submit">Add Vehical</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
