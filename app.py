@@ -68,6 +68,8 @@ def update_customer():
         customer = Customer.query.get(request.form.get('id'))
         customer.name = request.form['name']
         customer.contact = request.form['contact']
+        customer.address = request.form['address']
+        customer.email = request.form['email']
         db.session.commit()
         flash("Customer is updated!")
         return redirect(url_for('customer'))
