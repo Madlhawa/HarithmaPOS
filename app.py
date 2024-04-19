@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+from forms import RegistrationForm, LoginForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
 import os
@@ -38,6 +39,7 @@ class Vehical(db.Model):
     def __repr__(self):
         return f"Vehical('{self.number}','{self.make}','{self.model}','{self.year}')"
 
+@app.route('/', methods = ['GET', 'POST'])
 @app.route('/customer/', methods = ['GET', 'POST'])
 def customer():
     if request.method == 'POST' and 'query' in request.form:
@@ -117,6 +119,16 @@ def delete_vehical(id):
     db.session.commit()
     flash("Vehical is deleted!")
     return redirect(url_for('customer'))
+
+@app.route("/register")
+def register():
+    form = RegistrationForm()
+    return render_template('register.html', title='Register', form = form)
+
+@app.route("/login")
+def login():
+    form = LoginForm()
+    return render_template('login.html', title='Login', form = form)
 
 @app.route('/test/')
 def test():

@@ -10,7 +10,7 @@
                     <input type="submit" value="Search" class="btn btn-secondary" name="">
                 </form> 
                 <!-- Right side: Button -->
-                <button class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New Customer</button>
+                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New Customer</button>
             </div>
         </div>
     </div>
@@ -68,8 +68,8 @@
                     <th scope="col">Contact</th>
                     <th scope="col">Address</th>
                     <th scope="col">Email</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Updated</th>
+                    <!-- <th scope="col">Created</th>
+                    <th scope="col">Updated</th> -->
                     <th scope="col">Vehicals</th>
                     <th scope="col">Actions</th>
                 </tr>
@@ -82,8 +82,8 @@
                         <td class="align-middle">{{customer.contact}}</td>
                         <td class="align-middle">{{customer.address}}</td>
                         <td class="align-middle">{{customer.email}}</td>
-                        <td class="align-middle">{{customer.create_dttm}}</td>
-                        <td class="align-middle">{{customer.update_dttm}}</td>
+                        <!-- <td class="align-middle">{{customer.create_dttm}}</td>
+                        <td class="align-middle">{{customer.update_dttm}}</td> -->
                         <td>
                             {% for vehical in customer.vehicals %}
                                 <a href="/update_vehical/{{vehical.id}}" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#update_vehical{{vehical.id}}">{{vehical.number}}</a>
@@ -128,10 +128,10 @@
                                 </div>
                             {% endfor %}
                         </td>
-                        <td>
-                            <a href="/update_customer/{{customer.id}}" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}">Update</a>
-                            <a href="/delete_customer/{{customer.id}}" class="btn btn-danger" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                            <a href="/insert_vehical/{{customer.id}}" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}">Add Vehical</a>
+                        <td class="text-end">
+                            <a href="/update_customer/{{customer.id}}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update Customer" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}"><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="/delete_customer/{{customer.id}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete Customer" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="/insert_vehical/{{customer.id}}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehical" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}"><i class="fa fa-car"></i></a>
                         </td>
                     </tr>
                 
