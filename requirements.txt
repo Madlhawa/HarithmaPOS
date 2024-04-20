@@ -2,3 +2,4 @@ flask
 Flask-SQLAlchemy
 mysqlclient
 flask-wtf
+email-validator
