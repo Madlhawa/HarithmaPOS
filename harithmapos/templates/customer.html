@@ -23,24 +23,25 @@
             </div>
             <div class="modal-body">
                 <form action="{{url_for('insert_customer')}}" method="POST">
+                    {{ customer_form.hidden_tag() }}
                     <div class="form-group">
-                    <label>Name:</label>
-                    <input type="text" class="form-control" name="name" required="1">
+                        {{ customer_form.name.label(class="form-control-label mt-1") }}
+                        {{ customer_form.name(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                        <label>Contact:</label>
-                        <input type="text" class="form-control" name="contact">
+                        {{ customer_form.contact.label(class="form-control-label mt-1") }}
+                        {{ customer_form.contact(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                        <label>Address:</label>
-                        <input type="text" class="form-control" name="address">
+                        {{ customer_form.address.label(class="form-control-label mt-1") }}
+                        {{ customer_form.address(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                        <label>Email:</label>
-                        <input type="email" class="form-control" name="email">
+                        {{ customer_form.email.label(class="form-control-label mt-1") }}
+                        {{ customer_form.email(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                    <button class="btn btn-primary mt-4" type="submit">Add Customer</button>
+                        <button class="btn btn-primary mt-4" type="submit">Add Customer</button>
                     </div>
                 </form>
             </div>
@@ -51,10 +52,10 @@
         </div>
     </div>
     <div class="container mt-4">
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-success" role="alert">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
                         {{message}}
                     </div>
                 {% endfor %}
@@ -96,23 +97,24 @@
                                             </div>
                                             <div class="modal-body">
                                                 <form action="{{url_for('update_vehical')}}" method="POST">
+                                                    {{ vehical_form.hidden_tag() }}
                                                     <div class="form-group">
-                                                        <label>Number:</label>
-                                                        <input type="hidden"  name="id" value="{{vehical.id}}">
-                                                        <input type="text" class="form-control" name="number" required="1" value="{{vehical.number}}">
+                                                        <input type="hidden" name="id" value="{{vehical.id}}">
+                                                        {{ vehical_form.number.label(class="form-control-label mt-1") }}
+                                                        {{ vehical_form.number(class="form-control form-control-lg", value=vehical.number) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        <label>Make:</label>
-                                                        <input type="text" class="form-control" name="make" value="{{vehical.make}}">
+                                                        {{ vehical_form.make.label(class="form-control-label mt-1") }}
+                                                        {{ vehical_form.make(class="form-control form-control-lg", value=vehical.make) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        <label>Model:</label>
-                                                        <input type="text" class="form-control" name="model" value="{{vehical.model}}">
+                                                        {{ vehical_form.model.label(class="form-control-label mt-1") }}
+                                                        {{ vehical_form.model(class="form-control form-control-lg", value=vehical.model) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        <label>Year:</label>
-                                                        <input type="text" class="form-control" name="year" value="{{vehical.year}}">
-                                                        <input type="hidden"  name="owner_id" value="{{vehical.owner_id}}">
+                                                        {{ vehical_form.year.label(class="form-control-label mt-1") }}
+                                                        {{ vehical_form.year(class="form-control form-control-lg", value=vehical.year) }}
+                                                        {{ vehical_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
                                                     </div>
                                                     <div class="form-group">
                                                         <button class="btn btn-warning mt-4" type="submit">Update vehical</button>
@@ -144,22 +146,23 @@
                                 </div>
                                 <div class="modal-body">
                                     <form action="{{url_for('update_customer')}}" method="POST">
+                                        {{ customer_form.hidden_tag() }}
                                         <div class="form-group">
-                                            <label>Name:</label>
                                             <input type="hidden"  name="id" value="{{customer.id}}">
-                                            <input type="text" class="form-control" name="name" value="{{customer.name}}" >
+                                            {{ customer_form.name.label(class="form-control-label mt-1") }}
+                                            {{ customer_form.name(class="form-control form-control-lg", value=customer.name) }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Contact:</label>
-                                            <input type="text" class="form-control" name="contact" value="{{customer.contact}}">
+                                            {{ customer_form.contact.label(class="form-control-label mt-1") }}
+                                            {{ customer_form.contact(class="form-control form-control-lg", value=customer.contact) }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Address:</label>
-                                            <input type="text" class="form-control" name="address" value="{{customer.address}}">
+                                            {{ customer_form.address.label(class="form-control-label mt-1") }}
+                                            {{ customer_form.address(class="form-control form-control-lg", value=customer.address) }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Email:</label>
-                                            <input type="text" class="form-control" name="email" value="{{customer.email}}">
+                                            {{ customer_form.email.label(class="form-control-label mt-1") }}
+                                            {{ customer_form.email(class="form-control form-control-lg", value=customer.email) }}
                                         </div>
                                         <div class="form-group">
                                             <button class="btn btn-warning mt-4" type="submit">Update Customer</button>
@@ -181,22 +184,23 @@
                                 </div>
                                 <div class="modal-body">
                                     <form action="{{url_for('insert_vehical')}}" method="POST">
+                                        {{ vehical_form.hidden_tag() }}
                                         <div class="form-group">
-                                            <label>Number:</label>
-                                            <input type="text" class="form-control" name="number" required="1">
+                                            {{ vehical_form.number.label(class="form-control-label mt-1") }}
+                                            {{ vehical_form.number(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Make:</label>
-                                            <input type="text" class="form-control" name="make">
+                                            {{ vehical_form.make.label(class="form-control-label mt-1") }}
+                                            {{ vehical_form.make(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Model:</label>
-                                            <input type="text" class="form-control" name="model">
+                                            {{ vehical_form.model.label(class="form-control-label mt-1") }}
+                                            {{ vehical_form.model(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            <label>Year:</label>
-                                            <input type="text" class="form-control" name="year">
-                                            <input type="hidden"  name="owner_id" value="{{customer.id}}">
+                                            {{ vehical_form.year.label(class="form-control-label mt-1") }}
+                                            {{ vehical_form.year(class="form-control form-control-lg") }}
+                                            {{ vehical_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
                                         </div>
                                         <div class="form-group">
                                             <button class="btn btn-primary mt-4" type="submit">Add Vehical</button>
