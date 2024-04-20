@@ -1,5 +1,5 @@
 from __main__ import app
-from run import Customer
+from app import Customer
 from flask import Flask, render_template, request, redirect, url_for, flash
 
 @app.route('/employee/')
