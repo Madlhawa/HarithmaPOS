@@ -3,3 +3,5 @@ Flask-SQLAlchemy
 mysqlclient
 flask-wtf
 email-validator
+flask-bcrypt
+flask-login
