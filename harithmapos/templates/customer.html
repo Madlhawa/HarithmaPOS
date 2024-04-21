@@ -72,7 +72,7 @@
                     <!-- <th scope="col">Created</th>
                     <th scope="col">Updated</th> -->
                     <th scope="col">Vehicals</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col" style="text-align: right" >Actions</th>
                 </tr>
             </thead>
             <tbody id="results">
@@ -131,9 +131,9 @@
                             {% endfor %}
                         </td>
                         <td class="text-end">
+                            <a href="/insert_vehical/{{customer.id}}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehical" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}"><i class="fa fa-car"></i></a>
                             <a href="/update_customer/{{customer.id}}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update Customer" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}"><i class="bi bi-person-fill-gear"></i></a>
                             <a href="/delete_customer/{{customer.id}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete Customer" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
-                            <a href="/insert_vehical/{{customer.id}}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehical" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}"><i class="fa fa-car"></i></a>
                         </td>
                     </tr>
                 

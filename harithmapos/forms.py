@@ -1,9 +1,29 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
+from flask_login import current_user
 from wtforms import StringField, EmailField, PasswordField, SubmitField, BooleanField, TelField, IntegerField, ValidationError
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 from harithmapos.models import User
 
-class RegistrationForm(FlaskForm):
+class SupplierCreateForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
+    contact = TelField("Contact", validators=[Length(min=9, max=9)])
+    address = StringField("Address")
+    submit = SubmitField('Add Supplier')
+
+class UserUpdateForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
+    email = EmailField("Email", validators=[DataRequired(), Email()])
+    image = FileField('Update Profile Picture', validators=[FileAllowed(['jpg', 'png'])])
+    submit = SubmitField('Update Account')
+
+    def validate_email(self, email):
+        if email.data != current_user.email:
+            user = User.query.filter_by(email=email.data).first()
+            if user:
+                raise ValidationError('User with this email already exists.')
+
+class UserRegisterForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
     email = EmailField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
@@ -15,7 +35,7 @@ class RegistrationForm(FlaskForm):
         if user:
             raise ValidationError('User with this email already exists.')
 
-class LoginForm(FlaskForm):
+class UserLoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
     remember = BooleanField("Remember Me")

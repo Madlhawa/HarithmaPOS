@@ -1,13 +1,61 @@
+import os
+import secrets
+from PIL import Image
 from harithmapos import app, db, bcrypt
 from harithmapos.models import Customer, Vehical, User
 from flask import render_template, request, redirect, url_for, flash
-from harithmapos.forms import RegistrationForm, LoginForm, CustomerForm, VehicalForm
+from harithmapos.forms import UserRegisterForm, UserLoginForm, UserUpdateForm, CustomerForm, VehicalForm, SupplierCreateForm
 from flask_login import login_user, logout_user, login_required, current_user
+
+@app.route("/supplier")
+@login_required
+def supplier():
+    suppliers=[]
+    supplier_create_form = SupplierCreateForm()
+    if supplier_create_form.validate_on_submit():
+        flash("Supplier Created", category="success")
+    return render_template(
+        'supplier.html', 
+        title='Supplier', 
+        supplier_create_form=supplier_create_form, 
+        suppliers=suppliers
+    )
+
+def save_image(form_image):
+    random_hex = secrets.token_hex(8)
+    _, file_extention = os.path.splitext(form_image.filename)
+    image_file_name = random_hex + file_extention
+    image_path = os.path.join(app.root_path, 'static/user_images', image_file_name)
+
+    output_size = (125,125)
+    i = Image.open(form_image)
+    i.thumbnail(output_size)
+    i.save(image_path)
+
+    return image_file_name
 
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-    return render_template('account.html', title='Account')
+    form=UserUpdateForm()
+    if form.validate_on_submit():
+        if form.image.data:
+            if current_user.image != 'default.jpg':
+                os.remove(os.path.join(app.root_path, 'static/user_images', current_user.image))
+            image = save_image(form.image.data)
+            current_user.image = image
+            print(f'{image = }')
+        current_user.email = form.email.data
+        current_user.name = form.name.data
+        db.session.commit()
+        flash('Account has been updated.',category='success')
+        return redirect(url_for('account'))
+    elif request.method == 'GET':
+        form.name.data = current_user.name
+        form.email.data = current_user.email
+    image_path = url_for('static', filename=f'user_images/{current_user.image}')
+    print(f'{image_path = }')
+    return render_template('account.html', title='Account', user_image_file=image_path, form=form)
 
 @app.route("/logout", methods=['GET', 'POST'])
 def logout():
@@ -18,7 +66,7 @@ def logout():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('customer'))
-    form = RegistrationForm()
+    form = UserRegisterForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(
@@ -30,15 +78,14 @@ def register():
         db.session.commit()
         flash(f'Account has been created. Please login.',category='success')
         return redirect(url_for('login'))
-    else:
-        flash(f'Account creation failed.',category='danger')
     return render_template('register.html', title='Register', form = form)
 
+@app.route("/", methods=['GET', 'POST'])
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('customer'))
-    form = LoginForm()
+    form = UserLoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
