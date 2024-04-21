@@ -1,9 +1,66 @@
 {% extends 'base.html' %}
 {% block body %}
-<div class="container mt-4">
+<div class="container rounded">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h1>{{ current_user.name}}</h1>
+        <div class="col-md-3">
+            <div class="d-flex flex-column align-items-center text-center p-3 py-5"><img class="rounded-circle mt-5" width="150px" src="{{ user_image_file }}">
+                <span class="font-weight-bold">{{ current_user.name }}</span>
+                <span class="text-black-50">{{ current_user.email }}</span>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="p-3 py-5">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">
+                            {{message}}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="text-right">Account Settings</h4>
+                </div>
+                <div class="row mt-3">
+                    <form method="POST" action="" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <fieldset class="form-group">
+                            <div class="form-group">
+                                {{ form.name.label(class="form-control-label") }}
+                                {{ form.name(class="form-control form-control-lg") }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.email.label(class="form-control-label mt-1") }}
+                                {% if form.email.errors %}
+                                    {{ form.email(class="form-control form-control-lg is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.email.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.email(class="form-control form-control-lg") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                {{ form.image.label(class="form-control-label mt-4 mb-2") }}<br>
+                                {{ form.image(class="form-control-file") }}<br>
+                                {% if form.image.errors %}
+                                    {% for error in form.image.errors %}
+                                        <small class="text-danger mt-2">{{ error }}</small><br>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </fieldset>
+                        <div class="form-group">
+                            <div class="text-center">
+                                {{ form.submit(class="btn btn-warning profile-button mt-3") }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
