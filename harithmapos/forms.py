@@ -5,6 +5,16 @@ from wtforms import StringField, EmailField, PasswordField, SubmitField, Boolean
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 from harithmapos.models import User
 
+class SearchForm(FlaskForm):
+    query = StringField("query", validators=[DataRequired()])
+    submit = SubmitField('Search')
+
+class SupplierUpdateForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
+    contact = TelField("Contact", validators=[Length(min=9, max=9)])
+    address = StringField("Address")
+    submit = SubmitField('Update Supplier')
+
 class SupplierCreateForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
     contact = TelField("Contact", validators=[Length(min=9, max=9)])
