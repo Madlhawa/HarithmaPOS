@@ -4,10 +4,10 @@
     <div class="container mt-4">
         <div class="row">
             <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="post" autocomplete="off"> 
-                    <!-- Left side: Search bar and button -->
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="Search">
-                    <input type="submit" value="Search" class="btn btn-secondary" name="">
+                <form class="mb-0 d-flex" action="" method="POST" autocomplete="off">
+                    {{ supplier_create_form.hidden_tag() }}
+                    {{ search_form.query(class="form-control me-2") }}
+                    {{ search_form.submit(class="btn btn-primary") }}
                 </form> 
                 <!-- Right side: Button -->
                 <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New supplier</button>
@@ -23,22 +23,18 @@
             </div>
             <div class="modal-body">
                 <form action="{{url_for('insert_supplier')}}" method="POST">
-                    {{ supplier_form.hidden_tag() }}
+                    {{ supplier_create_form.hidden_tag() }}
                     <div class="form-group">
-                        {{ supplier_form.name.label(class="form-control-label mt-1") }}
-                        {{ supplier_form.name(class="form-control form-control-lg") }}
+                        {{ supplier_create_form.name.label(class="form-control-label mt-1") }}
+                        {{ supplier_create_form.name(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                        {{ supplier_form.contact.label(class="form-control-label mt-1") }}
-                        {{ supplier_form.contact(class="form-control form-control-lg") }}
+                        {{ supplier_create_form.contact.label(class="form-control-label mt-1") }}
+                        {{ supplier_create_form.contact(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
-                        {{ supplier_form.address.label(class="form-control-label mt-1") }}
-                        {{ supplier_form.address(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ supplier_form.email.label(class="form-control-label mt-1") }}
-                        {{ supplier_form.email(class="form-control form-control-lg") }}
+                        {{ supplier_create_form.address.label(class="form-control-label mt-1") }}
+                        {{ supplier_create_form.address(class="form-control form-control-lg") }}
                     </div>
                     <div class="form-group">
                         <button class="btn btn-primary mt-4" type="submit">Add supplier</button>
@@ -68,20 +64,19 @@
                     <th scope="col">Name</th>
                     <th scope="col">Contact</th>
                     <th scope="col">Address</th>
-                    <th scope="col">Vehicals</th>
                     <th scope="col" style="text-align: right" >Actions</th>
                 </tr>
             </thead>
             <tbody id="results">
-                {% for supplier in suppliers %}
+                {% for supplier in suppliers.items %}
                     <tr>
                         <td class="align-middle"  scope="row">{{supplier.id}}</td>
                         <td class="align-middle">{{supplier.name}}</td>
                         <td class="align-middle">{{supplier.contact}}</td>
                         <td class="align-middle">{{supplier.address}}</td>
                         <td class="text-end">
-                            <a href="/update_supplier/{{supplier.id}}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="/delete_supplier/{{supplier.id}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('update_supplier', supplier_id=supplier.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}"><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="{{ url_for('delete_supplier', supplier_id=supplier.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
                         </td>
                     </tr>
                 
@@ -93,27 +88,23 @@
                                     <h4 class="modal-title">Update supplier</h4>
                                 </div>
                                 <div class="modal-body">
-                                    <form action="{{url_for('update_supplier')}}" method="POST">
-                                        {{ supplier_form.hidden_tag() }}
+                                    <form action="{{url_for('update_supplier', supplier_id=supplier.id)}}" method="POST">
+                                        {{ supplier_update_form.hidden_tag() }}
                                         <div class="form-group">
                                             <input type="hidden"  name="id" value="{{supplier.id}}">
-                                            {{ supplier_form.name.label(class="form-control-label mt-1") }}
-                                            {{ supplier_form.name(class="form-control form-control-lg", value=supplier.name) }}
+                                            {{ supplier_update_form.name.label(class="form-control-label mt-1") }}
+                                            {{ supplier_update_form.name(class="form-control form-control-lg", value=supplier.name) }}
                                         </div>
                                         <div class="form-group">
-                                            {{ supplier_form.contact.label(class="form-control-label mt-1") }}
-                                            {{ supplier_form.contact(class="form-control form-control-lg", value=supplier.contact) }}
+                                            {{ supplier_update_form.contact.label(class="form-control-label mt-1") }}
+                                            {{ supplier_update_form.contact(class="form-control form-control-lg", value=supplier.contact) }}
                                         </div>
                                         <div class="form-group">
-                                            {{ supplier_form.address.label(class="form-control-label mt-1") }}
-                                            {{ supplier_form.address(class="form-control form-control-lg", value=supplier.address) }}
+                                            {{ supplier_update_form.address.label(class="form-control-label mt-1") }}
+                                            {{ supplier_update_form.address(class="form-control form-control-lg", value=supplier.address) }}
                                         </div>
                                         <div class="form-group">
-                                            {{ supplier_form.email.label(class="form-control-label mt-1") }}
-                                            {{ supplier_form.email(class="form-control form-control-lg", value=supplier.email) }}
-                                        </div>
-                                        <div class="form-group">
-                                            <button class="btn btn-warning mt-4" type="submit">Update supplier</button>
+                                            {{ supplier_update_form.submit(class="btn btn-warning mt-4") }}
                                         </div>
                                     </form>
                                 </div>
@@ -126,5 +117,22 @@
                 {% endfor %}
             </tbody>
         </table>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-end">
+                <li class="page-item"><a class="page-link" href="{{ url_for('supplier', page=suppliers.prev_num) }}">Previous</a></li>
+                {% for page_number in suppliers.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_number %}
+                        {% if suppliers.page == page_number %}
+                            <li class="page-item "><a class="page-link active" href="{{ url_for('supplier', page=page_number) }}">{{ page_number }}</a></li>
+                        {% else %}
+                            <li class="page-item "><a class="page-link" href="{{ url_for('supplier', page=page_number) }}">{{ page_number }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item "><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('supplier', page=suppliers.next_num) }}">Next</a></li>
+            </ul>
+        </nav>
     </div>
 {% endblock %}
