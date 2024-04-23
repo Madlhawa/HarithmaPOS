@@ -7,7 +7,7 @@
                 <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
                     <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
                     <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('supplier') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
+                    <a href="{{ url_for('supplier_blueprint.supplier') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
                 </form> 
                 <!-- Right side: Button -->
                 <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New supplier</button>
@@ -22,7 +22,7 @@
                 <h4 class="modal-title">Add supplier</h4>
             </div>
             <div class="modal-body">
-                <form action="{{url_for('insert_supplier')}}" method="POST">
+                <form action="{{url_for('supplier_blueprint.insert_supplier')}}" method="POST">
                     {{ supplier_create_form.hidden_tag() }}
                     <div class="form-group">
                         {{ supplier_create_form.name.label(class="form-control-label mt-1") }}
@@ -75,8 +75,8 @@
                         <td class="align-middle">{{supplier.contact}}</td>
                         <td class="align-middle">{{supplier.address}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('update_supplier', supplier_id=supplier.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('delete_supplier', supplier_id=supplier.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}"><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="{{ url_for('supplier_blueprint.delete_supplier', supplier_id=supplier.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
                         </td>
                     </tr>
                 
@@ -88,7 +88,7 @@
                                     <h4 class="modal-title">Update supplier</h4>
                                 </div>
                                 <div class="modal-body">
-                                    <form action="{{url_for('update_supplier', supplier_id=supplier.id)}}" method="POST">
+                                    <form action="{{url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id)}}" method="POST">
                                         {{ supplier_update_form.hidden_tag() }}
                                         <div class="form-group">
                                             <input type="hidden"  name="id" value="{{supplier.id}}">
@@ -119,19 +119,19 @@
         </table>
         <nav aria-label="Page navigation">
             <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('supplier', page=suppliers.prev_num, query=query) }}">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=suppliers.prev_num, query=query) }}">Previous</a></li>
                 {% for page_number in suppliers.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                     {% if page_number %}
                         {% if suppliers.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                            <li class="page-item "><a class="page-link active" href="{{ url_for('supplier_blueprint.supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
                         {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                            <li class="page-item "><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
                         {% endif %}
                     {% else %}
                         <li class="page-item "><a class="page-link" href="#">...</a></li>
                     {% endif %}
                 {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('supplier', page=suppliers.next_num, query=query) }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=suppliers.next_num, query=query) }}">Next</a></li>
             </ul>
         </nav>
     </div>
