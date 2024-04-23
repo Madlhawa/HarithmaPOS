@@ -5,6 +5,20 @@ from wtforms import StringField, EmailField, PasswordField, SubmitField, Boolean
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 from harithmapos.models import User
 
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
+    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(),EqualTo('password')])
+    submit = SubmitField('Reset Password')
+
+class RequestPasswordResetFrom(FlaskForm):
+    email = EmailField("Email", validators=[DataRequired(), Email()])
+    submit = SubmitField('Request Password Reset')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if not user:
+            raise ValidationError('User with this email do not exists.')
+
 class SearchForm(FlaskForm):
     query = StringField("query", validators=[DataRequired()])
     submit = SubmitField('Search')

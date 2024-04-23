@@ -6,3 +6,5 @@ email-validator
 flask-bcrypt
 flask-login
 Pillow
+itsdangerous
+flask-mail

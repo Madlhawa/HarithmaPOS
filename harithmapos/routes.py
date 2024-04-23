@@ -1,11 +1,51 @@
 import os
 import secrets
 from PIL import Image
-from harithmapos import app, db, bcrypt
+from harithmapos import app, db, bcrypt, mail
 from harithmapos.models import Customer, Vehical, User, Supplier
 from flask import render_template, request, redirect, url_for, flash
-from harithmapos.forms import SearchForm, UserRegisterForm, UserLoginForm, UserUpdateForm, CustomerForm, VehicalForm, SupplierCreateForm, SupplierUpdateForm
+from harithmapos.forms import UserRegisterForm, UserLoginForm, UserUpdateForm, CustomerForm, VehicalForm, SupplierCreateForm, SupplierUpdateForm, RequestPasswordResetFrom, ResetPasswordForm
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_mail import Message
+
+@app.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('customer'))
+    user = User.verify_reset_token(token)
+    if not user:
+        flash('Invalid or expired token.', category='warning')
+        return redirect(url_for('reset_request'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hashed_password
+        db.session.commit()
+        flash(f'Account password has been updated. Please login.',category='success')
+        return redirect(url_for('login'))
+    return render_template('reset_token.html', title='Password Reset', form = form)
+
+def send_reset_email(user):
+    token = user.get_reset_token()
+    msg = Message('Password Reset Request',sender=app.config['MAIL_USERNAME'],recipients=[user.email])
+    msg.body = f'''To reset your password please visit:
+{url_for('reset_token', token=token, _external=True)}
+
+If you did not make this request then simply ignore this email.
+'''
+    mail.send(msg)
+    
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('customer'))
+    form = RequestPasswordResetFrom()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        send_reset_email(user)
+        flash('Email has been sent with instructions to reset your password.', 'info')
+        return redirect(url_for('login'))
+    return render_template('reset_request.html', title='Password Reset', form = form)
 
 @app.route('/supplier/<int:supplier_id>/delete', methods = ['GET', 'POST'])
 @login_required
@@ -51,23 +91,24 @@ def insert_supplier():
 @app.route("/supplier", methods=['GET', 'POST'])
 @login_required
 def supplier():
-    page = request.args.get('page',1,type=int)
     supplier_create_form = SupplierCreateForm()
     supplier_update_form = SupplierUpdateForm()
-    search_form = SearchForm()
-    print(f'{search_form.query.data = }')
-    if search_form.validate_on_submit():
-        print(f'{search_form.query.data = }')
-        suppliers = Supplier.query.order_by(Supplier.update_dttm.desc()).filter(Supplier.name.icontains(search_form.query.data)).paginate(page=page, per_page=5)
+
+    per_page = 1
+    page = request.args.get('page',1,type=int)
+    query = request.args.get("query",None)
+
+    if query:
+        suppliers = Supplier.query.order_by(Supplier.update_dttm.desc()).filter(Supplier.name.icontains(query)).paginate(page=page, per_page=per_page)
     else:
-        suppliers = Supplier.query.order_by(Supplier.update_dttm.desc()).paginate(page=page, per_page=5)
+        suppliers = Supplier.query.order_by(Supplier.update_dttm.desc()).paginate(page=page, per_page=per_page)
     return render_template(
         'supplier.html', 
         title='Supplier', 
         supplier_create_form=supplier_create_form, 
-        supplier_update_form=supplier_update_form, 
-        search_form=search_form,
-        suppliers=suppliers
+        supplier_update_form=supplier_update_form,
+        suppliers=suppliers,
+        query=query
     )
 
 def save_image(form_image):
