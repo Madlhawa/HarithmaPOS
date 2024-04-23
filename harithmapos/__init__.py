@@ -27,11 +27,13 @@ def create_app(Config_class=Config):
     from harithmapos.vehical.routes import vehical_blueprint
     from harithmapos.supplier.routes import supplier_blueprint
     from harithmapos.main.routes import main_blueprint
+    from harithmapos.error.handlers import error_blueprint
 
     app.register_blueprint(user_blueprint)
     app.register_blueprint(customer_blueprint)
     app.register_blueprint(vehical_blueprint)
     app.register_blueprint(supplier_blueprint)
     app.register_blueprint(main_blueprint)
+    app.register_blueprint(error_blueprint)
 
     return app
