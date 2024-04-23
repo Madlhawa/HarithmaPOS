@@ -1,6 +1,7 @@
-from harithmapos import app, db, login_manager
+from harithmapos import db, login_manager
 from datetime import datetime
 from flask_login import UserMixin
+from flask import current_app
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
@@ -25,12 +26,12 @@ class User(db.Model, UserMixin):
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     def get_reset_token(self, expire_seconds = 1800):
-        serializer = Serializer(app.config['SECRET_KEY'])
+        serializer = Serializer(current_app.config['SECRET_KEY'])
         return serializer.dumps({'user_id': self.id})
     
     @staticmethod
     def verify_reset_token(token):
-        serializer = Serializer(app.config['SECRET_KEY'])
+        serializer = Serializer(current_app.config['SECRET_KEY'])
         try:
             user_id = serializer.loads(token)['user_id']
         except:
