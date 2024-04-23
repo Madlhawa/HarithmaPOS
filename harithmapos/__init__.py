@@ -25,7 +25,17 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 mail = Mail(app)
 
-login_manager.login_view = 'login'
+login_manager.login_view = 'user_blueprint.login'
 login_manager.login_message_category = 'info'
 
-from harithmapos import routes
+from harithmapos.user.routes import user_blueprint
+from harithmapos.customer.routes import customer_blueprint
+from harithmapos.vehical.routes import vehical_blueprint
+from harithmapos.supplier.routes import supplier_blueprint
+from harithmapos.main.routes import main_blueprint
+
+app.register_blueprint(user_blueprint)
+app.register_blueprint(customer_blueprint)
+app.register_blueprint(vehical_blueprint)
+app.register_blueprint(supplier_blueprint)
+app.register_blueprint(main_blueprint)

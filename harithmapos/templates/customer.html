@@ -22,7 +22,7 @@
                 <h4 class="modal-title">Add Customer</h4>
             </div>
             <div class="modal-body">
-                <form action="{{url_for('insert_customer')}}" method="POST">
+                <form action="{{url_for('customer_blueprint.insert_customer')}}" method="POST">
                     {{ customer_form.hidden_tag() }}
                     <div class="form-group">
                         {{ customer_form.name.label(class="form-control-label mt-1") }}
@@ -96,7 +96,7 @@
                                                 <h4 class="modal-title">Update Vehical</h4>
                                             </div>
                                             <div class="modal-body">
-                                                <form action="{{url_for('update_vehical')}}" method="POST">
+                                                <form action="{{url_for('vehical_blueprint.update_vehical')}}" method="POST">
                                                     {{ vehical_form.hidden_tag() }}
                                                     <div class="form-group">
                                                         <input type="hidden" name="id" value="{{vehical.id}}">
@@ -145,7 +145,7 @@
                                     <h4 class="modal-title">Update Customer</h4>
                                 </div>
                                 <div class="modal-body">
-                                    <form action="{{url_for('update_customer')}}" method="POST">
+                                    <form action="{{url_for('customer_blueprint.update_customer')}}" method="POST">
                                         {{ customer_form.hidden_tag() }}
                                         <div class="form-group">
                                             <input type="hidden"  name="id" value="{{customer.id}}">
@@ -183,7 +183,7 @@
                                     <h4 class="modal-title">Add a new vehical for {{customer.name}}</h4>
                                 </div>
                                 <div class="modal-body">
-                                    <form action="{{url_for('insert_vehical')}}" method="POST">
+                                    <form action="{{url_for('vehical_blueprint.insert_vehical')}}" method="POST">
                                         {{ vehical_form.hidden_tag() }}
                                         <div class="form-group">
                                             {{ vehical_form.number.label(class="form-control-label mt-1") }}
