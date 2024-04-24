@@ -13,7 +13,7 @@ def supplier():
     supplier_create_form = SupplierCreateForm()
     supplier_update_form = SupplierUpdateForm()
 
-    per_page = 1
+    per_page = 10
     page = request.args.get('page',1,type=int)
     query = request.args.get("query",None)
 
