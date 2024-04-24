@@ -8,6 +8,25 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+class WashBay(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    remarks = db.Column(db.String(255))
+    capacity = db.Column(db.Numeric(10,2))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class Item(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255))
+    unit_of_measure = db.Column(db.String(20))
+    quantity = db.Column(db.Integer)
+    unit_cost = db.Column(db.Numeric(10,2))
+    unit_price = db.Column(db.Numeric(10,2))
+    discount_pct = db.Column(db.Numeric(5,2))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
