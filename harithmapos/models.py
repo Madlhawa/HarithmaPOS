@@ -8,6 +8,17 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+class Employee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    contact = db.Column(db.String(10))
+    address = db.Column(db.String(255))
+    designation = db.Column(db.String(40))
+    joined_date = db.Column(db.Date())
+    wage = db.Column(db.Numeric(10,2))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class WashBay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
