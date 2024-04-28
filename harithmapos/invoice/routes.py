@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db
 from harithmapos.models import InvoiceHead, Customer, Vehical, WashBay, Employee
-from harithmapos.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm
+from harithmapos.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 invoice_head_blueprint = Blueprint('invoice_head_blueprint', __name__)
 
@@ -85,19 +85,25 @@ def insert_invoice_head():
         return redirect(url_for('invoice_head_blueprint.invoice_head'))
 
 @invoice_head_blueprint.route("/invoice/head/<int:invoice_head_id>/update", methods=['GET', 'POST'])
-@login_required
 def update_invoice_head(invoice_head_id):
     invoice_head_update_form = InvoiceHeadUpdateForm()
-    if invoice_head_update_form.validate_on_submit():
+    invoice_detail_create_form = InvoiceDetailCreateForm()
+    vehicals = Vehical.query.all()
+    employees = Employee.query.all()
+    washbays = WashBay.query.all()
+    if request.method == 'GET':
         invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-        invoice_head.name = invoice_head_update_form.name.data
-        invoice_head.contact = invoice_head_update_form.contact.data
-        invoice_head.address = invoice_head_update_form.address.data
-        db.session.commit()
-        flash("Suppler is updated!", category='success')
-    else:
-        flash("Suppler failed to add!", category='danger')
-    return redirect(url_for('invoice_head_blueprint.invoice_head'))
+        return render_template(
+            'invoice/update.html', 
+            title='Invoice', 
+            invoice_head=invoice_head,
+            invoice_head_update_form=invoice_head_update_form,
+            vehicals=vehicals,
+            employees=employees,
+            washbays=washbays
+        )
+    elif invoice_head_update_form.validate_on_submit():
+        return redirect(url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id))
 
 @invoice_head_blueprint.route('/invoice/head/<int:invoice_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
