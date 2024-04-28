@@ -1,15 +1,102 @@
-{% extends 'layout/layout/base.html' %}
+{% extends 'layout/base.html' %}
 {% block title %} Home {% endblock %}
-{% block body %} 
+{% block body %}
 
-<label for="exampleDataList" class="form-label">Datalist example</label>
-<input class="form-control" list="datalistOptions" id="exampleDataList" placeholder="Type to search...">
-<datalist id="datalistOptions">
-  <option value="San Francisco">
-  <option value="New York">
-  <option value="Seattle">
-  <option value="Los Angeles">
-  <option value="Chicago">
-</datalist>
+<div class="container mt-3">
+  <div class="row">
+    <div class="col">
+      <form action="">
+        <div class="input-group ">
+          <span class="input-group-text">Item</span>
+          <input class="form-control" list="ItemDatalistOptions" id="ItemDataList"
+            placeholder="Type to search Item...">
+          <datalist id="ItemDatalistOptions">
+            <option value="San Francisco">
+            <option value="New York">
+            <option value="Seattle">
+            <option value="Los Angeles">
+            <option value="Chicago">
+          </datalist>
+          <span class="input-group-text">Qty</span>
+          <input type="text" class="form-control" placeholder="1" aria-label="Server">
+          <button class="btn btn-primary">Add Item</button>
+        </div>
+      </form>
+      <table class="table table-success table-striped table-hover" border="1">
+        <thead class="thread-dark">
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Price</th>
+            <th scope="col">Total Price</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="results">
+          <tr>
+            <td class="align-middle">624</td>
+            <td class="align-middle">Dash cleaner</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-plus-lg"></i></a>
+              3
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-dash-lg"></i></a>
+            </td>
+            <td class="align-middle">250</td>
+            <td class="align-middle">750</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle">624</td>
+            <td class="align-middle">Dash cleaner</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-plus-lg"></i></a>
+              3
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-dash-lg"></i></a>
+            </td>
+            <td class="align-middle">250</td>
+            <td class="align-middle">750</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
+            </td>
+          </tr>
+          <tr>
+            <td class="align-middle">624</td>
+            <td class="align-middle">Dash cleaner</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-plus-lg"></i></a>
+              3
+              <a href="#" class="btn btn-outline-secondary"><i class="bi bi-dash-lg"></i></a>
+            </td>
+            <td class="align-middle">250</td>
+            <td class="align-middle">750</td>
+            <td class="align-middle">
+              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col">
+      2 of 2
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      1 of 3
+    </div>
+    <div class="col">
+      2 of 3
+    </div>
+    <div class="col">
+      3 of 3
+    </div>
+  </div>
+</div>
 
 {% endblock %}
