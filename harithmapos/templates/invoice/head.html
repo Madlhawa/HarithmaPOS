@@ -19,25 +19,46 @@
         <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Add invoice_head</h4>
+                <h4 class="modal-title">Create Invoice</h4>
             </div>
             <div class="modal-body">
-                <form action="{{url_for('invoice_head_blueprint.insert_invoice_head')}}" method="POST">
+                <form method="POST" action="{{url_for('invoice_head_blueprint.insert_invoice_head')}}">
                     {{ invoice_head_create_form.hidden_tag() }}
+                    <fieldset class="form-group">
+                        <div class="form-group">
+                            {{ invoice_head_create_form.vehical.label(class="form-label mt-3",for="vehicalDataList") }}
+                            {{ invoice_head_create_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", placeholder="Search Vehical...") }}
+                            <datalist id="datalistOptionsVehical">
+                                {% for vehical in vehicals %}
+                                    <option value="{{vehical.id}}">{{vehical.number}}</option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            {{ invoice_head_create_form.employee.label(class="form-label mt-3",for="employeeDataList") }}
+                            {{ invoice_head_create_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", placeholder="Search Employee...") }}
+                            <datalist id="datalistOptionsEmployee">
+                                {% for employee in employees %}
+                                    <option value="{{employee.id}}">{{employee.name}}</option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            {{ invoice_head_create_form.washbay.label(class="form-label mt-3",for="washbayDataList") }}
+                            {{ invoice_head_create_form.washbay(class="form-control", list="datalistOptionsWashbay", id="washbayDataList", placeholder="Search WashBay...") }}
+                            <datalist id="datalistOptionsWashbay">
+                                {% for washbay in washbays %}
+                                    <option value="{{washbay.id}}">{{washbay.name}}</option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            {{ invoice_head_create_form.current_milage.label(class="form-control-label mt-3") }}
+                            {{ invoice_head_create_form.current_milage(class="form-control form-control-lg") }}
+                        </div>
+                    </fieldset>
                     <div class="form-group">
-                        {{ invoice_head_create_form.name.label(class="form-control-label mt-1") }}
-                        {{ invoice_head_create_form.name(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ invoice_head_create_form.contact.label(class="form-control-label mt-1") }}
-                        {{ invoice_head_create_form.contact(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ invoice_head_create_form.address.label(class="form-control-label mt-1") }}
-                        {{ invoice_head_create_form.address(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-primary mt-4" type="submit">Add invoice_head</button>
+                        {{ invoice_head_create_form.submit(class="btn btn-outline-info mt-3") }}
                     </div>
                 </form>
             </div>
