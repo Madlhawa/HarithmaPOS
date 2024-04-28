@@ -1,0 +1,144 @@
+{% extends 'layout/base.html' %}
+{% block title %} Home {% endblock %}
+{% block body %} 
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col d-flex justify-content-between align-items-center">
+                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
+                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
+                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
+                    <a href="{{ url_for('invoice_head_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
+                </form> 
+                <!-- Right side: Button -->
+                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Create Invoice</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for inserting the invoice_head -->
+    <div id="insert_modal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Add invoice_head</h4>
+            </div>
+            <div class="modal-body">
+                <form action="{{url_for('invoice_head_blueprint.insert_invoice_head')}}" method="POST">
+                    {{ invoice_head_create_form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ invoice_head_create_form.name.label(class="form-control-label mt-1") }}
+                        {{ invoice_head_create_form.name(class="form-control form-control-lg") }}
+                    </div>
+                    <div class="form-group">
+                        {{ invoice_head_create_form.contact.label(class="form-control-label mt-1") }}
+                        {{ invoice_head_create_form.contact(class="form-control form-control-lg") }}
+                    </div>
+                    <div class="form-group">
+                        {{ invoice_head_create_form.address.label(class="form-control-label mt-1") }}
+                        {{ invoice_head_create_form.address(class="form-control form-control-lg") }}
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary mt-4" type="submit">Add invoice_head</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{message}}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <table class="table table-success table-striped table-hover" border="1">
+            <thead class="thread-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Vehical</th>
+                    <th scope="col">Employee</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Amount</th>
+                    <th scope="col" style="text-align: right" >Actions</th>
+                </tr>
+            </thead>
+            <tbody id="results">
+                {% for invoice_head in invoice_heads.items %}
+                    <tr>
+                        <td class="align-middle"  scope="row">{{invoice_head.id}}</td>
+                        <td class="align-middle">{{invoice_head.created_dttm.date()}}</td>
+                        <td class="align-middle">{{invoice_head.customer.name}}</td>
+                        <td class="align-middle">{{invoice_head.vehical.number}}</td>
+                        <td class="align-middle">{{invoice_head.employee.name}}</td>
+                        <td class="align-middle">{{invoice_head.status}}</td>
+                        <td class="align-middle">{{invoice_head.gross_price}}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update invoice_head" data-bs-toggle="modal" data-bs-target="#update_invoice_head{{invoice_head.id}}"><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="{{ url_for('invoice_head_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete invoice_head" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                        </td>
+                    </tr>
+                
+                    <!-- Model for updating invoice_head -->
+                    <div id="update_invoice_head{{invoice_head.id}}" class="modal fade" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">Update invoice_head</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id)}}" method="POST">
+                                        {{ invoice_head_update_form.hidden_tag() }}
+                                        <div class="form-group">
+                                            <input type="hidden"  name="id" value="{{invoice_head.id}}">
+                                            {{ invoice_head_update_form.name.label(class="form-control-label mt-1") }}
+                                            {{ invoice_head_update_form.name(class="form-control form-control-lg", value=invoice_head.name) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ invoice_head_update_form.contact.label(class="form-control-label mt-1") }}
+                                            {{ invoice_head_update_form.contact(class="form-control form-control-lg", value=invoice_head.contact) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ invoice_head_update_form.address.label(class="form-control-label mt-1") }}
+                                            {{ invoice_head_update_form.address(class="form-control form-control-lg", value=invoice_head.address) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ invoice_head_update_form.submit(class="btn btn-warning mt-4") }}
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-end">
+                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=invoice_heads.prev_num, query=query) }}">Previous</a></li>
+                {% for page_number in invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_number %}
+                        {% if invoice_heads.page == page_number %}
+                            <li class="page-item "><a class="page-link active" href="{{ url_for('invoice_head_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                        {% else %}
+                            <li class="page-item "><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item "><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=invoice_heads.next_num, query=query) }}">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+{% endblock %}

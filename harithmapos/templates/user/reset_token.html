@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'layout/base.html' %}
 {% block title %} Home {% endblock %}
 {% block body %}
 <div class="container mt-4">
@@ -15,38 +15,35 @@
             {% endwith %}
             <div class="card">
                 <header class="card-header">
-                    <h4 class="card-title mt-2">Login Form</h4>
+                    <h4 class="card-title mt-2">Reset Password Form</h4>
                 </header>
                 <article class="card-body">
                     <form method="POST" action="">
                         {{ form.hidden_tag() }}
                         <fieldset class="form-group">
                             <div class="form-group">
-                                {{ form.email.label(class="form-control-label mt-1") }}
-                                {{ form.email(class="form-control form-control-lg") }}
-                            </div>
-                            <div class="form-group">
                                 {{ form.password.label(class="form-control-label mt-1") }}
                                 {{ form.password(class="form-control form-control-lg") }}
                             </div>
-                            <div class="form-check mt-3">
-                                {{ form.remember(class="form-check-input") }}
-                                {{ form.remember.label(class="form-check-label") }}
+                            <div class="form-group">
+                                {{ form.confirm_password.label(class="form-control-label mt-1") }}
+                                {% if form.confirm_password.errors %}
+                                    {{ form.confirm_password(class="form-control form-control-lg is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.confirm_password.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.confirm_password(class="form-control form-control-lg") }}
+                                {% endif %}
                             </div>
                         </fieldset>
-                        <div class="form-group mt-3">
-                            {{ form.submit(class="btn btn-outline-info") }}
-                            <small class="text-muted">
-                                <a href="{{ url_for('user_blueprint.reset_request') }}">Forgot Password?</a>
-                            </small>
+                        <div class="form-group">
+                            {{ form.submit(class="btn btn-outline-info mt-3 mb-3") }}
                         </div>
                     </form>
                 </article>
-                <div class="border-top card-body text-center">
-                    <small class="text-muted">
-                        Don't have an account? <a href="{{ url_for('user_blueprint.register') }}">Register</a>
-                    </small>
-                </div>
             </div>
         </div>
     </div>

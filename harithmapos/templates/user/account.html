@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'layout/base.html' %}
 {% block body %}
 <div class="container rounded">
     <div class="row justify-content-center">
@@ -44,8 +44,8 @@
                                 {% endif %}
                             </div>
                             <div class="form-group">
-                                {{ form.image.label(class="form-control-label mt-4 mb-2") }}<br>
-                                {{ form.image(class="form-control-file") }}<br>
+                                {{ form.image.label(for="formFile", class="form-label mt-4 mb-2") }}<br>
+                                {{ form.image(class="form-control", type="file", id="formFile") }}<br>
                                 {% if form.image.errors %}
                                     {% for error in form.image.errors %}
                                         <small class="text-danger mt-2">{{ error }}</small><br>
