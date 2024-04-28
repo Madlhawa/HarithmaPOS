@@ -25,7 +25,7 @@ def register():
         db.session.commit()
         flash(f'Account has been created. Please login.',category='success')
         return redirect(url_for('user_blueprint.login'))
-    return render_template('register.html', title='Register', form = form)
+    return render_template('user/register.html', title='Register', form = form)
 
 @user_blueprint.route("/", methods=['GET', 'POST'])
 @user_blueprint.route("/login", methods=['GET', 'POST'])
@@ -41,7 +41,7 @@ def login():
             return redirect(next_page) if next_page else redirect(url_for('customer_blueprint.customer'))
         else:
             flash(f'Login unsuccessfull. Please check email and password.', category='danger')
-    return render_template('login.html', title='Login', form = form)
+    return render_template('user/login.html', title='Login', form = form)
 
 @user_blueprint.route("/account", methods=['GET', 'POST'])
 @login_required
@@ -64,7 +64,7 @@ def account():
         form.email.data = current_user.email
     image_path = url_for('static', filename=f'user_images/{current_user.image}')
     print(f'{image_path = }')
-    return render_template('account.html', title='Account', user_image_file=image_path, form=form)
+    return render_template('user/account.html', title='Account', user_image_file=image_path, form=form)
 
 @user_blueprint.route("/reset_password", methods=['GET', 'POST'])
 def reset_request():
@@ -76,7 +76,7 @@ def reset_request():
         send_reset_email(user)
         flash('Email has been sent with instructions to reset your password.', 'info')
         return redirect(url_for('user_blueprint.login'))
-    return render_template('reset_request.html', title='Password Reset', form = form)
+    return render_template('user/reset_request.html', title='Password Reset', form = form)
 
 @user_blueprint.route("/reset_password/<token>", methods=['GET', 'POST'])
 def reset_token(token):
@@ -93,7 +93,7 @@ def reset_token(token):
         db.session.commit()
         flash(f'Account password has been updated. Please login.',category='success')
         return redirect(url_for('user_blueprint.login'))
-    return render_template('reset_token.html', title='Password Reset', form = form)
+    return render_template('user/reset_token.html', title='Password Reset', form = form)
 
 @user_blueprint.route("/logout", methods=['GET', 'POST'])
 def logout():

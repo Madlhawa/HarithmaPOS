@@ -9,7 +9,7 @@ class EmployeeUpdateForm(FlaskForm):
     address = StringField("Address")
     designation = StringField("Designation")
     joined_date = DateField("Joined Date")
-    wage = DecimalField("Discount Pct", places=2)
+    wage = DecimalField("Wage", places=2)
     submit = SubmitField('Update Employee')
 
 class EmployeeCreateForm(FlaskForm):
@@ -18,5 +18,5 @@ class EmployeeCreateForm(FlaskForm):
     address = StringField("Address")
     designation = StringField("Designation")
     joined_date = DateField("Joined Date")
-    wage = DecimalField("Discount Pct", places=2)
+    wage = DecimalField("Wage", places=2)
     submit = SubmitField('Add Employee')

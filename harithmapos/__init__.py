@@ -31,6 +31,7 @@ def create_app(Config_class=Config):
     from harithmapos.item.routes import item_blueprint
     from harithmapos.washbay.routes import washbay_blueprint
     from harithmapos.employee.routes import employee_blueprint
+    from harithmapos.invoice.routes import invoice_head_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -41,5 +42,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(item_blueprint)
     app.register_blueprint(washbay_blueprint)
     app.register_blueprint(employee_blueprint)
+    app.register_blueprint(invoice_head_blueprint)
 
     return app
