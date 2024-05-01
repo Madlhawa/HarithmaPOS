@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
@@ -109,9 +110,12 @@ def invoice_head_detail(invoice_head_id):
         invoice_head.current_milage=invoice_head_update_form.current_milage.data
         invoice_head.next_milage=invoice_head_update_form.next_milage.data
         invoice_head.service_status=invoice_head_update_form.service_status.data
-        invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
         invoice_head.payment_method=invoice_head_update_form.payment_method.data
         invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
+        invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
+
+        if invoice_details:
+            update_total_values(invoice_head)
 
         db.session.commit()
     elif request.method == 'POST':
@@ -139,13 +143,22 @@ def delete_invoice_head(invoice_head_id):
     flash("InvoiceHead is deleted!", category='success')
     return redirect(url_for('invoice_head_blueprint.invoice_head'))
 
+def update_total_values(invoice_head):
+    invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    invoice_head.gross_price = (invoice_head.total_price - (invoice_head.total_price*(invoice_head.discount_pct/100))) if invoice_head.discount_pct else invoice_head.total_price
+    db.session.commit()
+
 @invoice_head_blueprint.route("/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
 def add_invoice_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
     if invoice_detail_create_form.validate_on_submit():
         item_id = get_id(invoice_detail_create_form.item.data)
         quantity = invoice_detail_create_form.quantity.data
+
         item = Item.query.get_or_404(item_id)
+        invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
+
         invoice_detail = InvoiceDetail(
             invoice_head_id = invoice_head_id,
             item_id = item_id,
@@ -154,8 +167,14 @@ def add_invoice_detail(invoice_head_id):
             total_price = item.unit_price*quantity,
             discount_pct = 0
         )
+
         db.session.add(invoice_detail)
         db.session.commit()
+
+        update_total_values(invoice_head)
+
+        print(f"{invoice_head.total_cost=}")
+
     else:
         flash("Invoice Item failed to add!", category='danger')
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
@@ -163,27 +182,41 @@ def add_invoice_detail(invoice_head_id):
 @invoice_head_blueprint.route("/invoice/detail/delete/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def delete_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
+    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+
     db.session.delete(invoice_detail)
     db.session.commit()
+    update_total_values(invoice_head)
+
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_head_blueprint.route("/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def increase_quantity_invoice_detail(invoice_detail_id):
+
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
+    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+
     invoice_detail.quantity += 1
     invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
     invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
+
     db.session.commit()
+    update_total_values(invoice_head)
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_head_blueprint.route("/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def decrease_quantity_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
+    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+
     if invoice_detail.quantity > 1:
         invoice_detail.quantity -= 1
         invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
         invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
     else:
         flash("Quantity should be at leaset one!", category='warning')
+
     db.session.commit()
+    update_total_values(invoice_head)
+
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))

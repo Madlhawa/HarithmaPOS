@@ -61,6 +61,20 @@
           {% endfor %}
         </tbody>
       </table>
+      <ul class="list-group mb-3">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Net Price</span>
+          <strong>{{ invoice_head.total_price }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Discount</span>
+          <text>- {{ invoice_head.discount_pct }} %</text>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <h4>Gross Price</h4>
+          <h4 class="text-success">{{ invoice_head.gross_price }}</h4>
+        </li>
+      </ul>
     </div>
     <div class="col">
         <form action="{{url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
