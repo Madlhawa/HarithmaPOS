@@ -13,7 +13,7 @@ def item():
     item_create_form = ItemCreateForm()
     item_update_form = ItemUpdateForm()
 
-    per_page = 1
+    per_page = 20
     page = request.args.get('page',1,type=int)
     query = request.args.get("query",None)
 

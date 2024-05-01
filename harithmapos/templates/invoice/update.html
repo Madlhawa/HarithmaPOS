@@ -2,23 +2,32 @@
 {% block title %} Home {% endblock %}
 {% block body %}
 <div class="container mt-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{message}}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
   <div class="row">
     <div class="col">
-      <form action="">
+      <form action="{{url_for('invoice_head_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
         <div class="input-group ">
+            {{ invoice_head_update_form.hidden_tag() }}
           <span class="input-group-text">Item</span>
-          <input class="form-control" list="ItemDatalistOptions" id="ItemDataList"
-            placeholder="Type to search Item...">
+          {{ invoice_detail_create_form.item(class="form-control", list="ItemDatalistOptions", id="ItemDataList", placeholder="Type to search...") }}
           <datalist id="ItemDatalistOptions">
-            <option value="San Francisco">
-            <option value="New York">
-            <option value="Seattle">
-            <option value="Los Angeles">
-            <option value="Chicago">
+            {% for item in items %}
+              <option value="{{item.id}} | {{item.name}}">
+            {% endfor %}
           </datalist>
           <span class="input-group-text">Qty</span>
-          <input type="text" class="form-control" placeholder="1" aria-label="Server">
-          <button class="btn btn-primary">Add Item</button>
+          {{ invoice_detail_create_form.quantity(class="form-control") }}
+          <!-- <input type="text" class="form-control" placeholder="1" aria-label="Server"> -->
+          {{ invoice_detail_create_form.submit(class="btn btn-primary") }}
+          <!-- <button class="btn btn-primary">Add Item</button> -->
         </div>
       </form>
       <table class="table table-success table-striped table-hover" border="1">
@@ -33,56 +42,28 @@
           </tr>
         </thead>
         <tbody id="results">
+          {% for invoice_detail in invoice_details %}
           <tr>
-            <td class="align-middle">624</td>
-            <td class="align-middle">Dash cleaner</td>
+            <td class="align-middle">{{invoice_detail.id}}</td>
+            <td class="align-middle">{{invoice_detail.item.name}}</td>
             <td class="align-middle">
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
-              3
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
+              <a href="{{url_for('invoice_head_blueprint.decrease_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
+              {{invoice_detail.quantity}}
+              <a href="{{url_for('invoice_head_blueprint.increase_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
             </td>
-            <td class="align-middle">250</td>
-            <td class="align-middle">750</td>
+            <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
+            <td class="align-middle">{{invoice_detail.total_price}}</td>
             <td class="align-middle">
-              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+              <a href="{{url_for('invoice_head_blueprint.delete_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
                 onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
             </td>
           </tr>
-          <tr>
-            <td class="align-middle">624</td>
-            <td class="align-middle">Dash cleaner</td>
-            <td class="align-middle">
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
-              3
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
-            </td>
-            <td class="align-middle">250</td>
-            <td class="align-middle">750</td>
-            <td class="align-middle">
-              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
-                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
-            </td>
-          </tr>
-          <tr>
-            <td class="align-middle">624</td>
-            <td class="align-middle">Dash cleaner</td>
-            <td class="align-middle">
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
-              3
-              <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
-            </td>
-            <td class="align-middle">250</td>
-            <td class="align-middle">750</td>
-            <td class="align-middle">
-              <a href="#" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
-                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
-            </td>
-          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
     <div class="col">
-        <form action="{{url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id)}}" method="POST">
+        <form action="{{url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
             {{ invoice_head_update_form.hidden_tag() }}
             <div class="row">
                 <div class="col">
@@ -92,10 +73,10 @@
                 </div>
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="inputGroup-sizing-default">Vehical</span>
-                    {{ invoice_head_update_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", placeholder=invoice_head.vehical.number) }}
+                    {{ invoice_head_update_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", value=invoice_head.vehical.id|string+" | "+invoice_head.vehical.number) }}
                         <datalist id="datalistOptionsVehical">
                             {% for vehical in vehicals %}
-                                <option value="{{vehical.id}}">{{vehical.number}}</option>
+                                <option value="{{vehical.id}} | {{vehical.number}}">
                             {% endfor %}
                         </datalist>
                 </div>
@@ -107,19 +88,19 @@
                 <div class="col">
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="inputGroup-sizing-default">Employee</span>
-                    {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", placeholder=invoice_head.employee.name) }}
+                    {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", value=invoice_head.employee.id|string+" | "+invoice_head.employee.name) }}
                         <datalist id="datalistOptionsEmployee">
                             {% for employee in employees %}
-                                <option value="{{employee.id}}">{{employee.name}}</option>
+                                <option value="{{employee.id}} | {{employee.name}}">
                             {% endfor %}
                         </datalist>
                 </div>
                 <div class="input-group mb-3">
                     <span class="input-group-text" id="inputGroup-sizing-default">Wash Bay</span>
-                    {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", placeholder=invoice_head.washbay.name) }}
+                    {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", value=invoice_head.washbay.id|string+" | "+invoice_head.washbay.name) }}
                         <datalist id="datalistOptionsWashBay">
                             {% for washbay in washbays %}
-                                <option value="{{washbay.id}}">{{washbay.name}}</option>
+                                <option value="{{washbay.id}} | {{washbay.name}}">
                             {% endfor %}
                         </datalist>
                 </div>
@@ -162,6 +143,11 @@
                 <div class="col-auto">
                 {{ invoice_head_update_form.submit(class="btn btn-primary mb-3") }}
                 </div>
+                {% if invoice_head_update_form.errors %}
+                    {% for error in invoice_head_update_form.errors.items() %}
+                        <small class="text-danger mt-2">{{ error }}</small><br>
+                    {% endfor %}
+                {% endif %}
             </div>
         </form>
     </div>
