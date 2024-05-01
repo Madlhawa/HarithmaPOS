@@ -1,4 +1,5 @@
 from sqlalchemy import func
+from datetime import datetime
 from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
@@ -116,6 +117,11 @@ def invoice_head_detail(invoice_head_id):
 
         if invoice_details:
             update_total_values(invoice_head)
+        
+        if invoice_head.paid_amount:
+            invoice_head.last_payment_date = datetime.now()
+
+        invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
 
         db.session.commit()
     elif request.method == 'POST':

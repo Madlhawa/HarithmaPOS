@@ -64,7 +64,7 @@
       <ul class="list-group mb-3">
         <li class="list-group-item d-flex justify-content-between">
           <span>Net Price</span>
-          <strong>{{ invoice_head.total_price }}</strong>
+          <text>{{ '{:,}'.format(invoice_head.total_price) }}</text>
         </li>
         <li class="list-group-item d-flex justify-content-between">
           <span>Discount</span>
@@ -72,7 +72,7 @@
         </li>
         <li class="list-group-item d-flex justify-content-between">
           <h4>Gross Price</h4>
-          <h4 class="text-success">{{ invoice_head.gross_price }}</h4>
+          <h4 class="text-success">{{ '{:,}'.format(invoice_head.gross_price) }}</h4>
         </li>
       </ul>
     </div>
