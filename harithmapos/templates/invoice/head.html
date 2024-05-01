@@ -102,45 +102,10 @@
                         <td class="align-middle">{{invoice_head.status}}</td>
                         <td class="align-middle">{{invoice_head.gross_price}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update invoice_head" data-bs-toggle="modal" data-bs-target="#update_invoice_head{{invoice_head.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('invoice_head_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete invoice_head" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" ><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="{{ url_for('invoice_head_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-danger" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
                         </td>
                     </tr>
-                
-                    <!-- Model for updating invoice_head -->
-                    <div id="update_invoice_head{{invoice_head.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Update invoice_head</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('invoice_head_blueprint.update_invoice_head', invoice_head_id=invoice_head.id)}}" method="POST">
-                                        {{ invoice_head_update_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            <input type="hidden"  name="id" value="{{invoice_head.id}}">
-                                            {{ invoice_head_update_form.name.label(class="form-control-label mt-1") }}
-                                            {{ invoice_head_update_form.name(class="form-control form-control-lg", value=invoice_head.name) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ invoice_head_update_form.contact.label(class="form-control-label mt-1") }}
-                                            {{ invoice_head_update_form.contact(class="form-control form-control-lg", value=invoice_head.contact) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ invoice_head_update_form.address.label(class="form-control-label mt-1") }}
-                                            {{ invoice_head_update_form.address(class="form-control form-control-lg", value=invoice_head.address) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ invoice_head_update_form.submit(class="btn btn-warning mt-4") }}
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 {% endfor %}
             </tbody>
         </table>
