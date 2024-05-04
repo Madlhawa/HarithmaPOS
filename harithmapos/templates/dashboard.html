@@ -1,0 +1,160 @@
+{% extends 'layout/base.html' %}
+{% block title %} Home {% endblock %}
+{% block body %}
+<div class="container">
+    <div class="row mt-1 row-cols-1 row-cols-md-2 g-4">
+        {% for washbay in results %}
+        
+            <div class="col">
+                <div class="card">
+                    <div class="card-header d-flex">
+                        <span>{{ washbay.name }}</span>
+                        <span class="ms-auto"><b>CAE-6478</b></span>
+                        <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> Active</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress" style="height:30px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
+                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
+                        </div>
+                        <div class="row mt-3 text-center">
+                            <div class="col">
+                                <div class="row mb-1">
+                                    <small>Customer</small>
+                                    <h5>Hansi Cabs</h5>
+                                </div>
+                                <div class="row mb-1">
+                                    <small>Employee</small>
+                                    <h5>Preethilal</h5>
+                                </div>
+                                <div class="row mb-1">
+                                    <small>Current Total</small>
+                                    <h5>1,250.00</h5>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row mb-1">
+                                    <small>Elapsed Time</small>
+                                    <h5>02:45</h5>
+                                </div>
+                                <div class="row mb-1">
+                                    <small>Started Time</small>
+                                    <h5>10:25 AM</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">  
+                        <div class="d-grid gap-2 col-6 mx-auto">
+                            <button class="btn btn-primary" type="button">Go to Invoice</button>
+                        </div>
+                    </div> 
+                </div>
+            </div>
+
+        {% endfor %}
+
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex">
+                    <span>Heavy Jack</span>
+                    <span class="ms-auto"><b>CAE-6478</b></span>
+                    <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
+                </div>
+                <div class="card-body">
+                    <div class="progress" style="height:30px;">
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
+                    </div>
+                    <div class="row mt-3 text-center">
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Customer</small>
+                                <h5>Hansi Cabs</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Employee</small>
+                                <h5>Preethilal</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Current Total</small>
+                                <h5>1,250.00</h5>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Elapsed Time</small>
+                                <h5>02:45</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Started Time</small>
+                                <h5>10:25 AM</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">  
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <button class="btn btn-secondary disabled" type="button">Go to Invoice</button>
+                    </div>
+                </div> 
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex">
+                    <span>Heavy Jack</span>
+                    <span class="ms-auto"><b>CAE-6478</b></span>
+                    <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
+                </div>
+                <div class="card-body">
+                    <div class="progress" style="height:30px;">
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
+                    </div>
+                    <div class="row mt-3 text-center">
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Customer</small>
+                                <h5>Hansi Cabs</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Employee</small>
+                                <h5>Preethilal</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Current Total</small>
+                                <h5>1,250.00</h5>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Elapsed Time</small>
+                                <h5>02:45</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Started Time</small>
+                                <h5>10:25 AM</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">  
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <button class="btn btn-secondary disabled" type="button">Go to Invoice</button>
+                    </div>
+                </div> 
+            </div>
+        </div>
+</div>
+
+{% endblock %}

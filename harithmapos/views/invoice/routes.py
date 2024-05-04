@@ -82,11 +82,15 @@ def insert_invoice_head():
             vehical_id=form.vehical.data,
             washbay_id=form.washbay.data,
             employee_id=form.employee.data,
-            current_milage=form.current_milage.data
+            current_milage=form.current_milage.data,
+            service_status='Waiting'
         )
         db.session.add(invoice)
         db.session.commit()
-        return redirect(url_for('invoice_head_blueprint.invoice_head'))
+        return redirect(url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
+    else:
+        flash("Error: Invoice create failed!", category='danger')
+    return redirect(url_for('invoice_head_blueprint.invoice_head'))
 
 @invoice_head_blueprint.route("/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
 def invoice_head_detail(invoice_head_id):
@@ -120,8 +124,7 @@ def invoice_head_detail(invoice_head_id):
         
         if invoice_head.paid_amount:
             invoice_head.last_payment_date = datetime.now()
-
-        invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
+            invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount        
 
         db.session.commit()
     elif request.method == 'POST':
@@ -148,12 +151,6 @@ def delete_invoice_head(invoice_head_id):
     db.session.commit()
     flash("InvoiceHead is deleted!", category='success')
     return redirect(url_for('invoice_head_blueprint.invoice_head'))
-
-def update_total_values(invoice_head):
-    invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
-    invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
-    invoice_head.gross_price = (invoice_head.total_price - (invoice_head.total_price*(invoice_head.discount_pct/100))) if invoice_head.discount_pct else invoice_head.total_price
-    db.session.commit()
 
 @invoice_head_blueprint.route("/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
 def add_invoice_detail(invoice_head_id):
@@ -226,3 +223,21 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
     update_total_values(invoice_head)
 
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
+
+
+
+
+
+
+
+# supporting fuctions
+def update_total_values(invoice_head):
+    invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    invoice_head.gross_price = (invoice_head.total_price - (invoice_head.total_price*(invoice_head.discount_pct/100))) if invoice_head.discount_pct else invoice_head.total_price
+
+    invoice_head.total_cost = invoice_head.total_cost if invoice_head.total_cost else 0
+    invoice_head.total_price = invoice_head.total_price if invoice_head.total_price else 0
+    invoice_head.gross_price = invoice_head.gross_price if invoice_head.gross_price else 0
+
+    db.session.commit()
