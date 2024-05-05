@@ -2,159 +2,171 @@
 {% block title %} Home {% endblock %}
 {% block body %}
 <div class="container">
-    <div class="row mt-1 row-cols-1 row-cols-md-2 g-4">
-        {% for washbay in results %}
-        
-            <div class="col">
-                <div class="card">
+    <div class="row mt-3">
+        <div class="col">
+            {% if waiting_invoices %}
+            <table class="table table-sm table-hover table-bordered border-warning table-warning caption-top">
+                <caption>Waiting Customers</caption>
+                <thead class="thread-dark">
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Vehical</th>
+                        <th scope="col">Employee</th>
+                        <th scope="col">Wash Bay</th>
+                    </tr>
+                </thead>
+                <tbody id="results">
+                    {% for invoice in waiting_invoices %}
+                        <tr>
+                            <td class="align-middle">
+                                <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
+                            </td>
+                            <td class="align-middle">{{invoice.customer.name}}</td>
+                            <td class="align-middle">{{invoice.vehical.number}}</td>
+                            <td class="align-middle">{{invoice.employee.name}}</td>
+                            <td class="align-middle">{{invoice.washbay.name}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="card text-center">
+                <div class="card-body">
+                    <p>No Waiting Customers for today.</p>
+                  </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col">
+            {% if done_invoices %}
+            <table class="table table-sm table-hover table-bordered border-success table-success  caption-top">
+                <caption>Done Customers</caption>
+                <thead class="thread-dark">
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Vehical</th>
+                        <th scope="col">Employee</th>
+                        <th scope="col">Wash Bay</th>
+                    </tr>
+                </thead>
+                <tbody id="results">
+                    {% for invoice in done_invoices %}
+                        <tr>
+                            <td class="align-middle">
+                                <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
+                            </td>
+                            <td class="align-middle">{{invoice.customer.name}}</td>
+                            <td class="align-middle">{{invoice.vehical.number}}</td>
+                            <td class="align-middle">{{invoice.employee.name}}</td>
+                            <td class="align-middle">{{invoice.washbay.name}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="card text-center">
+                <div class="card-body">
+                    <p>No Completed Customers for today.</p>
+                  </div>
+            </div>
+            {% endif %}
+        </div>    
+    </div>
+    <div class="row row-cols-1 row-cols-md-2">
+        {% for washbay in active_wash_bays %}
+            <div class="col mt-3">
+                <div class="card border-success">
                     <div class="card-header d-flex">
                         <span>{{ washbay.name }}</span>
-                        <span class="ms-auto"><b>CAE-6478</b></span>
-                        <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> Active</span>
+                        <span class="ms-auto"><b>{{ washbay.active_invoice.vehical.number }}</b></span>
+                        {% if washbay.invoices[0].is_in_bay %}
+                            <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> Active</span>
+                        {% else %}
+                            <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <div class="progress" style="height:30px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
-                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
-                            <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
-                            <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
+                            {% for status_number, service_status in service_status_form_list %}
+                                {% if washbay.invoices[0].service_status < status_number %}
+                                    <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-hourglass-split"> {{ service_status }}</i></div>
+                                {% elif washbay.invoices[0].service_status == status_number %}
+                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-arrow-repeat text-dark"> {{ service_status }}</i></div>
+                                {% else %}
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-check-circle-fill"> {{ service_status }}</i></div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                         <div class="row mt-3 text-center">
                             <div class="col">
                                 <div class="row mb-1">
                                     <small>Customer</small>
-                                    <h5>Hansi Cabs</h5>
+                                    <h5>{{ washbay.invoices[0].customer.name }}</h5>
                                 </div>
                                 <div class="row mb-1">
                                     <small>Employee</small>
-                                    <h5>Preethilal</h5>
+                                    <h5>{{ washbay.invoices[0].employee.name }}</h5>
                                 </div>
                                 <div class="row mb-1">
                                     <small>Current Total</small>
-                                    <h5>1,250.00</h5>
+                                    <h5>{{ washbay.invoices[0].total_price }}</h5>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="row mb-1">
                                     <small>Elapsed Time</small>
-                                    <h5>02:45</h5>
+                                    <h5>{{ washbay.invoices[0].created_dttm | elapsed_time }}</h5>
                                 </div>
                                 <div class="row mb-1">
                                     <small>Started Time</small>
-                                    <h5>10:25 AM</h5>
+                                    <h5>{{ washbay.invoices[0].created_dttm | to_ist }}</h5>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer">  
                         <div class="d-grid gap-2 col-6 mx-auto">
-                            <button class="btn btn-primary" type="button">Go to Invoice</button>
+                            <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=washbay.invoices[0].id) }}" class="btn btn-primary">Go to Invoice</a>
                         </div>
                     </div> 
                 </div>
             </div>
-
         {% endfor %}
-
-        <div class="col">
-            <div class="card">
-                <div class="card-header d-flex">
-                    <span>Heavy Jack</span>
-                    <span class="ms-auto"><b>CAE-6478</b></span>
-                    <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
-                </div>
-                <div class="card-body">
-                    <div class="progress" style="height:30px;">
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
+    </div>
+    <div class="row row-cols-1 row-cols-md-4">
+        {% for washbay in inactive_wash_bays %}
+            <div class="col mt-3">
+                <div class="card">
+                    <div class="card-header d-flex">
+                        <span>{{ washbay.name }}</span>
+                        <span class="ms-auto"><b></b></span>
+                        <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
                     </div>
-                    <div class="row mt-3 text-center">
-                        <div class="col">
-                            <div class="row mb-1">
-                                <small>Customer</small>
-                                <h5>Hansi Cabs</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Employee</small>
-                                <h5>Preethilal</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Current Total</small>
-                                <h5>1,250.00</h5>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="row mb-1">
-                                <small>Elapsed Time</small>
-                                <h5>02:45</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Started Time</small>
-                                <h5>10:25 AM</h5>
+                    <div class="card-body">
+                        <div class="row mt-3 text-center">
+                            <div class="col">
+                                <div class="row mb-1">
+                                    <small>Description</small>
+                                    <h6>{{washbay.remarks}}</h6>
+                                </div>
+                                <div class="row mb-1">
+                                    <small>Capacity</small>
+                                    <h6>{{washbay.capacity}} Tons</h6>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <div class="card-footer">  
+                        <div class="d-grid gap-2 mx-auto">
+                            <a href="{{ url_for('invoice_head_blueprint.insert_invoice_head') }}" class="btn btn-secondary">Create New Invoice</a>
+                        </div>
+                    </div> 
                 </div>
-                <div class="card-footer">  
-                    <div class="d-grid gap-2 col-6 mx-auto">
-                        <button class="btn btn-secondary disabled" type="button">Go to Invoice</button>
-                    </div>
-                </div> 
             </div>
-        </div>
-        <div class="col">
-            <div class="card">
-                <div class="card-header d-flex">
-                    <span>Heavy Jack</span>
-                    <span class="ms-auto"><b>CAE-6478</b></span>
-                    <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Inactive</span>
-                </div>
-                <div class="card-body">
-                    <div class="progress" style="height:30px;">
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Waiting</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Vacuming</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Washing</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Drying</div>
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">Polishing</div>
-                    </div>
-                    <div class="row mt-3 text-center">
-                        <div class="col">
-                            <div class="row mb-1">
-                                <small>Customer</small>
-                                <h5>Hansi Cabs</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Employee</small>
-                                <h5>Preethilal</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Current Total</small>
-                                <h5>1,250.00</h5>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="row mb-1">
-                                <small>Elapsed Time</small>
-                                <h5>02:45</h5>
-                            </div>
-                            <div class="row mb-1">
-                                <small>Started Time</small>
-                                <h5>10:25 AM</h5>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">  
-                    <div class="d-grid gap-2 col-6 mx-auto">
-                        <button class="btn btn-secondary disabled" type="button">Go to Invoice</button>
-                    </div>
-                </div> 
-            </div>
-        </div>
+        {% endfor %}
+    </div>
 </div>
 
 {% endblock %}

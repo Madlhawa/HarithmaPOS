@@ -99,7 +99,7 @@
                         <td class="align-middle">{{invoice_head.customer.name}}</td>
                         <td class="align-middle">{{invoice_head.vehical.number}}</td>
                         <td class="align-middle">{{invoice_head.employee.name}}</td>
-                        <td class="align-middle">{{invoice_head.service_status}}</td>
+                        <td class="align-middle">{{invoice_head.service_status_str}}</td>
                         <td class="align-middle">{{invoice_head.gross_price}}</td>
                         <td class="text-end">
                             <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" ><i class="bi bi-person-fill-gear"></i></a>
