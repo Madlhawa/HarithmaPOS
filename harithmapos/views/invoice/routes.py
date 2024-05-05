@@ -82,8 +82,7 @@ def insert_invoice_head():
             vehical_id=form.vehical.data,
             washbay_id=form.washbay.data,
             employee_id=form.employee.data,
-            current_milage=form.current_milage.data,
-            service_status='Waiting'
+            current_milage=form.current_milage.data
         )
         db.session.add(invoice)
         db.session.commit()

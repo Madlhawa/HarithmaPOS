@@ -1,7 +1,8 @@
-from harithmapos import db, login_manager
+from harithmapos import db, login_manager, config
 from datetime import datetime
 from flask_login import UserMixin
 from flask import current_app
+from sqlalchemy.ext.hybrid import hybrid_property
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
@@ -16,6 +17,11 @@ class WashBay(db.Model):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoices = db.relationship('InvoiceHead', backref='washbay', lazy=True)
 
+    @hybrid_property
+    def active_invoice(self):
+        active_invoice_head = InvoiceHead.query.filter(InvoiceHead.is_in_bay).filter(InvoiceHead.washbay_id==self.id).first()
+        return active_invoice_head
+
 class InvoiceHead(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
@@ -24,7 +30,7 @@ class InvoiceHead(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     current_milage = db.Column(db.Numeric(18,0))
     next_milage = db.Column(db.Numeric(18,0))
-    service_status = db.Column(db.String(10))
+    service_status = db.Column(db.Integer, default=0)
     total_cost = db.Column(db.Numeric(10,2), default=0)
     total_price = db.Column(db.Numeric(10,2), default=0)
     discount_pct = db.Column(db.Numeric(10,2), default=0)
@@ -36,6 +42,19 @@ class InvoiceHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
+
+    @hybrid_property
+    def service_status_str(self):
+        return config.SERVICE_STATUS_LIST[int(self.service_status)]
+    
+    @hybrid_property
+    def is_in_bay(self):
+        return self.service_status in ['1', '2', '3', '4']    
+        
+    @is_in_bay.expression
+    def is_in_bay(cls):
+        return cls.service_status.in_(['1', '2', '3', '4'])
+
 
 class InvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)

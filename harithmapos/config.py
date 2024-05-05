@@ -10,3 +10,29 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
     MAIL_PORT = 587
+
+SERVICE_STATUS_LIST = [
+    'Waiting',
+    'Vacumming',
+    'Washing',
+    'Drying',
+    'Polishing',
+    'Done'
+]
+
+SERVICE_STATUS_FORM_LIST = [
+    ('0', 'Waiting'), 
+    ('1', 'Vacumming'), 
+    ('2', 'Washing'), 
+    ('3', 'Drying'), 
+    ('4', 'Polishing'), 
+    ('5', 'Done')
+]
+
+PAYMENT_METHOD_FORM_LIST = [
+    ('cash', 'Cash'), 
+    ('card', 'Card'), 
+    ('bt', 'Bank Transfer'), 
+    ('credit', 'Credit'),
+    ('qr', 'QR')
+]
