@@ -8,3 +8,4 @@ flask-login
 Pillow
 itsdangerous
 flask-mail
+pytz
