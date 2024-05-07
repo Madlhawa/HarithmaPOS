@@ -9,3 +9,5 @@ Pillow
 itsdangerous
 flask-mail
 pytz
+gunicorn
+wfastcgi
