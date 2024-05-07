@@ -31,14 +31,14 @@ def register():
 @user_blueprint.route("/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('customer_blueprint.customer'))
+        return redirect(url_for('dashboard_blueprint.dashboard'))
     form = UserLoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             login_user(user, remember=form.remember.data)
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('customer_blueprint.customer'))
+            return redirect(next_page) if next_page else redirect(url_for('dashboard_blueprint.dashboard'))
         else:
             flash(f'Login unsuccessfull. Please check email and password.', category='danger')
     return render_template('user/login.html', title='Login', form = form)
