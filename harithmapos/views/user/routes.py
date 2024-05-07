@@ -50,7 +50,7 @@ def account():
     if form.validate_on_submit():
         if form.image.data:
             if current_user.image != 'default.jpg':
-                os.remove(os.path.join(user.root_path, 'static/user_images', current_user.image))
+                os.remove(os.path.join('harithmapos','static','user_images', current_user.image))
             image = save_image(form.image.data)
             current_user.image = image
             print(f'{image = }')
