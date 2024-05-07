@@ -3,14 +3,14 @@
 {% block body %}
 <div class="container mt-3">
   {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+          {{message}}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
   <div class="row">
     <div class="col">
       <form action="{{url_for('invoice_head_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
@@ -81,81 +81,71 @@
             {{ invoice_head_update_form.hidden_tag() }}
             <div class="row">
                 <div class="col">
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Customer</span>
-                    <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.customer.name}}" disabled>
-                </div>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Vehical</span>
-                    {{ invoice_head_update_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", value=invoice_head.vehical.id|string+" | "+invoice_head.vehical.number) }}
-                        <datalist id="datalistOptionsVehical">
-                            {% for vehical in vehicals %}
-                                <option value="{{vehical.id}} | {{vehical.number}}">
-                            {% endfor %}
-                        </datalist>
-                </div>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Current Milage</span>
-                    {{ invoice_head_update_form.current_milage(class="form-control form-control", value=invoice_head.current_milage) }}
-                </div>
-                </div>
-                <div class="col">
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Employee</span>
-                    {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", value=invoice_head.employee.id|string+" | "+invoice_head.employee.name) }}
-                        <datalist id="datalistOptionsEmployee">
-                            {% for employee in employees %}
-                                <option value="{{employee.id}} | {{employee.name}}">
-                            {% endfor %}
-                        </datalist>
-                </div>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Wash Bay</span>
-                    {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", value=invoice_head.washbay.id|string+" | "+invoice_head.washbay.name) }}
-                        <datalist id="datalistOptionsWashBay">
-                            {% for washbay in washbays %}
-                                <option value="{{washbay.id}} | {{washbay.name}}">
-                            {% endfor %}
-                        </datalist>
-                </div>
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Next Milage</span>
-                    {{ invoice_head_update_form.next_milage(class="form-control form-control", value=invoice_head.next_milage) }}
-                </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Service Status</span>
-                    {{ invoice_head_update_form.service_status(class="form-control form-control", default=invoice_head.service_status) }}
-                </div>
-                </div>
-            </div>
-            <hr>
-            <div class="row">
-                <div class="col">
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
-                    {{ invoice_head_update_form.discount_pct(class="form-control form-control", value=invoice_head.discount_pct) }}
-                </div>
-                </div>
-                <div class="col">
-                <div class="input-group mb-3">
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Customer</span>
+                      <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.customer.name}}" disabled>
+                  </div>
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Vehical</span>
+                      {{ invoice_head_update_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", value=invoice_head.vehical.id|string+" | "+invoice_head.vehical.number) }}
+                          <datalist id="datalistOptionsVehical">
+                              {% for vehical in vehicals %}
+                                  <option value="{{vehical.id}} | {{vehical.number}}">
+                              {% endfor %}
+                          </datalist>
+                  </div>
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Current Milage</span>
+                      {{ invoice_head_update_form.current_milage(class="form-control form-control", value=invoice_head.current_milage) }}
+                  </div>
+                  <div class="col">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text" id="inputGroup-sizing-default">Service Status</span>
+                        {{ invoice_head_update_form.service_status(class="form-control form-control", default=invoice_head.service_status) }}
+                    </div>
+                  </div>
+                  <div class="input-group mb-3">
                     <span class="input-group-text" id="inputGroup-sizing-default">Payment Method</span>
                     {{ invoice_head_update_form.payment_method(class="form-control form-control", value=invoice_head.payment_method) }}
+                  </div>
                 </div>
+                <div class="col">
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Employee</span>
+                      {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", value=invoice_head.employee.id|string+" | "+invoice_head.employee.name) }}
+                          <datalist id="datalistOptionsEmployee">
+                              {% for employee in employees %}
+                                  <option value="{{employee.id}} | {{employee.name}}">
+                              {% endfor %}
+                          </datalist>
+                  </div>
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Wash Bay</span>
+                      {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", value=invoice_head.washbay.id|string+" | "+invoice_head.washbay.name) }}
+                          <datalist id="datalistOptionsWashBay">
+                              {% for washbay in washbays %}
+                                  <option value="{{washbay.id}} | {{washbay.name}}">
+                              {% endfor %}
+                          </datalist>
+                  </div>
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Next Milage</span>
+                      {{ invoice_head_update_form.next_milage(class="form-control form-control", value=invoice_head.next_milage) }}
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
+                    {{ invoice_head_update_form.discount_pct(class="form-control form-control", value=invoice_head.discount_pct) }}
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Payment Amount</span>
+                    {{ invoice_head_update_form.paid_amount(class="form-control form-control", value=invoice_head.paid_amount) }}
+                  </div>
                 </div>
             </div>
             <div class="row">
-                <div class="col">
-                <div class="input-group mb-3">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Payment Amount</span>
-                    {{ invoice_head_update_form.paid_amount(class="form-control form-control", value=invoice_head.paid_amount) }}
-                </div>
-                </div>
                 <div class="col-auto">
-                {{ invoice_head_update_form.submit(class="btn btn-primary mb-3") }}
+                  {{ invoice_head_update_form.update_invoice(class="btn btn-primary mb-3") }}
+                  {{ invoice_head_update_form.complete_invoice(class="btn btn-success mb-3") }}
                 </div>
                 {% if invoice_head_update_form.errors %}
                     {% for error in invoice_head_update_form.errors.items() %}

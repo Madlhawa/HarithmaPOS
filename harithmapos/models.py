@@ -49,11 +49,11 @@ class InvoiceHead(db.Model):
     
     @hybrid_property
     def is_in_bay(self):
-        return self.service_status in ['1', '2', '3', '4']    
+        return self.service_status in ['1', '2', '3']    
         
     @is_in_bay.expression
     def is_in_bay(cls):
-        return cls.service_status.in_(['1', '2', '3', '4'])
+        return cls.service_status.in_(['1', '2', '3'])
 
 
 class InvoiceDetail(db.Model):
