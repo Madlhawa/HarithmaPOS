@@ -23,7 +23,8 @@ class InvoiceHeadUpdateForm(FlaskForm):
     gross_price = DecimalField("Gross Price", places=2, validators=[Optional()])
     payment_method = SelectField("Payment Method", choices=config.PAYMENT_METHOD_FORM_LIST)
     paid_amount = DecimalField("Paid Amount", places=2, validators=[Optional()])
-    submit = SubmitField('Update InvoiceHead')
+    update_invoice = SubmitField('Update InvoiceHead')
+    complete_invoice = SubmitField('Complete InvoiceHead')
 
 class InvoiceHeadCreateForm(FlaskForm):
     vehical = StringField("Vehical", validators=[DataRequired()])

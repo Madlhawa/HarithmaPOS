@@ -15,11 +15,15 @@ dashboard_blueprint = Blueprint('dashboard_blueprint', __name__)
 @dashboard_blueprint.route('/dashboard')
 def dashboard():
     invoice_head_create_form = InvoiceHeadCreateForm()
+
     results = WashBay.query.all()
+    waiting_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==0).all()
+    polishing_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==4).all()
+    done_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==5).filter(db.func.date(InvoiceHead.created_dttm) == datetime.now().date()).all()
+
     active_wash_bays = [washbay for washbay in results if washbay.active_invoice ]
     inactive_wash_bays = [washbay for washbay in results if not washbay.active_invoice ]
-    waiting_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==0).filter(db.func.date(InvoiceHead.created_dttm) == datetime.now().date()).all()
-    done_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==5).filter(db.func.date(InvoiceHead.created_dttm) == datetime.now().date()).all()
+
     return render_template(
         'dashboard.html',
         title='InvoiceHead',
@@ -28,6 +32,7 @@ def dashboard():
         active_wash_bays=active_wash_bays,
         inactive_wash_bays=inactive_wash_bays,
         waiting_invoices=waiting_invoices,
+        polishing_invoices=polishing_invoices,
         done_invoices=done_invoices,
         service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
         service_status_list=config.SERVICE_STATUS_LIST

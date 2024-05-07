@@ -105,27 +105,32 @@ def invoice_head_detail(invoice_head_id):
     invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
 
     if invoice_head_update_form.validate_on_submit():
-        vehical = Vehical.query.get(int(invoice_head_update_form.vehical.data.split('|')[0].strip()))
+        if invoice_head_update_form.update_invoice.data:
+            vehical = Vehical.query.get(int(invoice_head_update_form.vehical.data.split('|')[0].strip()))
 
-        invoice_head.customer_id=vehical.owner.id
-        invoice_head.vehical_id=int(invoice_head_update_form.vehical.data.split('|')[0].strip())
-        invoice_head.washbay_id=int(invoice_head_update_form.washbay.data.split('|')[0].strip())
-        invoice_head.employee_id=int(invoice_head_update_form.employee.data.split('|')[0].strip())
-        invoice_head.current_milage=invoice_head_update_form.current_milage.data
-        invoice_head.next_milage=invoice_head_update_form.next_milage.data
-        invoice_head.service_status=invoice_head_update_form.service_status.data
-        invoice_head.payment_method=invoice_head_update_form.payment_method.data
-        invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
-        invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
+            invoice_head.customer_id=vehical.owner.id
+            invoice_head.vehical_id=int(invoice_head_update_form.vehical.data.split('|')[0].strip())
+            invoice_head.washbay_id=int(invoice_head_update_form.washbay.data.split('|')[0].strip())
+            invoice_head.employee_id=int(invoice_head_update_form.employee.data.split('|')[0].strip())
+            invoice_head.current_milage=invoice_head_update_form.current_milage.data
+            invoice_head.next_milage=invoice_head_update_form.next_milage.data
+            invoice_head.service_status=invoice_head_update_form.service_status.data
+            invoice_head.payment_method=invoice_head_update_form.payment_method.data
+            invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
+            invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
 
-        if invoice_details:
-            update_total_values(invoice_head)
-        
-        if invoice_head.paid_amount:
-            invoice_head.last_payment_date = datetime.now()
-            invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount        
+            if invoice_details:
+                update_total_values(invoice_head)
+            
+            if invoice_head.paid_amount:
+                invoice_head.last_payment_date = datetime.now()
+                invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount        
 
-        db.session.commit()
+            db.session.commit()
+
+        elif invoice_head_update_form.complete_invoice.data:
+            pass
+
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
 
@@ -161,6 +166,8 @@ def add_invoice_detail(invoice_head_id):
         item = Item.query.get_or_404(item_id)
         invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
 
+        item.quantity -= quantity
+
         invoice_detail = InvoiceDetail(
             invoice_head_id = invoice_head_id,
             item_id = item_id,
@@ -185,6 +192,9 @@ def add_invoice_detail(invoice_head_id):
 def delete_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+    item = Item.query.get_or_404(invoice_detail.item.id)
+
+    item.quantity += invoice_detail.quantity
 
     db.session.delete(invoice_detail)
     db.session.commit()
@@ -197,6 +207,9 @@ def increase_quantity_invoice_detail(invoice_detail_id):
 
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+    item = Item.query.get_or_404(invoice_detail.item.id)
+
+    item.quantity -= 1
 
     invoice_detail.quantity += 1
     invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
@@ -210,8 +223,10 @@ def increase_quantity_invoice_detail(invoice_detail_id):
 def decrease_quantity_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
+    item = Item.query.get_or_404(invoice_detail.item.id)
 
     if invoice_detail.quantity > 1:
+        item.quantity += 1
         invoice_detail.quantity -= 1
         invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
         invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
@@ -222,10 +237,6 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
     update_total_values(invoice_head)
 
     return redirect(url_for('invoice_head_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
-
-
-
-
 
 
 
