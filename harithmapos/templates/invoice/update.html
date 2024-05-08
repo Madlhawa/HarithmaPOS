@@ -13,7 +13,7 @@
   {% endwith %}
   <div class="row">
     <div class="col">
-      <form action="{{url_for('invoice_head_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
+      <form action="{{url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
         <div class="input-group ">
             {{ invoice_head_update_form.hidden_tag() }}
           <span class="input-group-text">Item</span>
@@ -47,14 +47,14 @@
             <td class="align-middle">{{invoice_detail.id}}</td>
             <td class="align-middle">{{invoice_detail.item.name}}</td>
             <td class="align-middle">
-              <a href="{{url_for('invoice_head_blueprint.decrease_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
+              <a href="{{url_for('invoice_blueprint.decrease_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
               {{invoice_detail.quantity}}
-              <a href="{{url_for('invoice_head_blueprint.increase_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
+              <a href="{{url_for('invoice_blueprint.increase_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
             </td>
             <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
             <td class="align-middle">{{invoice_detail.total_price}}</td>
             <td class="align-middle">
-              <a href="{{url_for('invoice_head_blueprint.delete_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+              <a href="{{url_for('invoice_blueprint.delete_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
                 onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
             </td>
           </tr>
@@ -77,7 +77,7 @@
       </ul>
     </div>
     <div class="col">
-        <form action="{{url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
+        <form action="{{url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
             {{ invoice_head_update_form.hidden_tag() }}
             <div class="row">
                 <div class="col">

@@ -20,7 +20,7 @@
                     {% for invoice in waiting_invoices %}
                         <tr>
                             <td class="align-middle">
-                                <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
+                                <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
                             </td>
                             <td class="align-middle">{{invoice.customer.name}}</td>
                             <td class="align-middle">{{invoice.vehical.number}}</td>
@@ -55,7 +55,7 @@
                     {% for invoice in done_invoices %}
                         <tr>
                             <td class="align-middle">
-                                <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
+                                <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-secondary btn-sm">{{invoice.id}}</a>
                             </td>
                             <td class="align-middle">{{invoice.customer.name}}</td>
                             <td class="align-middle">{{invoice.vehical.number}}</td>
@@ -128,7 +128,7 @@
                     </div>
                     <div class="card-footer">  
                         <div class="d-grid gap-2 col-6 mx-auto">
-                            <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=washbay.active_invoice.id) }}" class="btn btn-primary">Go to Invoice</a>
+                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=washbay.active_invoice.id) }}" class="btn btn-primary">Go to Invoice</a>
                         </div>
                     </div> 
                 </div>
@@ -187,7 +187,7 @@
                     </div>
                     <div class="card-footer">  
                         <div class="d-grid gap-2 col-6 mx-auto">
-                            <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-primary">Go to Invoice</a>
+                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-primary">Go to Invoice</a>
                         </div>
                     </div> 
                 </div>
@@ -219,7 +219,7 @@
                     </div>
                     <div class="card-footer">  
                         <div class="d-grid gap-2 mx-auto">
-                            <a href="{{ url_for('invoice_head_blueprint.insert_invoice_head') }}" class="btn btn-secondary">Create New Invoice</a>
+                            <a href="{{ url_for('invoice_blueprint.insert_invoice_head') }}" class="btn btn-secondary">Create New Invoice</a>
                         </div>
                     </div> 
                 </div>
