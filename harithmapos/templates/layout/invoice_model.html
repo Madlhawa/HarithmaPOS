@@ -6,7 +6,7 @@
             <h4 class="modal-title">Create Invoice</h4>
         </div>
         <div class="modal-body">
-            <form method="POST" action="{{url_for('invoice_head_blueprint.insert_invoice_head')}}">
+            <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
                 {{ invoice_head_create_form.hidden_tag() }}
                 <fieldset class="form-group">
                     <div class="form-group">

@@ -7,7 +7,7 @@
                 <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
                     <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
                     <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('invoice_head_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
+                    <a href="{{ url_for('invoice_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
                 </form> 
                 <!-- Right side: Button -->
                 <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Create Invoice</button>
@@ -22,7 +22,7 @@
                 <h4 class="modal-title">Create Invoice</h4>
             </div>
             <div class="modal-body">
-                <form method="POST" action="{{url_for('invoice_head_blueprint.insert_invoice_head')}}">
+                <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
                     {{ invoice_head_create_form.hidden_tag() }}
                     <fieldset class="form-group">
                         <div class="form-group">
@@ -104,8 +104,8 @@
                         <td class="align-middle">{{invoice_head.service_status_str}}</td>
                         <td class="align-middle">{{invoice_head.gross_price}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('invoice_head_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" ><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('invoice_head_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-danger" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-warning" ><i class="bi bi-person-fill-gear"></i></a>
+                            <a href="{{ url_for('invoice_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-danger" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -113,19 +113,19 @@
         </table>
         <nav aria-label="Page navigation">
             <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=invoice_heads.prev_num, query=query) }}">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.prev_num, query=query) }}">Previous</a></li>
                 {% for page_number in invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                     {% if page_number %}
                         {% if invoice_heads.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('invoice_head_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                            <li class="page-item "><a class="page-link active" href="{{ url_for('invoice_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
                         {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                            <li class="page-item "><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
                         {% endif %}
                     {% else %}
                         <li class="page-item "><a class="page-link" href="#">...</a></li>
                     {% endif %}
                 {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_head_blueprint.invoice_head', page=invoice_heads.next_num, query=query) }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.next_num, query=query) }}">Next</a></li>
             </ul>
         </nav>
     </div>

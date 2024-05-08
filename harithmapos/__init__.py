@@ -31,7 +31,8 @@ def create_app(Config_class=Config):
     from harithmapos.views.item.routes import item_blueprint
     from harithmapos.views.washbay.routes import washbay_blueprint
     from harithmapos.views.employee.routes import employee_blueprint
-    from harithmapos.views.invoice.routes import invoice_head_blueprint
+    from harithmapos.views.invoice.routes import invoice_blueprint
+    from harithmapos.views.purchase_order.routes import purchase_order_blueprint
     from harithmapos.views.dashboard.routes import dashboard_blueprint
 
     app.register_blueprint(error_blueprint)
@@ -43,7 +44,8 @@ def create_app(Config_class=Config):
     app.register_blueprint(item_blueprint)
     app.register_blueprint(washbay_blueprint)
     app.register_blueprint(employee_blueprint)
-    app.register_blueprint(invoice_head_blueprint)
+    app.register_blueprint(invoice_blueprint)
+    app.register_blueprint(purchase_order_blueprint)
     app.register_blueprint(dashboard_blueprint)
 
     return app

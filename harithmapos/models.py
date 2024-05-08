@@ -9,6 +9,32 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+class PurchaseOrderHead(db.Model):
+    id =  db.Column(db.Integer, primary_key=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    supplier_invoice_id = db.Column(db.String(255))
+    total_price = db.Column(db.Numeric(10,2), default=0)
+    discount_pct = db.Column(db.Numeric(10,2), default=0)
+    gross_price = db.Column(db.Numeric(10,2), default=0)
+    payment_method = db.Column(db.String(10))
+    paid_amount = db.Column(db.Numeric(10,2), default=0)
+    remaining_amount = db.Column(db.Numeric(10,2))
+    last_payment_date = db.Column(db.Date())
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
+
+class PurchaseOrderDetail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_order_head_id = db.Column(db.Integer, db.ForeignKey('purchase_order_head.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    total_cost = db.Column(db.Numeric(10,2), nullable=False)
+    total_price = db.Column(db.Numeric(10,2), nullable=False)
+    discount_pct = db.Column(db.Numeric(10,2), nullable=False)
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class WashBay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
@@ -91,6 +117,7 @@ class Item(db.Model):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='item', lazy=True)
+    purchase_order_details = db.relationship('PurchaseOrderDetail', backref='item', lazy=True)
 
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,6 +126,7 @@ class Supplier(db.Model):
     address = db.Column(db.String(255))
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    purchse_orders = db.relationship('PurchaseOrderHead', backref='supplier', lazy=True)
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
