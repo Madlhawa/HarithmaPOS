@@ -48,6 +48,32 @@ class WashBay(db.Model):
         active_invoice_head = InvoiceHead.query.filter(InvoiceHead.is_in_bay).filter(InvoiceHead.washbay_id==self.id).first()
         return active_invoice_head
 
+class ItemInvoiceHead(db.Model):
+    id =  db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    total_cost = db.Column(db.Numeric(10,2), default=0)
+    total_price = db.Column(db.Numeric(10,2), default=0)
+    discount_pct = db.Column(db.Numeric(10,2), default=0)
+    gross_price = db.Column(db.Numeric(10,2), default=0)
+    payment_method = db.Column(db.String(10))
+    paid_amount = db.Column(db.Numeric(10,2), default=0)
+    remaining_amount = db.Column(db.Numeric(10,2))
+    last_payment_date = db.Column(db.Date())
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
+
+class ItemInvoiceDetail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    item_invoice_head_id = db.Column(db.Integer, db.ForeignKey('item_invoice_head.id'))
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    total_cost = db.Column(db.Numeric(10,2), nullable=False)
+    total_price = db.Column(db.Numeric(10,2), nullable=False)
+    discount_pct = db.Column(db.Numeric(10,2), nullable=False)
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class InvoiceHead(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
@@ -84,7 +110,7 @@ class InvoiceHead(db.Model):
 
 class InvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    invoice_head_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'), nullable=False)
+    invoice_head_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
@@ -117,6 +143,7 @@ class Item(db.Model):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='item', lazy=True)
+    item_invoice_details = db.relationship('ItemInvoiceDetail', backref='item', lazy=True)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='item', lazy=True)
 
 class Supplier(db.Model):
@@ -163,6 +190,7 @@ class Customer(db.Model):
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     vehicals = db.relationship('Vehical', backref='owner', lazy=True)
     invoices = db.relationship('InvoiceHead', backref='customer', lazy=True)
+    item_invoices = db.relationship('ItemInvoiceHead', backref='customer', lazy=True)
 
     def __repr__(self):
         return f"Customer('{self.name}','{self.contact}')"

@@ -75,8 +75,8 @@
                         <td class="align-middle">{{supplier.contact}}</td>
                         <td class="align-middle">{{supplier.address}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('supplier_blueprint.delete_supplier', supplier_id=supplier.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}">Edit</a>
+                            <a href="{{ url_for('supplier_blueprint.delete_supplier', supplier_id=supplier.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')">Delete</a>
                         </td>
                     </tr>
                 
