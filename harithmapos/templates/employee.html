@@ -93,8 +93,8 @@
                         <td class="align-middle">{{employee.joined_date}}</td>
                         <td class="align-middle">{{employee.wage}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('employee_blueprint.update_employee', employee_id=employee.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update employee" data-bs-toggle="modal" data-bs-target="#update_employee{{employee.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('employee_blueprint.delete_employee', employee_id=employee.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete employee" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('employee_blueprint.update_employee', employee_id=employee.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update employee" data-bs-toggle="modal" data-bs-target="#update_employee{{employee.id}}">Edit</a>
+                            <a href="{{ url_for('employee_blueprint.delete_employee', employee_id=employee.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete employee" onclick="return confirm('Are you sure to delete?')">Delete</a>
                         </td>
                     </tr>
                 

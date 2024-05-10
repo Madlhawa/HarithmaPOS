@@ -75,8 +75,8 @@
                         <td class="align-middle">{{washbay.remarks}}</td>
                         <td class="align-middle">{{washbay.capacity}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('washbay_blueprint.update_washbay', washbay_id=washbay.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update washbay" data-bs-toggle="modal" data-bs-target="#update_washbay{{washbay.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('washbay_blueprint.delete_washbay', washbay_id=washbay.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete washbay" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('washbay_blueprint.update_washbay', washbay_id=washbay.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update washbay" data-bs-toggle="modal" data-bs-target="#update_washbay{{washbay.id}}">Edit</a>
+                            <a href="{{ url_for('washbay_blueprint.delete_washbay', washbay_id=washbay.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete washbay" onclick="return confirm('Are you sure to delete?')">Delete</a>
                         </td>
                     </tr>
                 

@@ -4,30 +4,48 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db
-from harithmapos.models import InvoiceHead, InvoiceDetail, Customer, Vehical, WashBay, Employee, Item
-from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, InvoiceDetailCreateForm
+from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item
+from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 from harithmapos.views.invoice.utils import get_id
 
 invoice_blueprint = Blueprint('invoice_blueprint', __name__)
 
-@invoice_blueprint.route("/invoice/search", methods=['GET', 'POST'])
-@login_required
-def invoice_head_search():
-    query = request.args.get(query)
-    print(query)
+# @invoice_blueprint.route("/invoice/search", methods=['GET', 'POST'])
+# @login_required
+# def invoice_head_search():
+#     query = request.args.get(query)
+#     print(query)
 
-    if query:
-        results = Customer.query.filter(Customer.name.icontains(query))
-    else:
-        results = []
+#     if query:
+#         results = Customer.query.filter(Customer.name.icontains(query))
+#     else:
+#         results = []
     
-    return render_template(
-        'invoice_head.html', 
-        title='InvoiceHead',
-        results = results,
-        query=query
-    )
+#     return render_template(
+#         'invoice_head.html', 
+#         title='InvoiceHead',
+#         results = results,
+#         query=query
+#     )
+
+# @invoice_blueprint.route("/item_invoice/search", methods=['GET', 'POST'])
+# @login_required
+# def item_invoice_head_search():
+#     query = request.args.get(query)
+#     print(query)
+
+#     if query:
+#         results = ItemInvoiceHead.query.filter(ItemInvoiceHead.created_dttm == query)
+#     else:
+#         results = []
+    
+#     return render_template(
+#         'item_invoice_head.html', 
+#         title='Item Invoice',
+#         results = results,
+#         query=query
+#     )
 
 @invoice_blueprint.route("/invoice/head", methods=['GET', 'POST'])
 @login_required
@@ -56,6 +74,32 @@ def invoice_head():
         vehicals=vehicals,
         employees=employees,
         washbays=washbays,
+        query=query
+    )
+
+@invoice_blueprint.route("/item_invoice/head", methods=['GET', 'POST'])
+@login_required
+def item_invoice_head():
+    item_invoice_head_create_form = ItemInvoiceHeadCreateForm()
+    item_invoice_head_update_form = ItemInvoiceHeadUpdateForm()
+
+    customers = Customer.query.all()
+
+    per_page = 20
+    page = request.args.get('page',1,type=int)
+    query = request.args.get("query",None)
+
+    if query:
+        item_invoice_heads = ItemInvoiceHead.query.order_by(ItemInvoiceHead.update_dttm.desc()).filter(ItemInvoiceHead.created_dttm == query).paginate(page=page, per_page=per_page)
+    else:
+        item_invoice_heads = ItemInvoiceHead.query.order_by(ItemInvoiceHead.update_dttm.desc()).paginate(page=page, per_page=per_page)
+    return render_template(
+        'invoice/item_head.html', 
+        title='Item Invoice', 
+        item_invoice_head_create_form=item_invoice_head_create_form, 
+        item_invoice_head_update_form=item_invoice_head_update_form,
+        item_invoice_heads=item_invoice_heads,
+        customers=customers,
         query=query
     )
 
@@ -90,6 +134,30 @@ def insert_invoice_head():
     else:
         flash("Error: Invoice create failed!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head'))
+
+@invoice_blueprint.route("/item_invoice/head/create", methods=['GET', 'POST'])
+@login_required
+def insert_item_invoice_head():
+    form = ItemInvoiceHeadCreateForm()
+    if request.method == 'GET':
+        customers = Customer.query.all()
+        return render_template(
+            'invoice/item_create.html', 
+            title='Create Item Invoice',
+            form=form,
+            customers=customers,
+        )
+    elif form.validate_on_submit():
+        customer = Customer.query.get(form.customer.data)
+        item_invoice = ItemInvoiceHead(
+            customer_id=customer.id
+        )
+        db.session.add(item_invoice)
+        db.session.commit()
+        return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice.id))
+    else:
+        flash("Error: Item Invoice create failed!", category='danger')
+    return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
 def invoice_head_detail(invoice_head_id):
@@ -147,6 +215,52 @@ def invoice_head_detail(invoice_head_id):
             invoice_details=invoice_details
         )
 
+@invoice_blueprint.route("/item_invoice/head/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+def item_invoice_head_detail(item_invoice_head_id):
+    item_invoice_head_update_form = ItemInvoiceHeadUpdateForm()
+    item_invoice_detail_create_form = InvoiceDetailCreateForm()
+
+    items = Item.query.all()
+    customers = Customer.query.all()
+
+    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
+    item_invoice_details = ItemInvoiceDetail.query.filter(ItemInvoiceDetail.item_invoice_head_id==item_invoice_head_id)
+
+    if item_invoice_head_update_form.validate_on_submit():
+        if item_invoice_head_update_form.update_item_invoice.data:
+            customer = Customer.query.get(int(get_id(item_invoice_head_update_form.customer.data)))
+
+            item_invoice_head.customer_id=customer.id
+            item_invoice_head.payment_method=item_invoice_head_update_form.payment_method.data
+            item_invoice_head.paid_amount=item_invoice_head_update_form.paid_amount.data
+            item_invoice_head.discount_pct=item_invoice_head_update_form.discount_pct.data
+
+            if item_invoice_details:
+                update_total_values(item_invoice_head)
+            
+            if item_invoice_head.paid_amount:
+                item_invoice_head.last_payment_date = datetime.now()
+                item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
+
+            db.session.commit()
+
+        elif item_invoice_head_update_form.complete_item_invoice.data:
+            pass
+
+    elif request.method == 'POST':
+        flash("Item Invoice update failed!", category='danger')
+
+    return render_template(
+            'invoice/item_update.html', 
+            title='Item Invoice', 
+            item_invoice_head=item_invoice_head,
+            item_invoice_head_update_form=item_invoice_head_update_form,
+            item_invoice_detail_create_form=item_invoice_detail_create_form,
+            items=items,
+            customers=customers,
+            item_invoice_details=item_invoice_details
+        )
+
 @invoice_blueprint.route('/invoice/head/<int:invoice_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_invoice_head(invoice_head_id):
@@ -155,6 +269,15 @@ def delete_invoice_head(invoice_head_id):
     db.session.commit()
     flash("InvoiceHead is deleted!", category='success')
     return redirect(url_for('invoice_blueprint.invoice_head'))
+
+@invoice_blueprint.route('/item_invoice/head/<int:item_invoice_head_id>/delete', methods = ['GET', 'POST'])
+@login_required
+def delete_item_invoice_head(item_invoice_head_id):
+    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
+    db.session.delete(item_invoice_head)
+    db.session.commit()
+    flash("Success: Invoice is deleted!", category='success')
+    return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
 def add_invoice_detail(invoice_head_id):
@@ -188,6 +311,38 @@ def add_invoice_detail(invoice_head_id):
         flash("Invoice Item failed to add!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
 
+@invoice_blueprint.route("/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+def add_item_invoice_detail(item_invoice_head_id):
+    item_invoice_detail_create_form = InvoiceDetailCreateForm()
+    if item_invoice_detail_create_form.validate_on_submit():
+        item_id = get_id(item_invoice_detail_create_form.item.data)
+        quantity = item_invoice_detail_create_form.quantity.data
+
+        item = Item.query.get_or_404(item_id)
+        item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
+
+        item.quantity -= quantity
+
+        item_invoice_detail = ItemInvoiceDetail(
+            item_invoice_head_id = item_invoice_head_id,
+            item_id = item_id,
+            quantity = quantity,
+            total_cost = item.unit_cost*quantity,
+            total_price = item.unit_price*quantity,
+            discount_pct = 0
+        )
+
+        db.session.add(item_invoice_detail)
+        db.session.commit()
+
+        update_total_values(item_invoice_head)
+
+        print(f"{item_invoice_head.total_cost=}")
+
+    else:
+        flash("Item Invoice Item failed to add!", category='danger')
+    return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_head_id))
+
 @invoice_blueprint.route("/invoice/detail/delete/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def delete_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
@@ -201,6 +356,20 @@ def delete_invoice_detail(invoice_detail_id):
     update_total_values(invoice_head)
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
+
+@invoice_blueprint.route("/item_invoice/detail/delete/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+def delete_item_invoice_detail(item_invoice_detail_id):
+    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
+    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
+    item = Item.query.get_or_404(item_invoice_detail.item.id)
+
+    item.quantity += item_invoice_detail.quantity
+
+    db.session.delete(item_invoice_detail)
+    db.session.commit()
+    update_total_values(item_invoice_head)
+
+    return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def increase_quantity_invoice_detail(invoice_detail_id):
@@ -218,6 +387,23 @@ def increase_quantity_invoice_detail(invoice_detail_id):
     db.session.commit()
     update_total_values(invoice_head)
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
+
+@invoice_blueprint.route("/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+def increase_quantity_item_invoice_detail(item_invoice_detail_id):
+
+    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
+    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
+    item = Item.query.get_or_404(item_invoice_detail.item.id)
+
+    item.quantity -= 1
+
+    item_invoice_detail.quantity += 1
+    item_invoice_detail.total_cost = item_invoice_detail.item.unit_cost*item_invoice_detail.quantity
+    item_invoice_detail.total_price = item_invoice_detail.item.unit_price*item_invoice_detail.quantity
+
+    db.session.commit()
+    update_total_values(item_invoice_head)
+    return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
 def decrease_quantity_invoice_detail(invoice_detail_id):
@@ -238,12 +424,35 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
+@invoice_blueprint.route("/item_invoice/detail/quantity/remove/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
+    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
+    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
+    item = Item.query.get_or_404(item_invoice_detail.item.id)
+
+    if item_invoice_detail.quantity > 1:
+        item.quantity += 1
+        item_invoice_detail.quantity -= 1
+        item_invoice_detail.total_cost = item_invoice_detail.item.unit_cost*item_invoice_detail.quantity
+        item_invoice_detail.total_price = item_invoice_detail.item.unit_price*item_invoice_detail.quantity
+    else:
+        flash("Quantity should be at leaset one!", category='warning')
+
+    db.session.commit()
+    update_total_values(item_invoice_head)
+
+    return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
+
 
 
 # supporting fuctions
 def update_total_values(invoice_head):
-    invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
-    invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    if isinstance(invoice_head,InvoiceHead):
+        invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+        invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+    else:
+        invoice_head.total_cost = db.session.query(func.sum(ItemInvoiceDetail.total_cost)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
+        invoice_head.total_price = db.session.query(func.sum(ItemInvoiceDetail.total_price)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
     invoice_head.gross_price = (invoice_head.total_price - (invoice_head.total_price*(invoice_head.discount_pct/100))) if invoice_head.discount_pct else invoice_head.total_price
 
     invoice_head.total_cost = invoice_head.total_cost if invoice_head.total_cost else 0

@@ -1,0 +1,124 @@
+{% extends 'layout/base.html' %}
+{% block title %} Home {% endblock %}
+{% block body %}
+<div class="container mt-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+          {{message}}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  <div class="row">
+    <div class="col">
+      <form action="{{url_for('invoice_blueprint.add_item_invoice_detail', item_invoice_head_id=item_invoice_head.id)}}" method="POST">
+        <div class="input-group ">
+            {{ item_invoice_head_update_form.hidden_tag() }}
+          <span class="input-group-text">Item</span>
+          {{ item_invoice_detail_create_form.item(class="form-control", list="ItemDatalistOptions", id="ItemDataList", placeholder="Type to search...") }}
+          <datalist id="ItemDatalistOptions">
+            {% for item in items %}
+              <option value="{{item.id}} | {{item.name}}">
+            {% endfor %}
+          </datalist>
+          <span class="input-group-text">Qty</span>
+          {{ item_invoice_detail_create_form.quantity(class="form-control") }}
+          <!-- <input type="text" class="form-control" placeholder="1" aria-label="Server"> -->
+          {{ item_invoice_detail_create_form.submit(class="btn btn-primary") }}
+          <!-- <button class="btn btn-primary">Add Item</button> -->
+        </div>
+      </form>
+      <table class="table table-success table-striped table-hover" border="1">
+        <thead class="thread-dark">
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Price</th>
+            <th scope="col">Total Price</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="results">
+          {% for item_invoice_detail in item_invoice_details %}
+          <tr>
+            <td class="align-middle">{{item_invoice_detail.id}}</td>
+            <td class="align-middle">{{item_invoice_detail.item.name}}</td>
+            <td class="align-middle">
+              <a href="{{url_for('invoice_blueprint.decrease_quantity_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
+              {{item_invoice_detail.quantity}}
+              <a href="{{url_for('invoice_blueprint.increase_quantity_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
+            </td>
+            <td class="align-middle">{{item_invoice_detail.item.unit_price}}</td>
+            <td class="align-middle">{{item_invoice_detail.total_price}}</td>
+            <td class="align-middle">
+              <a href="{{url_for('invoice_blueprint.delete_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id)}}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
+                onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <ul class="list-group mb-3">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Net Price</span>
+          <text>{{ '{:,}'.format(item_invoice_head.total_price) }}</text>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Discount</span>
+          <text>- {{ item_invoice_head.discount_pct }} %</text>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <h4>Gross Price</h4>
+          <h4 class="text-success">{{ '{:,}'.format(item_invoice_head.gross_price) }}</h4>
+        </li>
+      </ul>
+    </div>
+    <div class="col">
+        <form action="{{url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id)}}" method="POST">
+            {{ item_invoice_head_update_form.hidden_tag() }}
+            <div class="row">
+                <div class="col">
+                  <div class="input-group mb-3">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Customer</span>
+                      {{ item_invoice_head_update_form.customer(class="form-control", list="datalistOptionsCustomer", id="customerDataList", value=item_invoice_head.customer.id|string+" | "+item_invoice_head.customer.name) }}
+                          <datalist id="datalistOptionsCustomer">
+                              {% for customer in customers %}
+                                  <option value="{{customer.id}} | {{customer.name}}">
+                              {% endfor %}
+                          </datalist>
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Payment Method</span>
+                    {{ item_invoice_head_update_form.payment_method(class="form-control form-control", value=item_invoice_head.payment_method) }}
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="input-group mb-3">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
+                    {{ item_invoice_head_update_form.discount_pct(class="form-control form-control", value=item_invoice_head.discount_pct) }}
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Payment Amount</span>
+                    {{ item_invoice_head_update_form.paid_amount(class="form-control form-control", value=item_invoice_head.paid_amount) }}
+                  </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-auto">
+                  {{ item_invoice_head_update_form.update_item_invoice(class="btn btn-primary mb-3") }}
+                  {{ item_invoice_head_update_form.complete_item_invoice(class="btn btn-success mb-3") }}
+                </div>
+                {% if item_invoice_head_update_form.errors %}
+                    {% for error in item_invoice_head_update_form.errors.items() %}
+                        <small class="text-danger mt-2">{{ error }}</small><br>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -99,8 +99,8 @@
                         <td class="align-middle">{{item.unit_price}}</td>
                         <td class="align-middle">{{item.discount_pct}}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('item_blueprint.update_item', item_id=item.id) }}" class="btn btn-warning" data-toggle="tooltip" data-placement="top" title="Update item" data-bs-toggle="modal" data-bs-target="#update_item{{item.id}}"><i class="bi bi-person-fill-gear"></i></a>
-                            <a href="{{ url_for('item_blueprint.delete_item', item_id=item.id) }}" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete item" onclick="return confirm('Are you sure to delete?')"><i class="bi bi-person-dash-fill"></i></a>
+                            <a href="{{ url_for('item_blueprint.update_item', item_id=item.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update item" data-bs-toggle="modal" data-bs-target="#update_item{{item.id}}">Edit</a>
+                            <a href="{{ url_for('item_blueprint.delete_item', item_id=item.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete item" onclick="return confirm('Are you sure to delete?')">Delete</a>
                         </td>
                     </tr>
                 
