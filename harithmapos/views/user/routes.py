@@ -50,18 +50,22 @@ def account():
     if form.validate_on_submit():
         if form.image.data:
             if current_user.image != 'default.jpg':
-                os.remove(os.path.join('harithmapos','static','user_images', current_user.image))
+                try:
+                    os.remove(os.path.join('harithmapos','static','user_images', current_user.image))
+                except:
+                    pass
             image = save_image(form.image.data)
             current_user.image = image
-            print(f'{image = }')
         current_user.email = form.email.data
         current_user.name = form.name.data
+        current_user.ui_theme = form.ui_theme.data
         db.session.commit()
         flash('Account has been updated.',category='success')
         return redirect(url_for('user_blueprint.account'))
     elif request.method == 'GET':
         form.name.data = current_user.name
         form.email.data = current_user.email
+        form.ui_theme.data = current_user.ui_theme
     image_path = url_for('static', filename=f'user_images/{current_user.image}')
     print(f'{image_path = }')
     return render_template('user/account.html', title='Account', user_image_file=image_path, form=form)

@@ -4,8 +4,8 @@
     <div class="row justify-content-center">
         <div class="col-md-3">
             <div class="d-flex flex-column align-items-center text-center p-3 py-5"><img class="rounded-circle mt-5" width="150px" src="{{ user_image_file }}">
-                <span class="font-weight-bold">{{ current_user.name }}</span>
-                <span class="text-black-50">{{ current_user.email }}</span>
+                <h4 class="font-weight-bold mt-4">{{ current_user.name }}</h4>
+                <span class="text-secondary">{{ current_user.email }}</span>
             </div>
         </div>
         <div class="col-md-5">
@@ -51,6 +51,10 @@
                                         <small class="text-danger mt-2">{{ error }}</small><br>
                                     {% endfor %}
                                 {% endif %}
+                            </div>
+                            <div class="form-group">
+                                {{ form.ui_theme.label(class="form-control-label") }}
+                                {{ form.ui_theme(class="form-control form-control-lg") }}
                             </div>
                         </fieldset>
                         <div class="form-group">

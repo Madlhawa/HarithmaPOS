@@ -21,12 +21,12 @@ SERVICE_STATUS_LIST = [
 ]
 
 SERVICE_STATUS_FORM_LIST = [
-    ('0', 'Waiting'), 
-    ('1', 'Vacumming'), 
-    ('2', 'Washing'), 
-    ('3', 'Drying'), 
-    ('4', 'Polishing'), 
-    ('5', 'Done')
+    (0, 'Waiting'), 
+    (1, 'Vacumming'), 
+    (2, 'Washing'), 
+    (3, 'Drying'), 
+    (4, 'Polishing'), 
+    (5, 'Done')
 ]
 
 PAYMENT_METHOD_FORM_LIST = [
@@ -46,4 +46,9 @@ PAYMENT_TYPE_FORM_LIST = [
     ('general', 'Genaral'),
     ('wage', 'Employee Wage'),
     ('withdraw', 'Owner Withdrawal'),
+]
+
+UI_THEME_FORM_LIST = [
+    ('light', 'Light'),
+    ('dark', 'Dark')
 ]

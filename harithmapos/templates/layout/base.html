@@ -1,4 +1,8 @@
-<html lang="en">
+{% if current_user.is_authenticated %}
+    <html lang="en"  data-bs-theme="{{current_user.ui_theme}}">
+{% else %}
+    <html lang="en"  data-bs-theme="light"></html>
+{% endif %}
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">

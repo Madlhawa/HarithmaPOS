@@ -11,42 +11,6 @@ from harithmapos.views.invoice.utils import get_id
 
 invoice_blueprint = Blueprint('invoice_blueprint', __name__)
 
-# @invoice_blueprint.route("/invoice/search", methods=['GET', 'POST'])
-# @login_required
-# def invoice_head_search():
-#     query = request.args.get(query)
-#     print(query)
-
-#     if query:
-#         results = Customer.query.filter(Customer.name.icontains(query))
-#     else:
-#         results = []
-    
-#     return render_template(
-#         'invoice_head.html', 
-#         title='InvoiceHead',
-#         results = results,
-#         query=query
-#     )
-
-# @invoice_blueprint.route("/item_invoice/search", methods=['GET', 'POST'])
-# @login_required
-# def item_invoice_head_search():
-#     query = request.args.get(query)
-#     print(query)
-
-#     if query:
-#         results = ItemInvoiceHead.query.filter(ItemInvoiceHead.created_dttm == query)
-#     else:
-#         results = []
-    
-#     return render_template(
-#         'item_invoice_head.html', 
-#         title='Item Invoice',
-#         results = results,
-#         query=query
-#     )
-
 @invoice_blueprint.route("/invoice/head", methods=['GET', 'POST'])
 @login_required
 def invoice_head():
