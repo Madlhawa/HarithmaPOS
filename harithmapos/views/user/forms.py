@@ -3,10 +3,11 @@ from flask_login import current_user
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 
-from wtforms import StringField, EmailField, PasswordField, SubmitField, BooleanField, ValidationError
+from wtforms import StringField, EmailField, PasswordField, SubmitField, BooleanField, ValidationError, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 
 from harithmapos.models import User
+import harithmapos.config as config
 
 
 class ResetPasswordForm(FlaskForm):
@@ -28,6 +29,7 @@ class UserUpdateForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
     email = EmailField("Email", validators=[DataRequired(), Email()])
     image = FileField('Update Profile Picture', validators=[FileAllowed(['jpg', 'png'])])
+    ui_theme = SelectField('Theme', choices=config.UI_THEME_FORM_LIST)
     submit = SubmitField('Update Account')
 
     def validate_email(self, email):

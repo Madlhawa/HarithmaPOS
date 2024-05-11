@@ -118,11 +118,11 @@ class InvoiceHead(db.Model):
     
     @hybrid_property
     def is_in_bay(self):
-        return self.service_status in ['1', '2', '3']    
+        return self.service_status in [1, 2, 3]    
         
     @is_in_bay.expression
     def is_in_bay(cls):
-        return cls.service_status.in_(['1', '2', '3'])
+        return cls.service_status.in_([1, 2, 3])
 
 
 class InvoiceDetail(db.Model):
@@ -179,6 +179,7 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(50), nullable=False)
     image = db.Column(db.String(20), default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
+    ui_theme = db.Column(db.String(5), default='light')
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
