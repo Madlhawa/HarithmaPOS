@@ -1,0 +1,254 @@
+{% extends 'layout/base.html' %}
+{% block title %} Home {% endblock %}
+{% block body %} 
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col d-flex justify-content-between align-items-center">
+                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
+                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
+                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
+                    <a href="{{ url_for('payment_blueprint.payment') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
+                </form> 
+                <!-- Right side: Button -->
+                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New payment</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for inserting the payment -->
+    <div id="insert_modal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Add payment</h4>
+            </div>
+            <div class="modal-body">
+                <form action="{{url_for('payment_blueprint.insert_payment')}}" method="POST">
+                    {{ payment_create_form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ payment_create_form.invoice_id.label(class="form-label mt-3",for="invoiceDataList") }}
+                        {{ payment_create_form.invoice_id(class="form-control form-control-sm", list="invoiceDatalistOptions", id="invoiceDataList", placeholder="Search Invoice...") }}
+                        <datalist id="invoiceDatalistOptions">
+                            {% for invoice in invoices %}
+                                <option value="{{invoice.id}}">{{invoice.customer.name}} | {{invoice.created_dttm.date()}}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.item_invoice_id.label(class="form-label mt-3",for="itemInvoiceDataList") }}
+                        {{ payment_create_form.item_invoice_id(class="form-control form-control-sm", list="itemInvoiceDatalistOptions", id="itemInvoiceDataList", placeholder="Search Item Invoice...") }}
+                        <datalist id="itemInvoiceDatalistOptions">
+                            {% for item_invoice in item_invoices %}
+                                <option value="{{item_invoice.id}}">{{item_invoice.customer.name}} | {{item_invoice.created_dttm.date()}}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.purchase_order_id.label(class="form-label mt-3",for="purchaseOrderDataList") }}
+                        {{ payment_create_form.purchase_order_id(class="form-control form-control-sm", list="purchaseOrderDatalistOptions", id="purchaseOrderDataList", placeholder="Search Purchase Order...") }}
+                        <datalist id="purchaseOrderDatalistOptions">
+                            {% for purchase_order in purchase_orders %}
+                                <option value="{{purchase_order.id}}">{{purchase_order.supplier.name}} | {{purchase_order.created_dttm.date()}}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.customer_id.label(class="form-label mt-3",for="customerDataList") }}
+                        {{ payment_create_form.customer_id(class="form-control form-control-sm", list="customerDatalistOptions", id="customerDataList", placeholder="Search Purchase Order...") }}
+                        <datalist id="customerDatalistOptions">
+                            {% for customer in customers %}
+                                <option value="{{customer.id}}">{{customer.name}}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.employee_id.label(class="form-label mt-3",for="employeeDataList") }}
+                        {{ payment_create_form.employee_id(class="form-control form-control-sm", list="employeeDatalistOptions", id="employeeDataList", placeholder="Search Purchase Order...") }}
+                        <datalist id="employeeDatalistOptions">
+                            {% for employee in employees %}
+                                <option value="{{employee.id}}">{{employee.name}}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.payment_method.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_method(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.payment_direction.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_direction(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.payment_type.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_type(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.payment_amount.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_amount(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="form-group">
+                        {{ payment_create_form.remarks.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.remarks(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary mt-4" type="submit">Add payment</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{message}}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <table class="table table-success table-striped table-hover" border="1">
+            <thead class="thread-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Invoice ID</th>
+                    <th scope="col">Item Invoice ID</th>
+                    <th scope="col">Purchase Order ID</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Employee</th>
+                    <th scope="col">Direction</th>
+                    <th scope="col">Amount</th>
+                    <th scope="col" style="text-align: right" >Actions</th>
+                </tr>
+            </thead>
+            <tbody id="results">
+                {% for payment in payments.items %}
+                    <tr>
+                        <td class="align-middle"  scope="row">{{payment.id}}</td>
+                        <td class="align-middle"  scope="row">{{payment.created_dttm.date()}}</td>
+                        <td class="align-middle">{{payment.invoice_id}}</td>
+                        <td class="align-middle">{{payment.item_invoice_id}}</td>
+                        <td class="align-middle">{{payment.purchase_order_id}}</td>
+                        <td class="align-middle">{{payment.customer.name}}</td>
+                        <td class="align-middle">{{payment.employee.name}}</td>
+                        <td class="align-middle">{{payment.payment_direction}}</td>
+                        <td class="align-middle">{{payment.payment_amount}}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('payment_blueprint.update_payment', payment_id=payment.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update payment" data-bs-toggle="modal" data-bs-target="#update_payment{{payment.id}}">Edit</a>
+                            <a href="{{ url_for('payment_blueprint.delete_payment', payment_id=payment.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete payment" onclick="return confirm('Are you sure to delete?')">Delete</a>
+                        </td>
+                    </tr>
+                
+                    <!-- Model for updating payment -->
+                    <div id="update_payment{{payment.id}}" class="modal fade" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">Update payment</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{url_for('payment_blueprint.update_payment', payment_id=payment.id)}}" method="POST">
+                                        {{ payment_update_form.hidden_tag() }}
+                                        <div class="form-group">
+                                            <input type="hidden"  name="id" value="{{payment.id}}">
+                                            {{ payment_update_form.invoice_id.label(class="form-label mt-3",for="invoiceDataList") }}
+                                            {{ payment_update_form.invoice_id(class="form-control", list="invoiceDatalistOptions", id="invoiceDataList", value=payment.invoice_id) }}
+                                            <datalist id="invoiceDatalistOptions">
+                                                {% for invoice in invoices %}
+                                                    <option value="{{invoice.id}}">{{invoice.customer.name}} | {{invoice.created_dttm.date()}}</option>
+                                                {% endfor %}
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.item_invoice_id.label(class="form-label mt-3",for="itemInvoiceDataList") }}
+                                            {{ payment_update_form.item_invoice_id(class="form-control", list="itemInvoiceDatalistOptions", id="itemInvoiceDataList", value=payment.item_invoice_id) }}
+                                            <datalist id="itemInvoiceDatalistOptions">
+                                                {% for item_invoice in item_invoices %}
+                                                    <option value="{{item_invoice.id}}">{{item_invoice.customer.name}} | {{item_invoice.created_dttm.date()}}</option>
+                                                {% endfor %}
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.purchase_order_id.label(class="form-label mt-3",for="purchaseOrderDataList") }}
+                                            {{ payment_update_form.purchase_order_id(class="form-control", list="purchaseOrderDatalistOptions", id="purchaseOrderDataList", value=payment.purchase_order_id) }}
+                                            <datalist id="purchaseOrderDatalistOptions">
+                                                {% for purchase_order in purchase_orders %}
+                                                    <option value="{{purchase_order.id}}">{{purchase_order.supplier.name}} | {{purchase_order.created_dttm.date()}}</option>
+                                                {% endfor %}
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.customer_id.label(class="form-label mt-3",for="customerDataList") }}
+                                            {{ payment_update_form.customer_id(class="form-control", list="customerDatalistOptions", id="customerDataList", value=payment.customer.id) }}
+                                            <datalist id="customerDatalistOptions">
+                                                {% for customer in customers %}
+                                                    <option value="{{customer.id}}">{{customer.name}}</option>
+                                                {% endfor %}
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.employee_id.label(class="form-label mt-3",for="employeeDataList") }}
+                                            {{ payment_update_form.employee_id(class="form-control", list="employeeDatalistOptions", id="employeeDataList", value=payment.employee_id) }}
+                                            <datalist id="employeeDatalistOptions">
+                                                {% for employee in employees %}
+                                                    <option value="{{employee.id}}">{{employee.name}}</option>
+                                                {% endfor %}
+                                            </datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.payment_method.label(class="form-control-label mt-1") }}
+                                            {{ payment_update_form.payment_method(class="form-control form-control-sm", value=payment.payment_method) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.payment_direction.label(class="form-control-label mt-1") }}
+                                            {{ payment_update_form.payment_direction(class="form-control form-control-sm", value=payment.payment_direction) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.payment_type.label(class="form-control-label mt-1") }}
+                                            {{ payment_update_form.payment_type(class="form-control form-control-sm", value=payment.payment_type) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.payment_amount.label(class="form-control-label mt-1") }}
+                                            {{ payment_update_form.payment_amount(class="form-control form-control-sm", value=payment.payment_amount) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.remarks.label(class="form-control-label mt-1") }}
+                                            {{ payment_update_form.remarks(class="form-control form-control-sm", value=payment.remarks) }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ payment_update_form.submit(class="btn btn-warning mt-4") }}
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-end">
+                <li class="page-item"><a class="page-link" href="{{ url_for('payment_blueprint.payment', page=payments.prev_num, query=query) }}">Previous</a></li>
+                {% for page_number in payments.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_number %}
+                        {% if payments.page == page_number %}
+                            <li class="page-item "><a class="page-link active" href="{{ url_for('payment_blueprint.payment', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                        {% else %}
+                            <li class="page-item "><a class="page-link" href="{{ url_for('payment_blueprint.payment', page=page_number, query=query) }}">{{ page_number }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item "><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('payment_blueprint.payment', page=payments.next_num, query=query) }}">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+{% endblock %}

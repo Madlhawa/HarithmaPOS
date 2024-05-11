@@ -9,6 +9,21 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+class Payment(db.Model):
+    id =  db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
+    item_invoice_id = db.Column(db.Integer, db.ForeignKey('item_invoice_head.id'))
+    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_order_head.id'))
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
+    payment_method = db.Column(db.String(10))
+    payment_direction = db.Column(db.String(10))
+    payment_amount = db.Column(db.Numeric(10,2), default=0)
+    payment_type = db.Column(db.Integer, default=0)
+    remarks = db.Column(db.String(255))
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class PurchaseOrderHead(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
@@ -62,6 +77,7 @@ class ItemInvoiceHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
+    payments = db.relationship('Payment', backref='item_invoice', lazy=True)
 
 class ItemInvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -94,6 +110,7 @@ class InvoiceHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
+    payments = db.relationship('Payment', backref='invoice', lazy=True)
 
     @hybrid_property
     def service_status_str(self):
@@ -130,6 +147,7 @@ class Employee(db.Model):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoices = db.relationship('InvoiceHead', backref='employee', lazy=True)
+    payments = db.relationship('Payment', backref='employee', lazy=True)
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -191,6 +209,7 @@ class Customer(db.Model):
     vehicals = db.relationship('Vehical', backref='owner', lazy=True)
     invoices = db.relationship('InvoiceHead', backref='customer', lazy=True)
     item_invoices = db.relationship('ItemInvoiceHead', backref='customer', lazy=True)
+    payments = db.relationship('Payment', backref='customer', lazy=True)
 
     def __repr__(self):
         return f"Customer('{self.name}','{self.contact}')"

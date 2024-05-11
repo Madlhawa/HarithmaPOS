@@ -36,3 +36,14 @@ PAYMENT_METHOD_FORM_LIST = [
     ('credit', 'Credit'),
     ('qr', 'QR')
 ]
+
+PAYMENT_DIRECTION_FORM_LIST = [
+    ('in', 'Inbound'),
+    ('out', 'Outbound'),
+]
+
+PAYMENT_TYPE_FORM_LIST = [
+    ('general', 'Genaral'),
+    ('wage', 'Employee Wage'),
+    ('withdraw', 'Owner Withdrawal'),
+]
