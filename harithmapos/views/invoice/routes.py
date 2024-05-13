@@ -161,7 +161,7 @@ def invoice_head_detail(invoice_head_id):
             db.session.commit()
 
         elif invoice_head_update_form.complete_invoice.data:
-            utils.send_print_invoice(str(invoice_head_id),'harithmaq')
+            utils.send_print_invoice(f's-{str(invoice_head_id)}','harithmaq')
 
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
@@ -209,7 +209,7 @@ def item_invoice_head_detail(item_invoice_head_id):
             db.session.commit()
 
         elif item_invoice_head_update_form.complete_item_invoice.data:
-            util
+            utils.send_print_invoice(f'i-{str(item_invoice_head_id)}','harithmaq')
 
     elif request.method == 'POST':
         flash("Item Invoice update failed!", category='danger')
