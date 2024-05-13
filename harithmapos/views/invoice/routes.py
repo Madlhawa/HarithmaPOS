@@ -7,7 +7,7 @@ from harithmapos import db
 from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
-from harithmapos.views.invoice.utils import get_id
+from harithmapos.views.invoice import utils 
 
 invoice_blueprint = Blueprint('invoice_blueprint', __name__)
 
@@ -161,7 +161,7 @@ def invoice_head_detail(invoice_head_id):
             db.session.commit()
 
         elif invoice_head_update_form.complete_invoice.data:
-            pass
+            utils.send_print_invoice(str(invoice_head_id),'harithmaq')
 
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
@@ -192,7 +192,7 @@ def item_invoice_head_detail(item_invoice_head_id):
 
     if item_invoice_head_update_form.validate_on_submit():
         if item_invoice_head_update_form.update_item_invoice.data:
-            customer = Customer.query.get(int(get_id(item_invoice_head_update_form.customer.data)))
+            customer = Customer.query.get(int(utils.get_id(item_invoice_head_update_form.customer.data)))
 
             item_invoice_head.customer_id=customer.id
             item_invoice_head.payment_method=item_invoice_head_update_form.payment_method.data
@@ -209,7 +209,7 @@ def item_invoice_head_detail(item_invoice_head_id):
             db.session.commit()
 
         elif item_invoice_head_update_form.complete_item_invoice.data:
-            pass
+            util
 
     elif request.method == 'POST':
         flash("Item Invoice update failed!", category='danger')
@@ -247,7 +247,7 @@ def delete_item_invoice_head(item_invoice_head_id):
 def add_invoice_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
     if invoice_detail_create_form.validate_on_submit():
-        item_id = get_id(invoice_detail_create_form.item.data)
+        item_id = utils.get_id(invoice_detail_create_form.item.data)
         quantity = invoice_detail_create_form.quantity.data
 
         item = Item.query.get_or_404(item_id)
@@ -279,7 +279,7 @@ def add_invoice_detail(invoice_head_id):
 def add_item_invoice_detail(item_invoice_head_id):
     item_invoice_detail_create_form = InvoiceDetailCreateForm()
     if item_invoice_detail_create_form.validate_on_submit():
-        item_id = get_id(item_invoice_detail_create_form.item.data)
+        item_id = utils.get_id(item_invoice_detail_create_form.item.data)
         quantity = item_invoice_detail_create_form.quantity.data
 
         item = Item.query.get_or_404(item_id)

@@ -11,6 +11,10 @@ class Config:
     MAIL_USE_SSL = False
     MAIL_PORT = 587
 
+RABBIT_MQ_HOST = os.environ.get('RABBIT_MQ_HOST')
+RABBIT_MQ_USERNAME = os.environ.get('RABBIT_MQ_USERNAME')
+RABBIT_MQ_PASSWORD = os.environ.get('RABBIT_MQ_PASSWORD')
+
 SERVICE_STATUS_LIST = [
     'Waiting',
     'Vacumming',
