@@ -12,3 +12,4 @@ pytz
 gunicorn
 wfastcgi
 psycopg2-binary
+pika
