@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import func
 from datetime import datetime
 from flask_login import login_required
@@ -209,7 +211,8 @@ def item_invoice_head_detail(item_invoice_head_id):
             db.session.commit()
 
         elif item_invoice_head_update_form.complete_item_invoice.data:
-            utils.send_print_invoice(f'i-{str(item_invoice_head_id)}','harithmaq')
+            item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
+            utils.send_print_invoice(item_invoice_json,'harithmaq')
 
     elif request.method == 'POST':
         flash("Item Invoice update failed!", category='danger')
@@ -424,3 +427,25 @@ def update_total_values(invoice_head):
     invoice_head.gross_price = invoice_head.gross_price if invoice_head.gross_price else 0
 
     db.session.commit()
+
+def convert_item_invoice_to_json(item_invoice):
+    invoice_dictionary = {
+        "invoice_number": item_invoice.id,  # Assuming invoice ID is a three-digit number
+        "invoice_type": 'item',
+        "total_price": float(item_invoice.total_price),
+        "discount_pct": float(item_invoice.discount_pct),
+        "gross_price": float(item_invoice.gross_price),
+        "paid_amount": float(item_invoice.paid_amount),
+        "invoice_details": []
+    }
+
+    for detail in item_invoice.invoice_details:
+        item_detail = {
+            'item_name': detail.item.name,
+            'unit_price': detail.item.unit_price,  # Assuming unit price is calculated as total price divided by quantity
+            'quantity': detail.quantity,
+            'total_price': detail.total_price
+        }
+        invoice_dictionary['invoice_details'].append(item_detail)
+
+    return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)
