@@ -163,7 +163,8 @@ def invoice_head_detail(invoice_head_id):
             db.session.commit()
 
         elif invoice_head_update_form.complete_invoice.data:
-            utils.send_print_invoice(f's-{str(invoice_head_id)}','harithmaq')
+            service_invoice_json = convert_service_invoice_to_json(invoice_head)
+            utils.send_print_invoice(service_invoice_json,'harithmaq')
 
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
@@ -430,16 +431,44 @@ def update_total_values(invoice_head):
 
 def convert_item_invoice_to_json(item_invoice):
     invoice_dictionary = {
-        "invoice_number": item_invoice.id,  # Assuming invoice ID is a three-digit number
-        "invoice_type": 'item',
-        "total_price": float(item_invoice.total_price),
-        "discount_pct": float(item_invoice.discount_pct),
-        "gross_price": float(item_invoice.gross_price),
-        "paid_amount": float(item_invoice.paid_amount),
+        "invoice_number": item_invoice.id,  
+        "invoice_type": 2,
+        "total_price": item_invoice.total_price,
+        "discount_pct": item_invoice.discount_pct,
+        "gross_price": item_invoice.gross_price,
+        "paid_amount": item_invoice.paid_amount,
         "invoice_details": []
     }
 
     for detail in item_invoice.invoice_details:
+        item_detail = {
+            'item_name': detail.item.name,
+            'unit_price': detail.item.unit_price,  # Assuming unit price is calculated as total price divided by quantity
+            'quantity': detail.quantity,
+            'total_price': detail.total_price
+        }
+        invoice_dictionary['invoice_details'].append(item_detail)
+
+    return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)
+
+def convert_service_invoice_to_json(service_invoice):
+    invoice_dictionary = {
+        "invoice_number": service_invoice.id,  
+        "invoice_type": 1,
+        "customer_name": service_invoice.customer.name,
+        "employee_name": service_invoice.employee.name,
+        "vehical_number": service_invoice.vehical.number,
+        "wash_bay": service_invoice.washbay.name,
+        "current_milage": service_invoice.current_milage,
+        "next_milage": service_invoice.next_milage,
+        "total_price": service_invoice.total_price,
+        "discount_pct": service_invoice.discount_pct,
+        "gross_price": service_invoice.gross_price,
+        "paid_amount": service_invoice.paid_amount,
+        "invoice_details": []
+    }
+
+    for detail in service_invoice.invoice_details:
         item_detail = {
             'item_name': detail.item.name,
             'unit_price': detail.item.unit_price,  # Assuming unit price is calculated as total price divided by quantity
