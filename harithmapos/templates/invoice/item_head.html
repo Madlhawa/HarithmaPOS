@@ -27,10 +27,10 @@
                     <fieldset class="form-group">
                         <div class="form-group">
                             {{ item_invoice_head_create_form.customer.label(class="form-label mt-3",for="customerDataList") }}
-                            {{ item_invoice_head_create_form.customer(class="form-control", list="datalistOptionsEmployee", id="customerDataList", placeholder="Search Employee...") }}
+                            {{ item_invoice_head_create_form.customer(class="form-control", list="datalistOptionsEmployee", id="customerDataList", placeholder="Search Customer...") }}
                             <datalist id="datalistOptionsEmployee">
                                 {% for customer in customers %}
-                                    <option value="{{customer.id}}">{{customer.name}}</option>
+                                    <option value="{{customer.id}}">{{customer.name}}</option> 
                                 {% endfor %}
                             </datalist>
                         </div>

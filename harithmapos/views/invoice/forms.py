@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
 
-from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField
+from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField, RadioField
 from wtforms.validators import DataRequired, Optional
 
 import harithmapos.config as config
 
 class InvoiceDetailCreateForm(FlaskForm):
     item = StringField("Item", validators=[DataRequired()])
-    quantity = IntegerField("Qty", validators=[DataRequired()])
+    quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
 class InvoiceHeadUpdateForm(FlaskForm):
@@ -16,7 +16,7 @@ class InvoiceHeadUpdateForm(FlaskForm):
     washbay = StringField("Wash Bay", validators=[DataRequired()])
     current_milage = IntegerField("Current Milage", validators=[Optional()])
     next_milage = IntegerField("Next Milage", validators=[Optional()])
-    service_status = SelectField("Status", choices=config.SERVICE_STATUS_FORM_LIST)
+    service_status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST)
     total_cost = DecimalField("Total Cost", places=2, validators=[Optional()])
     total_price = DecimalField("Total Price", places=2, validators=[Optional()])
     discount_pct = DecimalField("Discount Percentage", places=2, validators=[Optional()])
@@ -25,6 +25,7 @@ class InvoiceHeadUpdateForm(FlaskForm):
     paid_amount = DecimalField("Paid Amount", places=2, validators=[Optional()])
     update_invoice = SubmitField('Update Invoice')
     complete_invoice = SubmitField('Complete Invoice')
+    cancel_invoice = SubmitField('Cancel Invoice')
 
 class InvoiceHeadCreateForm(FlaskForm):
     vehical = StringField("Vehical", validators=[DataRequired()])

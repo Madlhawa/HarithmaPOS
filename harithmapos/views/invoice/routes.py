@@ -5,7 +5,7 @@ from datetime import datetime
 from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
-from harithmapos import db
+from harithmapos import db, config
 from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
@@ -166,6 +166,12 @@ def invoice_head_detail(invoice_head_id):
             service_invoice_json = convert_service_invoice_to_json(invoice_head)
             utils.send_print_invoice(service_invoice_json,'harithmaq')
 
+        elif invoice_head_update_form.cancel_invoice.data:
+            db.session.delete(invoice_head)
+            db.session.commit()
+            flash("Invoice deleted.", category='warning')
+            return redirect(url_for('invoice_blueprint.invoice_head'))
+
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
 
@@ -179,7 +185,9 @@ def invoice_head_detail(invoice_head_id):
             vehicals=vehicals,
             employees=employees,
             washbays=washbays,
-            invoice_details=invoice_details
+            invoice_details=invoice_details,
+            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
+            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
         )
 
 @invoice_blueprint.route("/item_invoice/head/<int:item_invoice_head_id>", methods=['GET', 'POST'])
@@ -210,6 +218,10 @@ def item_invoice_head_detail(item_invoice_head_id):
                 item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
 
             db.session.commit()
+
+        elif item_invoice_head_update_form.complete_item_invoice.data:
+            item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
+            utils.send_print_invoice(item_invoice_json,'harithmaq')
 
         elif item_invoice_head_update_form.complete_item_invoice.data:
             item_invoice_json = convert_item_invoice_to_json(item_invoice_head)

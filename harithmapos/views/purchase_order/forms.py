@@ -7,7 +7,7 @@ import harithmapos.config as config
 
 class PurchaseOrderDetailCreateForm(FlaskForm):
     item = StringField("Item", validators=[DataRequired()])
-    quantity = IntegerField("Qty", validators=[DataRequired()])
+    quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
 class PurchaseOrderHeadUpdateForm(FlaskForm):
