@@ -6,7 +6,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db, config
-from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item
+from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item, Payment
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 from harithmapos.views.invoice import utils 
@@ -139,32 +139,43 @@ def invoice_head_detail(invoice_head_id):
     invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
 
     if invoice_head_update_form.validate_on_submit():
-        if invoice_head_update_form.update_invoice.data:
-            vehical = Vehical.query.get(int(invoice_head_update_form.vehical.data.split('|')[0].strip()))
+        if invoice_head_update_form.update_invoice.data or invoice_head_update_form.complete_invoice.data:
+            vehical = Vehical.query.get(utils.get_id(invoice_head_update_form.vehical.data))
 
             invoice_head.customer_id=vehical.owner.id
-            invoice_head.vehical_id=int(invoice_head_update_form.vehical.data.split('|')[0].strip())
-            invoice_head.washbay_id=int(invoice_head_update_form.washbay.data.split('|')[0].strip())
-            invoice_head.employee_id=int(invoice_head_update_form.employee.data.split('|')[0].strip())
+            invoice_head.vehical_id=utils.get_id(invoice_head_update_form.vehical.data)
+            invoice_head.washbay_id=utils.get_id(invoice_head_update_form.washbay.data)
+            invoice_head.employee_id=utils.get_id(invoice_head_update_form.employee.data)
             invoice_head.current_milage=invoice_head_update_form.current_milage.data
             invoice_head.next_milage=invoice_head_update_form.next_milage.data
             invoice_head.service_status=invoice_head_update_form.service_status.data
             invoice_head.payment_method=invoice_head_update_form.payment_method.data
             invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
             invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
+            invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
+            invoice_head.update_dttm = datetime.now()
 
             if invoice_details:
                 update_total_values(invoice_head)
             
             if invoice_head.paid_amount:
                 invoice_head.last_payment_date = datetime.now()
-                invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount        
 
-            db.session.commit()
-
-        elif invoice_head_update_form.complete_invoice.data:
-            service_invoice_json = convert_service_invoice_to_json(invoice_head)
-            utils.send_print_invoice(service_invoice_json,'harithmaq')
+            if invoice_head_update_form.complete_invoice.data:
+                invoice_head.service_status = 5
+                payment = Payment(
+                    invoice_id = invoice_head_id,
+                    payment_method = "cash",
+                    payment_direction = "in",
+                    payment_amount = invoice_head.paid_amount,
+                    payment_type = 'general',
+                    remarks = 'Initial Payment',
+                )
+                db.session.add(payment)
+                db.session.commit()
+                # service_invoice_json = convert_service_invoice_to_json(invoice_head)
+                # utils.send_print_invoice(service_invoice_json,'harithmaq')
+                return redirect(url_for('dashboard_blueprint.dashboard'))
 
         elif invoice_head_update_form.cancel_invoice.data:
             db.session.delete(invoice_head)
@@ -209,6 +220,7 @@ def item_invoice_head_detail(item_invoice_head_id):
             item_invoice_head.payment_method=item_invoice_head_update_form.payment_method.data
             item_invoice_head.paid_amount=item_invoice_head_update_form.paid_amount.data
             item_invoice_head.discount_pct=item_invoice_head_update_form.discount_pct.data
+            item_invoice_head.update_dttm = datetime.now()
 
             if item_invoice_details:
                 update_total_values(item_invoice_head)
