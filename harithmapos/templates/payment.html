@@ -25,7 +25,7 @@
                 <form action="{{url_for('payment_blueprint.insert_payment')}}" method="POST">
                     {{ payment_create_form.hidden_tag() }}
                     <div class="form-group">
-                        {{ payment_create_form.invoice_id.label(class="form-label mt-3",for="invoiceDataList") }}
+                        {{ payment_create_form.invoice_id.label(class="form-label",for="invoiceDataList") }}
                         {{ payment_create_form.invoice_id(class="form-control form-control-sm", list="invoiceDatalistOptions", id="invoiceDataList", placeholder="Search Invoice...") }}
                         <datalist id="invoiceDatalistOptions">
                             {% for invoice in invoices %}
@@ -34,7 +34,7 @@
                         </datalist>
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.item_invoice_id.label(class="form-label mt-3",for="itemInvoiceDataList") }}
+                        {{ payment_create_form.item_invoice_id.label(class="form-label",for="itemInvoiceDataList") }}
                         {{ payment_create_form.item_invoice_id(class="form-control form-control-sm", list="itemInvoiceDatalistOptions", id="itemInvoiceDataList", placeholder="Search Item Invoice...") }}
                         <datalist id="itemInvoiceDatalistOptions">
                             {% for item_invoice in item_invoices %}
@@ -43,7 +43,7 @@
                         </datalist>
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.purchase_order_id.label(class="form-label mt-3",for="purchaseOrderDataList") }}
+                        {{ payment_create_form.purchase_order_id.label(class="form-label",for="purchaseOrderDataList") }}
                         {{ payment_create_form.purchase_order_id(class="form-control form-control-sm", list="purchaseOrderDatalistOptions", id="purchaseOrderDataList", placeholder="Search Purchase Order...") }}
                         <datalist id="purchaseOrderDatalistOptions">
                             {% for purchase_order in purchase_orders %}
@@ -52,7 +52,7 @@
                         </datalist>
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.customer_id.label(class="form-label mt-3",for="customerDataList") }}
+                        {{ payment_create_form.customer_id.label(class="form-label",for="customerDataList") }}
                         {{ payment_create_form.customer_id(class="form-control form-control-sm", list="customerDatalistOptions", id="customerDataList", placeholder="Search Purchase Order...") }}
                         <datalist id="customerDatalistOptions">
                             {% for customer in customers %}
@@ -61,7 +61,7 @@
                         </datalist>
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.employee_id.label(class="form-label mt-3",for="employeeDataList") }}
+                        {{ payment_create_form.employee_id.label(class="form-label",for="employeeDataList") }}
                         {{ payment_create_form.employee_id(class="form-control form-control-sm", list="employeeDatalistOptions", id="employeeDataList", placeholder="Search Purchase Order...") }}
                         <datalist id="employeeDatalistOptions">
                             {% for employee in employees %}
@@ -70,27 +70,27 @@
                         </datalist>
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.payment_method.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_method.label(class="form-control-label mt-4") }}
                         {{ payment_create_form.payment_method(class="form-control form-control-sm") }}
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.payment_direction.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_direction.label(class="form-control-label") }}
                         {{ payment_create_form.payment_direction(class="form-control form-control-sm") }}
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.payment_type.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_type.label(class="form-control-label") }}
                         {{ payment_create_form.payment_type(class="form-control form-control-sm") }}
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.payment_amount.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.payment_amount.label(class="form-control-label") }}
                         {{ payment_create_form.payment_amount(class="form-control form-control-sm") }}
                     </div>
                     <div class="form-group">
-                        {{ payment_create_form.remarks.label(class="form-control-label mt-1") }}
+                        {{ payment_create_form.remarks.label(class="form-control-label") }}
                         {{ payment_create_form.remarks(class="form-control form-control-sm") }}
                     </div>
                     <div class="form-group">
-                        <button class="btn btn-primary mt-4" type="submit">Add payment</button>
+                        <button class="btn btn-primary mt-3" type="submit">Add payment</button>
                     </div>
                 </form>
             </div>

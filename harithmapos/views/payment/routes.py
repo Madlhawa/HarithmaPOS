@@ -60,6 +60,13 @@ def insert_payment():
         )
         db.session.add(payment)
         db.session.commit()
+
+        if payment.invoice_id:
+            invoice_head = InvoiceHead.query.get_or_404(payment.invoice_id)
+            invoice_head.remaining_amount -= payment.payment_amount
+            invoice_head.paid_amount += payment.payment_amount
+            db.session.commit()
+
         flash("Payment added successfully!", category='success')
     else:
         flash("Payment failed to add!", category='danger')
@@ -91,6 +98,13 @@ def update_payment(payment_id):
 @login_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
+
+    if payment.invoice_id:
+        invoice_head = InvoiceHead.query.get_or_404(payment.invoice_id)
+        invoice_head.remaining_amount += payment.payment_amount
+        invoice_head.paid_amount -= payment.payment_amount
+        db.session.commit()
+
     db.session.delete(payment)
     db.session.commit()
     flash("Payment is deleted!", category='success')
