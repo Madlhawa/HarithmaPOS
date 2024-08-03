@@ -14,3 +14,8 @@
 
 # intalling superset
     # https://github.com/shantanukhond/YT-Assets/tree/main/Superset/installation
+
+# other commands
+    python -m flask shell
+    from harithmapos import db
+    db.create_all()
