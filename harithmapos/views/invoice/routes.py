@@ -173,8 +173,8 @@ def invoice_head_detail(invoice_head_id):
                 )
                 db.session.add(payment)
                 db.session.commit()
-                # service_invoice_json = convert_service_invoice_to_json(invoice_head)
-                # utils.send_print_invoice(service_invoice_json,'harithmaq')
+                service_invoice_json = convert_service_invoice_to_json(invoice_head)
+                utils.send_print_invoice(service_invoice_json,'harithmaq')
                 return redirect(url_for('dashboard_blueprint.dashboard'))
 
         elif invoice_head_update_form.cancel_invoice.data:
@@ -230,10 +230,6 @@ def item_invoice_head_detail(item_invoice_head_id):
                 item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
 
             db.session.commit()
-
-        elif item_invoice_head_update_form.complete_item_invoice.data:
-            item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
-            utils.send_print_invoice(item_invoice_json,'harithmaq')
 
         elif item_invoice_head_update_form.complete_item_invoice.data:
             item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
