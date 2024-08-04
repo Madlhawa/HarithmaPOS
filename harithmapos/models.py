@@ -19,7 +19,7 @@ class Payment(db.Model):
     payment_method = db.Column(db.String(10))
     payment_direction = db.Column(db.String(10))
     payment_amount = db.Column(db.Numeric(10,2), default=0)
-    payment_type = db.Column(db.Integer, default=0)
+    payment_type = db.Column(db.String(10))
     remarks = db.Column(db.String(255))
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
