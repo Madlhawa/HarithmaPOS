@@ -442,7 +442,6 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/customer/view/<int:invoice_head_id>", methods=['GET', 'POST'])
-@login_required
 def invoice_customer_view(invoice_head_id):
 
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
