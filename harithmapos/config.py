@@ -14,6 +14,11 @@ class Config:
 RABBIT_MQ_HOST = os.environ.get('RABBIT_MQ_HOST')
 RABBIT_MQ_USERNAME = os.environ.get('RABBIT_MQ_USERNAME')
 RABBIT_MQ_PASSWORD = os.environ.get('RABBIT_MQ_PASSWORD')
+NOTIFYLK_USER_ID = os.environ.get('NOTIFYLK_USER_ID')
+NOTIFYLK_API_KEY = os.environ.get('NOTIFYLK_API_KEY')
+NOTIFYLK_API_URL = "https://app.notify.lk/api/v1/send"
+NOTIFYLK_SENDER_ID = "NotifyDEMO"
+
 
 SERVICE_STATUS_LIST = [
     'Waiting',

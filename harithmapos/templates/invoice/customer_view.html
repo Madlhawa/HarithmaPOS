@@ -52,14 +52,13 @@
                                 <small>Started Time</small>
                                 <h5>{{ invoice_head.created_dttm | to_ist }}</h5>
                             </div>
+                            <div class="row mb-1">
+                                <small>Milage</small>
+                                <h5>{{ invoice_head.current_milage }}</h5>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">  
-                    <div class="d-grid gap-2 col-6 mx-auto">
-                        <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-primary">More Details</a>
-                    </div>
-                </div> 
             </div>
         </div>
     </div>
@@ -105,7 +104,6 @@
             </ul>
         </div>
     </div>
-
 </div>
 
 {% endblock %}
