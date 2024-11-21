@@ -13,6 +13,7 @@ from harithmapos.views.invoice.utils import get_id
 dashboard_blueprint = Blueprint('dashboard_blueprint', __name__)
 
 @dashboard_blueprint.route('/dashboard')
+@login_required
 def dashboard():
     invoice_head_create_form = InvoiceHeadCreateForm()
 

@@ -126,6 +126,7 @@ def insert_item_invoice_head():
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
+@login_required
 def invoice_head_detail(invoice_head_id):
     invoice_head_update_form = InvoiceHeadUpdateForm()
     invoice_detail_create_form = InvoiceDetailCreateForm()
@@ -202,6 +203,7 @@ def invoice_head_detail(invoice_head_id):
         )
 
 @invoice_blueprint.route("/item_invoice/head/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+@login_required
 def item_invoice_head_detail(item_invoice_head_id):
     item_invoice_head_update_form = ItemInvoiceHeadUpdateForm()
     item_invoice_detail_create_form = InvoiceDetailCreateForm()
@@ -268,6 +270,7 @@ def delete_item_invoice_head(item_invoice_head_id):
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
+@login_required
 def add_invoice_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
     if invoice_detail_create_form.validate_on_submit():
@@ -300,6 +303,7 @@ def add_invoice_detail(invoice_head_id):
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
 
 @invoice_blueprint.route("/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+@login_required
 def add_item_invoice_detail(item_invoice_head_id):
     item_invoice_detail_create_form = InvoiceDetailCreateForm()
     if item_invoice_detail_create_form.validate_on_submit():
@@ -332,6 +336,7 @@ def add_item_invoice_detail(item_invoice_head_id):
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/detail/delete/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def delete_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
@@ -346,6 +351,7 @@ def delete_invoice_detail(invoice_detail_id):
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_blueprint.route("/item_invoice/detail/delete/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def delete_item_invoice_detail(item_invoice_detail_id):
     item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
@@ -360,6 +366,7 @@ def delete_item_invoice_detail(item_invoice_detail_id):
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def increase_quantity_invoice_detail(invoice_detail_id):
 
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
@@ -377,6 +384,7 @@ def increase_quantity_invoice_detail(invoice_detail_id):
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_blueprint.route("/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def increase_quantity_item_invoice_detail(item_invoice_detail_id):
 
     item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
@@ -394,6 +402,7 @@ def increase_quantity_item_invoice_detail(item_invoice_detail_id):
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def decrease_quantity_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
@@ -413,6 +422,7 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_blueprint.route("/item_invoice/detail/quantity/remove/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@login_required
 def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
     item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
@@ -431,6 +441,21 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
+@invoice_blueprint.route("/invoice/customer/view/<int:invoice_head_id>", methods=['GET', 'POST'])
+@login_required
+def invoice_customer_view(invoice_head_id):
+
+    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
+    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
+
+    return render_template(
+            'invoice/customer_view.html', 
+            title='Invoice', 
+            invoice_head=invoice_head,
+            invoice_details=invoice_details,
+            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
+            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
+        )
 
 
 # supporting fuctions
@@ -498,18 +523,3 @@ def convert_service_invoice_to_json(service_invoice):
         invoice_dictionary['invoice_details'].append(item_detail)
 
     return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)
-
-@invoice_blueprint.route("/invoice/customer/view/<int:invoice_head_id>", methods=['GET', 'POST'])
-def invoice_customer_view(invoice_head_id):
-
-    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
-
-    return render_template(
-            'invoice/customer_view.html', 
-            title='Invoice', 
-            invoice_head=invoice_head,
-            invoice_details=invoice_details,
-            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
-            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
-        )
