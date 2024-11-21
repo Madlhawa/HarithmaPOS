@@ -498,3 +498,18 @@ def convert_service_invoice_to_json(service_invoice):
         invoice_dictionary['invoice_details'].append(item_detail)
 
     return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)
+
+@invoice_blueprint.route("/invoice/customer/view/<int:invoice_head_id>", methods=['GET', 'POST'])
+def invoice_customer_view(invoice_head_id):
+
+    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
+    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
+
+    return render_template(
+            'invoice/customer_view.html', 
+            title='Invoice', 
+            invoice_head=invoice_head,
+            invoice_details=invoice_details,
+            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
+            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
+        )

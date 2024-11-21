@@ -1,0 +1,111 @@
+{% extends 'layout/customer_base.html' %}
+{% block title %} Invoice {% endblock %}
+{% block body %}
+<div class="container">
+
+    <div class="row">
+        <div class="col mt-2">
+            <h1 class="lead text-center">Service status</h1>
+            <div class="card bg-body-tertiary">
+                <div class="card-header d-flex">
+                    <span><b>{{ invoice_head.washbay.name }}</b></span>
+                    <span class="ms-auto"><b>{{ invoice_head.vehical.number }}</b></span>
+                    {% if invoice_head.service_status > 0 and invoice_head.service_status < 5 %}
+                        <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> In bay</span>
+                    {% else %}
+                        <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Outside</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="progress" style="height:30px;">
+                        {% for status_number, service_status in service_status_form_list %}
+                            {% if invoice_head.service_status < status_number %}
+                                <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-hourglass-split"> {{ service_status }}</i></div>
+                            {% elif invoice_head.service_status == status_number %}
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-arrow-repeat text-dark"> {{ service_status }}</i></div>
+                            {% else %}
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-check-circle-fill"> {{ service_status }}</i></div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="row mt-3 text-center">
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Customer</small>
+                                <h5>{{ invoice_head.customer.name }}</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Employee</small>
+                                <h5>{{ invoice_head.employee.name }}</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Current Total</small>
+                                <h5>{{ invoice_head.total_price }}</h5>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="row mb-1">
+                                <small>Elapsed Time</small>
+                                <h5>{{ invoice_head.created_dttm | elapsed_time }}</h5>
+                            </div>
+                            <div class="row mb-1">
+                                <small>Started Time</small>
+                                <h5>{{ invoice_head.created_dttm | to_ist }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">  
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-primary">More Details</a>
+                    </div>
+                </div> 
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col mt-2">
+            <h1 class="lead text-center">Current Bill</h1>
+            <table class="table table-success table-striped table-hover" border="1">
+                <thead class="thread-dark">
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Total Price</th>
+                    </tr>
+                </thead>
+                <tbody id="results">
+                    {% for invoice_detail in invoice_details %}
+                    <tr>
+                        <td class="align-middle">{{invoice_detail.id}}</td>
+                        <td class="align-middle">{{invoice_detail.item.name}}</td>
+                        <td class="align-middle">{{invoice_detail.quantity}}</td>
+                        <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
+                        <td class="align-middle">{{invoice_detail.total_price}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <ul class="list-group mb-3">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Net Price</span>
+                    <text>{{ '{:,}'.format(invoice_head.total_price) }}</text>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Discount</span>
+                    <text>- {{ invoice_head.discount_pct }} %</text>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <h4>Gross Price</h4>
+                    <h4 class="text-success">{{ '{:,}'.format(invoice_head.gross_price) }}</h4>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
