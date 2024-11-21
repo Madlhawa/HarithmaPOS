@@ -96,6 +96,7 @@ def insert_invoice_head():
         )
         db.session.add(invoice)
         db.session.commit()
+        utils.send_sms(vehical.owner.contact, f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('invoice_blueprint.invoice_customer_view', invoice_head_id=invoice.id, _external=True)}")
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
     else:
         flash("Error: Invoice create failed!", category='danger')

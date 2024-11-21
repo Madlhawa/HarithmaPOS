@@ -1,5 +1,6 @@
 import json
 import pika
+import requests
 from decimal import Decimal
 import harithmapos.config as config
 
@@ -24,3 +25,23 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(o, Decimal):
             return float(o)
         return super().default(o)
+    
+def send_sms(recipient, message):
+    # Prepare the payload
+    payload = {
+        "user_id": config.NOTIFYLK_USER_ID,
+        "api_key": config.NOTIFYLK_API_KEY,
+        "sender_id": config.NOTIFYLK_SENDER_ID,
+        "to": f"94{recipient}",
+        "message": message
+    }
+
+    # Send the GET request
+    response = requests.get(config.NOTIFYLK_API_URL, params=payload)
+
+    # Check the response
+    if response.status_code == 200:
+        print("Response:", response.json())
+    else:
+        print(f"Failed to send SMS. HTTP Status Code: {response.status_code}")
+        print("Response:", response.text)
