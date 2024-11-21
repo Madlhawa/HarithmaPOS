@@ -100,6 +100,7 @@ def reset_token(token):
     return render_template('user/reset_token.html', title='Password Reset', form = form)
 
 @user_blueprint.route("/logout", methods=['GET', 'POST'])
+@login_required
 def logout():
     logout_user()
     return redirect(url_for('user_blueprint.login'))
