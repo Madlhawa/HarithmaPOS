@@ -112,6 +112,19 @@ class InvoiceHead(db.Model):
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
     payments = db.relationship('Payment', backref='invoice', lazy=True)
 
+    def get_customer_view_token(self, expire_seconds = 1800):
+        serializer = Serializer(current_app.config['SECRET_KEY'])
+        return serializer.dumps({'invoice_id': self.id})
+    
+    @staticmethod
+    def verify_customer_view_token(token):
+        serializer = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            invoice_id = serializer.loads(token)['invoice_id']
+        except:
+            return None
+        return InvoiceHead.query.get(invoice_id)
+
     @hybrid_property
     def service_status_str(self):
         return config.SERVICE_STATUS_LIST[int(self.service_status)]

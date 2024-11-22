@@ -5,7 +5,7 @@
         <div class="row">
             <div class="col d-flex justify-content-between align-items-center">
                 <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
+                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Vehical number...'}}">
                     <input type="submit" value="Search" class="btn btn-primary me-2" name="">
                     <a href="{{ url_for('invoice_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
                 </form> 
@@ -89,6 +89,7 @@
                     <th scope="col">Wash Bay</th>
                     <th scope="col">Status</th>
                     <th scope="col">Amount</th>
+                    <th scope="col">Rem. Amount</th>
                     <th scope="col" style="text-align: right" >Actions</th>
                 </tr>
             </thead>
@@ -103,6 +104,7 @@
                         <td class="align-middle">{{invoice_head.washbay.name}}</td>
                         <td class="align-middle">{{invoice_head.service_status_str}}</td>
                         <td class="align-middle">{{invoice_head.gross_price}}</td>
+                        <td class="align-middle">{{invoice_head.remaining_amount}}</td>
                         <td class="text-end">
                             <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-sm btn-warning" >Edit</a>
                             <a href="{{ url_for('invoice_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure to delete?')">Delete</a>
