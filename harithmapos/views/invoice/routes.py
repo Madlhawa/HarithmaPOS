@@ -28,7 +28,8 @@ def invoice_head():
     query = request.args.get("query",None)
 
     if query:
-        invoice_heads = InvoiceHead.query.order_by(InvoiceHead.update_dttm.desc()).filter(InvoiceHead.customer_id.icontains(query)).paginate(page=page, per_page=per_page)
+        invoice_heads = InvoiceHead.query.join(Vehical).order_by(InvoiceHead.update_dttm.desc()).filter(Vehical.number.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        # invoice_heads = InvoiceHead.query.order_by(InvoiceHead.update_dttm.desc()).filter(InvoiceHead.customer_id.icontains(query)).paginate(page=page, per_page=per_page)
     else:
         invoice_heads = InvoiceHead.query.order_by(InvoiceHead.update_dttm.desc()).paginate(page=page, per_page=per_page)
     return render_template(
@@ -96,7 +97,11 @@ def insert_invoice_head():
         )
         db.session.add(invoice)
         db.session.commit()
-        utils.send_sms(vehical.owner.contact, f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('invoice_blueprint.invoice_customer_view', invoice_head_id=invoice.id, _external=True)}")
+
+        token = invoice.get_customer_view_token()
+        msg = f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('invoice_blueprint.invoice_customer_view', token=token, _external=True)}"
+        utils.send_sms(vehical.owner.contact, msg)
+        
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
     else:
         flash("Error: Invoice create failed!", category='danger')
@@ -442,11 +447,15 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
-@invoice_blueprint.route("/invoice/customer/view/<int:invoice_head_id>", methods=['GET', 'POST'])
-def invoice_customer_view(invoice_head_id):
+@invoice_blueprint.route("/invoice/customer/view/<token>", methods=['GET', 'POST'])
+def invoice_customer_view(token):
 
-    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
+    invoice_head = InvoiceHead.verify_customer_view_token(token)
+    if not invoice_head:
+        flash('Invalid or expired token.', category='warning')
+        return render_template('error/404.html')
+
+    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head.id)
 
     return render_template(
             'invoice/customer_view.html', 

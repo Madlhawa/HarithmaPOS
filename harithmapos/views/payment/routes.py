@@ -1,5 +1,6 @@
 from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from datetime import datetime
 
 from harithmapos import db
 from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead,Customer, Employee
@@ -47,11 +48,11 @@ def insert_payment():
     payment_create_form = PaymentCreateForm()
     if payment_create_form.validate_on_submit():
         payment = Payment(
-            invoice_id = payment_create_form.invoice_id.data,
-            item_invoice_id = payment_create_form.item_invoice_id.data,
-            purchase_order_id = payment_create_form.purchase_order_id.data,
-            customer_id = payment_create_form.customer_id.data,
-            employee_id = payment_create_form.employee_id.data,
+            invoice_id = payment_create_form.invoice_id.data if payment_create_form.invoice_id.data != '' else None,
+            item_invoice_id = payment_create_form.item_invoice_id.data if payment_create_form.item_invoice_id.data != '' else None,
+            purchase_order_id = payment_create_form.purchase_order_id.data if payment_create_form.purchase_order_id.data != '' else None,
+            customer_id = payment_create_form.customer_id.data if payment_create_form.customer_id.data != '' else None,
+            employee_id = payment_create_form.employee_id.data if payment_create_form.employee_id.data != '' else None,
             payment_method = payment_create_form.payment_method.data,
             payment_direction = payment_create_form.payment_direction.data,
             payment_amount = payment_create_form.payment_amount.data,
@@ -65,6 +66,7 @@ def insert_payment():
             invoice_head = InvoiceHead.query.get_or_404(payment.invoice_id)
             invoice_head.remaining_amount -= payment.payment_amount
             invoice_head.paid_amount += payment.payment_amount
+            invoice_head.last_payment_date = datetime.utcnow()
             db.session.commit()
 
         flash("Payment added successfully!", category='success')
