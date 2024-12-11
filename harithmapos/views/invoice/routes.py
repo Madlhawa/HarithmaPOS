@@ -3,7 +3,7 @@ import json
 from sqlalchemy import func
 from datetime import datetime
 from flask_login import login_required
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
 from harithmapos import db, config
 from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item, Payment
@@ -87,12 +87,12 @@ def insert_invoice_head():
             washbays=washbays,
         )
     elif form.validate_on_submit():
-        vehical = Vehical.query.get(form.vehical.data)
+        vehical = Vehical.query.get(form.vehical_id.data)
         invoice = InvoiceHead(
             customer_id=vehical.owner.id,
-            vehical_id=form.vehical.data,
-            washbay_id=form.washbay.data,
-            employee_id=form.employee.data,
+            vehical_id=form.vehical_id.data,
+            washbay_id=form.washbay_id.data,
+            employee_id=form.employee_id.data,
             current_milage=form.current_milage.data
         )
         db.session.add(invoice)
@@ -104,6 +104,9 @@ def insert_invoice_head():
         
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
     else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                print(f"{field} - {error}")
         flash("Error: Invoice create failed!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head'))
 

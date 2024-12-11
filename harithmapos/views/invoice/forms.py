@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 
-from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField, RadioField
+from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField, RadioField, HiddenField
 from wtforms.validators import DataRequired, Optional
 
 import harithmapos.config as config
@@ -29,8 +29,11 @@ class InvoiceHeadUpdateForm(FlaskForm):
 
 class InvoiceHeadCreateForm(FlaskForm):
     vehical = StringField("Vehical", validators=[DataRequired()])
+    vehical_id = HiddenField("Vehical ID", validators=[DataRequired()])
     employee = StringField("Employee", validators=[DataRequired()])
+    employee_id = HiddenField("Employee ID", validators=[DataRequired()])
     washbay = StringField("Wash Bay", validators=[DataRequired()])
+    washbay_id = HiddenField("WashBay ID", validators=[DataRequired()])
     current_milage = IntegerField("Milage")
     submit = SubmitField('Create Invoice')
 
