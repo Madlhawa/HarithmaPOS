@@ -35,6 +35,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.purchase_order.routes import purchase_order_blueprint
     from harithmapos.views.payment.routes import payment_blueprint
     from harithmapos.views.dashboard.routes import dashboard_blueprint
+    from harithmapos.views.search.routes import search_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -49,5 +50,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(purchase_order_blueprint)
     app.register_blueprint(payment_blueprint)
     app.register_blueprint(dashboard_blueprint)
+    app.register_blueprint(search_blueprint)
 
     return app
