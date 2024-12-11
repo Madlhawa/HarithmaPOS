@@ -106,8 +106,7 @@ def insert_invoice_head():
     else:
         for field, errors in form.errors.items():
             for error in errors:
-                print(f"{field} - {error}")
-        flash("Error: Invoice create failed!", category='danger')
+                flash(f"Error: {field} - {error}", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head'))
 
 @invoice_blueprint.route("/item_invoice/head/create", methods=['GET', 'POST'])

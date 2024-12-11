@@ -2,52 +2,109 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId) {
     const inputElement = document.getElementById(inputId);
     const dropdownElement = document.getElementById(dropdownId);
     const hiddenElement = document.getElementById(hiddenId);
+    let selectedIndex = -1; // Keep track of the selected dropdown item index
+    let isItemSelected = false; // Track if an item has been selected
+    let debounceTimer = null; // Track the debounce timer
 
     // When user types in the input field
     inputElement.addEventListener("input", () => {
+        if (isItemSelected) {
+            return; // Stop searching if an item has already been selected
+        }
+
         const query = inputElement.value;
 
         // Clear the hidden element's value if the user starts typing
         hiddenElement.value = "";
 
-        if (query.length > 0) {
-            fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
-                .then((response) => response.json())
-                .then((data) => {
-                    dropdownElement.innerHTML = "";
+        // If a timer already exists, clear it before setting a new one
+        clearTimeout(debounceTimer);
 
-                    if (data.length > 0) {
-                        data.forEach((item) => {
-                            const listItem = document.createElement("li");
-                            listItem.className = "dropdown-item";
-                            // Display both ID and name/number
-                            listItem.textContent = `${item.id} - ${item.number || item.name}`; 
-                            listItem.dataset.id = item.id; // Store the ID as a data attribute
+        // Set a new timer to delay the search request
+        debounceTimer = setTimeout(() => {
+            if (query.length > 0) {
+                fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        dropdownElement.innerHTML = "";
+                        selectedIndex = -1; // Reset selected index
+                        dropdownElement.classList.remove("show"); // Hide dropdown if no results
 
-                            // When an item is clicked
-                            listItem.addEventListener("click", () => {
-                                inputElement.value = `${item.id} - ${item.number || item.name}`; // Show ID and name/number
-                                hiddenElement.value = listItem.dataset.id; // Set hidden input's value to the ID
-                                dropdownElement.innerHTML = ""; // Clear dropdown
+                        if (data.length > 0) {
+                            data.forEach((item, index) => {
+                                const listItem = document.createElement("li");
+                                listItem.className = "dropdown-item";
+                                // Display both ID and name/number
+                                listItem.textContent = `${item.id} - ${item.number || item.name}`;
+                                listItem.dataset.id = item.id; // Store the ID as a data attribute
+                                listItem.addEventListener("click", () => {
+                                    inputElement.value = `${item.id} - ${item.number || item.name}`; // Show ID and name/number
+                                    hiddenElement.value = listItem.dataset.id; // Set hidden input's value to the ID
+                                    dropdownElement.innerHTML = ""; // Clear dropdown
+                                    dropdownElement.classList.remove("show"); // Hide dropdown after selection
+                                    isItemSelected = true; // Mark item as selected
+                                    inputElement.blur(); // Remove focus to stop further search
+                                });
+
+                                // Set highlight for the selected item (based on the index)
+                                if (index === selectedIndex) {
+                                    listItem.classList.add("active");
+                                }
+
+                                dropdownElement.appendChild(listItem);
                             });
+                            dropdownElement.classList.add("show"); // Show dropdown if results are found
+                        } else {
+                            dropdownElement.innerHTML = '<li class="dropdown-item text-muted">No results found</li>';
+                            dropdownElement.classList.add("show"); // Show dropdown if no results found
+                        }
+                    });
+            } else {
+                dropdownElement.classList.remove("show"); // Hide dropdown if input is empty
+            }
+        }, 300); // Adjust the delay time (in milliseconds) as needed
+    });
 
-                            dropdownElement.appendChild(listItem);
-                        });
-                        dropdownElement.classList.add("show");
-                    } else {
-                        dropdownElement.innerHTML = '<li class="dropdown-item text-muted">No results found</li>';
-                        dropdownElement.classList.add("show");
-                    }
-                });
-        } else {
-            dropdownElement.classList.remove("show");
+    // Handle keyboard navigation (Up/Down arrows, Enter)
+    inputElement.addEventListener("keydown", (event) => {
+        const listItems = dropdownElement.getElementsByClassName("dropdown-item");
+
+        if (event.key === "ArrowDown") {
+            // Move down the list
+            if (selectedIndex < listItems.length - 1) {
+                selectedIndex++;
+            }
+        } else if (event.key === "ArrowUp") {
+            // Move up the list
+            if (selectedIndex > 0) {
+                selectedIndex--;
+            }
+        } else if (event.key === "Enter" && selectedIndex >= 0 && selectedIndex < listItems.length) {
+            // Select the highlighted item when Enter is pressed
+            const selectedItem = listItems[selectedIndex];
+            inputElement.value = selectedItem.textContent; // Set input field to the selected item's text
+            hiddenElement.value = selectedItem.dataset.id; // Set the hidden input field with the selected ID
+            dropdownElement.innerHTML = ""; // Clear the dropdown
+            dropdownElement.classList.remove("show"); // Hide the dropdown
+            isItemSelected = true; // Mark item as selected
+            inputElement.blur(); // Remove focus to stop further search
+            event.preventDefault(); // Prevent form submission
         }
+
+        // Highlight the selected item in the dropdown
+        Array.from(listItems).forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add("active");
+            } else {
+                item.classList.remove("active");
+            }
+        });
     });
 
     // Close dropdown when clicking outside
     document.addEventListener("click", (event) => {
         if (!dropdownElement.contains(event.target) && event.target !== inputElement) {
-            dropdownElement.classList.remove("show");
+            dropdownElement.classList.remove("show"); // Hide dropdown when clicking outside
         }
     });
 }
