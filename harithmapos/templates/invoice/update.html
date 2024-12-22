@@ -49,10 +49,16 @@
           <tr>
             <td class="align-middle">{{invoice_detail.id}}</td>
             <td class="align-middle">{{invoice_detail.item.name}}</td>
-            <td class="align-middle">
-              <a href="{{url_for('invoice_blueprint.decrease_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
-              {{invoice_detail.quantity}}
-              <a href="{{url_for('invoice_blueprint.increase_quantity_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
+            <td class="text-center align-middle">
+              <div class="flex-column">
+                <span>{{ invoice_detail.quantity }}</span>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('invoice_blueprint.decrease_quantity_invoice_detail', invoice_detail_id=invoice_detail.id) }}" 
+                     class="btn btn-outline-secondary btn-sm"><i class="bi bi-dash-lg"></i></a>
+                  <a href="{{ url_for('invoice_blueprint.increase_quantity_invoice_detail', invoice_detail_id=invoice_detail.id) }}" 
+                     class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i></a>
+                </div>
+              </div>
             </td>
             <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
             <td class="align-middle">{{invoice_detail.total_price}}</td>
