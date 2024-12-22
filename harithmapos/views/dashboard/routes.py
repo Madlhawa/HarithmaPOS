@@ -26,7 +26,7 @@ def dashboard():
     inactive_wash_bays = [washbay for washbay in results if not washbay.active_invoice ]
 
     return render_template(
-        'dashboard.html',
+        'dashboard/dashboard.html',
         title='InvoiceHead',
         invoice_head_create_form=invoice_head_create_form,
         results = results,

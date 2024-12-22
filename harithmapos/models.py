@@ -9,6 +9,16 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+class InvoiceStatusLog(db.Model):
+    __tablename__ = 'invoice_status_log'
+    id = db.Column(db.Integer, primary_key=True)
+    previous_invoice_status_log_id = db.Column(db.Integer, db.ForeignKey('invoice_status_log.id'))
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
+    service_status = db.Column(db.Integer)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    previous_invoice_status = db.relationship('InvoiceStatusLog', remote_side=[id], backref='next_invoice_status')
+
 class Payment(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
@@ -111,6 +121,7 @@ class InvoiceHead(db.Model):
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
     payments = db.relationship('Payment', backref='invoice', lazy=True)
+    invoice_statuses = db.relationship('InvoiceStatusLog', backref='invoice', lazy=True)
 
     def get_customer_view_token(self, expire_seconds = 1800):
         serializer = Serializer(current_app.config['SECRET_KEY'])
@@ -161,6 +172,7 @@ class Employee(db.Model):
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoices = db.relationship('InvoiceHead', backref='employee', lazy=True)
     payments = db.relationship('Payment', backref='employee', lazy=True)
+    invoice_statuses = db.relationship('InvoiceStatusLog', backref='employee', lazy=True)
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
