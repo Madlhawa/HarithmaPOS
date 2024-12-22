@@ -129,8 +129,8 @@
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         setupDynamicDropdown("vehicalSearch", "vehicalDropdown", "/search/vehicals", "vehicalId");
-        setupDynamicDropdown("employeeSearch", "employeeDropdown", "/search/employees", "employeeId");
-        setupDynamicDropdown("washbaySearch", "washbayDropdown", "/search/washbays", "washbayId");
+        setupDynamicDropdown("employeeSearch", "employeeDropdown", "/search/employees", "employeeId", true);
+        setupDynamicDropdown("washbaySearch", "washbayDropdown", "/search/washbays", "washbayId", true);
     });
 </script>
 {% endblock %}
