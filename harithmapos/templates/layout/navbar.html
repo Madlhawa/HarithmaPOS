@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container">
         <a href="" class="navbar-brand lead">
-            <img src="{{url_for('static', filename='images/vehical.png')}}" height="27" class="d-inline-block align-text-top">
+            <img src="{{url_for('static', filename='images/logo.png')}}" height="27" class="d-inline-block align-text-top">
             <b>Harithma</b>
         </a>
         <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -41,7 +41,7 @@
                             <a class="nav-item nav-link" href="{{ url_for('user_blueprint.logout') }}">Logout</a>
                         </ul>
                     </li>
-                    <img src="{{ url_for('static', filename='user_images/'+current_user.image) }}" class="rounded-circle" height="40" alt="Avatar" />
+                    <img src="{{ url_for('static', filename='images/user_images/'+current_user.image) }}" class="rounded-circle" height="40" alt="Avatar" />
                     
                 {% else %}
                     <a class="nav-item nav-link" href="{{ url_for('user_blueprint.login') }}">Login</a>
