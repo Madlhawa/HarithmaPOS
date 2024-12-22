@@ -45,4 +45,4 @@ def search_Items():
         Items = Item.query.filter((Item.id == int(query)) | (Item.name.ilike(f"%{query}%"))).all()
     else:
         Items = Item.query.filter(Item.name.ilike(f"%{query}%")).all()
-    return jsonify([{"id": w.id, "name": w.name} for w in Items])
+    return jsonify([{"id": w.id, "name": w.name, "price":w.unit_price} for w in Items])
