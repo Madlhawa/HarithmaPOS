@@ -1,12 +1,12 @@
 import json
 
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from datetime import datetime
 from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
 from harithmapos import db, config
-from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item, Payment
+from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item, Payment, InvoiceStatusLog
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 from harithmapos.views.invoice import utils 
@@ -98,6 +98,14 @@ def insert_invoice_head():
         db.session.add(invoice)
         db.session.commit()
 
+        invoice_status_log = InvoiceStatusLog(
+            invoice_id = invoice.id,
+            service_status = invoice.service_status,
+            employee_id = invoice.employee_id
+        )
+        db.session.add(invoice_status_log)
+        db.session.commit()
+
         token = invoice.get_customer_view_token()
         msg = f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
         utils.send_sms(vehical.owner.contact, msg)
@@ -146,6 +154,9 @@ def invoice_head_detail(invoice_head_id):
 
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
     invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head_id)
+    previous_invoice_status = InvoiceStatusLog.query.filter(InvoiceStatusLog.invoice_id == invoice_head.id, InvoiceStatusLog.service_status == invoice_head.service_status).order_by(desc(InvoiceStatusLog.created_dttm)).first()
+    previous_invoice_status_id = previous_invoice_status.id if previous_invoice_status else None
+    previous_service_status_id = previous_invoice_status.service_status if previous_invoice_status else 0
 
     if invoice_head_update_form.validate_on_submit():
         if invoice_head_update_form.update_invoice.data or invoice_head_update_form.complete_invoice.data:
@@ -163,6 +174,16 @@ def invoice_head_detail(invoice_head_id):
             invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
             invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
             invoice_head.update_dttm = datetime.now()
+
+            if str(previous_service_status_id).strip() != str(invoice_head.service_status).strip():
+                invoice_status_log = InvoiceStatusLog(
+                    previous_invoice_status_log_id = previous_invoice_status_id,
+                    invoice_id = invoice_head.id,
+                    service_status = invoice_head.service_status,
+                    employee_id = invoice_head.employee_id
+                )
+                db.session.add(invoice_status_log)
+                db.session.commit()
 
             if invoice_details:
                 update_total_values(invoice_head)
