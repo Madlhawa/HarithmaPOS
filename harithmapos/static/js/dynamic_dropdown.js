@@ -1,10 +1,57 @@
-function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId) {
+function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll = false) {
     const inputElement = document.getElementById(inputId);
     const dropdownElement = document.getElementById(dropdownId);
     const hiddenElement = document.getElementById(hiddenId);
     let selectedIndex = -1; // Keep track of the selected dropdown item index
     let isItemSelected = false; // Track if an item has been selected
     let debounceTimer = null; // Track the debounce timer
+
+    // Fetch and display dropdown items
+    const fetchDropdownItems = (query) => {
+        fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
+            .then((response) => response.json())
+            .then((data) => {
+                dropdownElement.innerHTML = "";
+                selectedIndex = -1; // Reset selected index
+                dropdownElement.classList.remove("show"); // Hide dropdown if no results
+
+                if (data.length > 0) {
+                    data.forEach((item, index) => {
+                        const listItem = document.createElement("li");
+                        listItem.className = "dropdown-item";
+                        // Display both ID and name/number
+                        listItem.textContent = `${item.id} - ${item.number || item.name}`;
+                        listItem.dataset.id = item.id; // Store the ID as a data attribute
+                        listItem.addEventListener("click", () => {
+                            inputElement.value = `${item.id} - ${item.number || item.name}`; // Show ID and name/number
+                            hiddenElement.value = listItem.dataset.id; // Set hidden input's value to the ID
+                            dropdownElement.innerHTML = ""; // Clear dropdown
+                            dropdownElement.classList.remove("show"); // Hide dropdown after selection
+                            isItemSelected = true; // Mark item as selected
+                            inputElement.blur(); // Remove focus to stop further search
+                        });
+
+                        // Set highlight for the selected item (based on the index)
+                        if (index === selectedIndex) {
+                            listItem.classList.add("active");
+                        }
+
+                        dropdownElement.appendChild(listItem);
+                    });
+                    dropdownElement.classList.add("show"); // Show dropdown if results are found
+                } else {
+                    dropdownElement.innerHTML = '<li class="dropdown-item text-muted">No results found</li>';
+                    dropdownElement.classList.add("show"); // Show dropdown if no results found
+                }
+            });
+    };
+
+    // Show all items when the input is focused if showAll is true
+    inputElement.addEventListener("focus", () => {
+        if (showAll && !isItemSelected) {
+            fetchDropdownItems(""); // Fetch all items with an empty query
+        }
+    });
 
     // When user types in the input field
     inputElement.addEventListener("input", () => {
@@ -22,43 +69,8 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId) {
 
         // Set a new timer to delay the search request
         debounceTimer = setTimeout(() => {
-            if (query.length > 0) {
-                fetch(`${searchUrl}?q=${encodeURIComponent(query)}`)
-                    .then((response) => response.json())
-                    .then((data) => {
-                        dropdownElement.innerHTML = "";
-                        selectedIndex = -1; // Reset selected index
-                        dropdownElement.classList.remove("show"); // Hide dropdown if no results
-
-                        if (data.length > 0) {
-                            data.forEach((item, index) => {
-                                const listItem = document.createElement("li");
-                                listItem.className = "dropdown-item";
-                                // Display both ID and name/number
-                                listItem.textContent = `${item.id} - ${item.number || item.name}`;
-                                listItem.dataset.id = item.id; // Store the ID as a data attribute
-                                listItem.addEventListener("click", () => {
-                                    inputElement.value = `${item.id} - ${item.number || item.name}`; // Show ID and name/number
-                                    hiddenElement.value = listItem.dataset.id; // Set hidden input's value to the ID
-                                    dropdownElement.innerHTML = ""; // Clear dropdown
-                                    dropdownElement.classList.remove("show"); // Hide dropdown after selection
-                                    isItemSelected = true; // Mark item as selected
-                                    inputElement.blur(); // Remove focus to stop further search
-                                });
-
-                                // Set highlight for the selected item (based on the index)
-                                if (index === selectedIndex) {
-                                    listItem.classList.add("active");
-                                }
-
-                                dropdownElement.appendChild(listItem);
-                            });
-                            dropdownElement.classList.add("show"); // Show dropdown if results are found
-                        } else {
-                            dropdownElement.innerHTML = '<li class="dropdown-item text-muted">No results found</li>';
-                            dropdownElement.classList.add("show"); // Show dropdown if no results found
-                        }
-                    });
+            if (query.length > 0 || showAll) {
+                fetchDropdownItems(query);
             } else {
                 dropdownElement.classList.remove("show"); // Hide dropdown if input is empty
             }
