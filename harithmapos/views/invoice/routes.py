@@ -282,7 +282,7 @@ def delete_item_invoice_head(item_invoice_head_id):
 def add_invoice_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
     if invoice_detail_create_form.validate_on_submit():
-        item_id = utils.get_id(invoice_detail_create_form.item.data)
+        item_id = invoice_detail_create_form.item_id.data
         quantity = invoice_detail_create_form.quantity.data
 
         item = Item.query.get_or_404(item_id)

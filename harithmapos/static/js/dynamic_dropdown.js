@@ -65,7 +65,7 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId) {
         }, 300); // Adjust the delay time (in milliseconds) as needed
     });
 
-    // Handle keyboard navigation (Up/Down arrows, Enter)
+    // Handle keyboard navigation (Up/Down arrows, Enter, Tab)
     inputElement.addEventListener("keydown", (event) => {
         const listItems = dropdownElement.getElementsByClassName("dropdown-item");
 
@@ -89,6 +89,14 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId) {
             isItemSelected = true; // Mark item as selected
             inputElement.blur(); // Remove focus to stop further search
             event.preventDefault(); // Prevent form submission
+        } else if (event.key === "Tab" && selectedIndex >= 0 && selectedIndex < listItems.length) {
+            // Select the highlighted item when Tab is pressed
+            const selectedItem = listItems[selectedIndex];
+            inputElement.value = selectedItem.textContent; // Set input field to the selected item's text
+            hiddenElement.value = selectedItem.dataset.id; // Set the hidden input field with the selected ID
+            dropdownElement.innerHTML = ""; // Clear the dropdown
+            dropdownElement.classList.remove("show"); // Hide the dropdown
+            isItemSelected = true; // Mark item as selected
         }
 
         // Highlight the selected item in the dropdown

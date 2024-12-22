@@ -7,6 +7,7 @@ import harithmapos.config as config
 
 class InvoiceDetailCreateForm(FlaskForm):
     item = StringField("Item", validators=[DataRequired()])
+    item_id = HiddenField("Item ID", validators=[DataRequired()])
     quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
