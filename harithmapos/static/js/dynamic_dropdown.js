@@ -19,8 +19,14 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
                     data.forEach((item, index) => {
                         const listItem = document.createElement("li");
                         listItem.className = "dropdown-item";
-                        // Display both ID and name/number
-                        listItem.textContent = `${item.id} - ${item.number || item.name}`;
+
+                        // Conditionally include price for "itemSearch"
+                        if (inputId === "itemSearch") {
+                            listItem.textContent = `${item.id} : ${item.number || item.name} ---------- ${item.price}`;
+                        } else {
+                            listItem.textContent = `${item.id} : ${item.number || item.name}`;
+                        }
+
                         listItem.dataset.id = item.id; // Store the ID as a data attribute
                         listItem.addEventListener("click", () => {
                             inputElement.value = `${item.id} - ${item.number || item.name}`; // Show ID and name/number
@@ -28,7 +34,6 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
                             dropdownElement.innerHTML = ""; // Clear dropdown
                             dropdownElement.classList.remove("show"); // Hide dropdown after selection
                             isItemSelected = true; // Mark item as selected
-                            inputElement.blur(); // Remove focus to stop further search
                         });
 
                         // Set highlight for the selected item (based on the index)
@@ -45,13 +50,6 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
                 }
             });
     };
-
-    // Show all items when the input is focused if showAll is true
-    inputElement.addEventListener("focus", () => {
-        if (showAll && !isItemSelected) {
-            fetchDropdownItems(""); // Fetch all items with an empty query
-        }
-    });
 
     // When user types in the input field
     inputElement.addEventListener("input", () => {
@@ -77,6 +75,13 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
         }, 300); // Adjust the delay time (in milliseconds) as needed
     });
 
+    // Show all items when the input is focused if showAll is true
+    inputElement.addEventListener("focus", () => {
+        if (showAll && !isItemSelected) {
+            fetchDropdownItems(""); // Fetch all items with an empty query
+        }
+    });
+
     // Handle keyboard navigation (Up/Down arrows, Enter, Tab)
     inputElement.addEventListener("keydown", (event) => {
         const listItems = dropdownElement.getElementsByClassName("dropdown-item");
@@ -99,7 +104,6 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
             dropdownElement.innerHTML = ""; // Clear the dropdown
             dropdownElement.classList.remove("show"); // Hide the dropdown
             isItemSelected = true; // Mark item as selected
-            inputElement.blur(); // Remove focus to stop further search
             event.preventDefault(); // Prevent form submission
         } else if (event.key === "Tab" && selectedIndex >= 0 && selectedIndex < listItems.length) {
             // Select the highlighted item when Tab is pressed
