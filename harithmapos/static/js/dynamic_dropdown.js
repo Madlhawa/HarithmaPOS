@@ -22,9 +22,9 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
 
                         // Conditionally include price for "itemSearch"
                         if (inputId === "itemSearch") {
-                            listItem.textContent = `${item.id} : ${item.number || item.name} ---------- ${item.price}`;
+                            listItem.textContent = `${item.id} | ${item.number || item.name} ---------- ${item.price}`;
                         } else {
-                            listItem.textContent = `${item.id} : ${item.number || item.name}`;
+                            listItem.textContent = `${item.id} | ${item.number || item.name}`;
                         }
 
                         listItem.dataset.id = item.id; // Store the ID as a data attribute
