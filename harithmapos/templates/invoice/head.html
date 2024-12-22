@@ -23,34 +23,28 @@
             </div>
             <div class="modal-body">
                 <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
+                    {{ invoice_head_create_form.vehical_id(class="form-control", id="vehicalId") }}
+                    {{ invoice_head_create_form.employee_id(class="form-control", id="employeeId") }}
+                    {{ invoice_head_create_form.washbay_id(class="form-control", id="washbayId") }}
                     {{ invoice_head_create_form.hidden_tag() }}
                     <fieldset class="form-group">
-                        <div class="form-group">
-                            {{ invoice_head_create_form.vehical.label(class="form-label mt-3",for="vehicalDataList") }}
-                            {{ invoice_head_create_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", placeholder="Search Vehical...") }}
-                            <datalist id="datalistOptionsVehical">
-                                {% for vehical in vehicals %}
-                                    <option value="{{vehical.id}}">{{vehical.number}}</option>
-                                {% endfor %}
-                            </datalist>
+                        <!-- Vehicle Search -->
+                        <div class="form-group position-relative">
+                            {{ invoice_head_create_form.vehical.label(class="form-label mt-3", for="vehicalSearch") }}
+                            {{ invoice_head_create_form.vehical(class="form-control", id="vehicalSearch", placeholder="Search Vehical...", autocomplete="off") }}
+                            <ul class="dropdown-menu w-100" id="vehicalDropdown"></ul>
                         </div>
-                        <div class="form-group">
-                            {{ invoice_head_create_form.employee.label(class="form-label mt-3",for="employeeDataList") }}
-                            {{ invoice_head_create_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", placeholder="Search Employee...") }}
-                            <datalist id="datalistOptionsEmployee">
-                                {% for employee in employees %}
-                                    <option value="{{employee.id}}">{{employee.name}}</option>
-                                {% endfor %}
-                            </datalist>
+                        <!-- Employee Search -->
+                        <div class="form-group position-relative">
+                            {{ invoice_head_create_form.employee.label(class="form-label mt-3", for="employeeSearch") }}
+                            {{ invoice_head_create_form.employee(class="form-control", id="employeeSearch", placeholder="Search Employee...", autocomplete="off") }}
+                            <ul class="dropdown-menu w-100" id="employeeDropdown"></ul>
                         </div>
-                        <div class="form-group">
-                            {{ invoice_head_create_form.washbay.label(class="form-label mt-3",for="washbayDataList") }}
-                            {{ invoice_head_create_form.washbay(class="form-control", list="datalistOptionsWashbay", id="washbayDataList", placeholder="Search WashBay...") }}
-                            <datalist id="datalistOptionsWashbay">
-                                {% for washbay in washbays %}
-                                    <option value="{{washbay.id}}">{{washbay.name}}</option>
-                                {% endfor %}
-                            </datalist>
+                        <!-- Washbay Search -->
+                        <div class="form-group position-relative">
+                            {{ invoice_head_create_form.washbay.label(class="form-label mt-3", for="washbaySearch") }}
+                            {{ invoice_head_create_form.washbay(class="form-control", id="washbaySearch", placeholder="Search WashBay...", autocomplete="off") }}
+                            <ul class="dropdown-menu w-100" id="washbayDropdown"></ul>
                         </div>
                         <div class="form-group">
                             {{ invoice_head_create_form.current_milage.label(class="form-control-label mt-3") }}
@@ -131,4 +125,12 @@
             </ul>
         </nav>
     </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        setupDynamicDropdown("vehicalSearch", "vehicalDropdown", "/search/vehicals", "vehicalId");
+        setupDynamicDropdown("employeeSearch", "employeeDropdown", "/search/employees", "employeeId");
+        setupDynamicDropdown("washbaySearch", "washbayDropdown", "/search/washbays", "washbayId");
+    });
+</script>
 {% endblock %}

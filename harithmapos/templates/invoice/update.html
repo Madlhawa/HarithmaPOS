@@ -14,22 +14,25 @@
   <div class="row">
     <div class="col">
       <form action="{{url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
-        <div class="input-group ">
-            {{ invoice_head_update_form.hidden_tag() }}
-          <span class="input-group-text">Item</span>
-          {{ invoice_detail_create_form.item(class="form-control", list="ItemDatalistOptions", id="ItemDataList", placeholder="Type to search...") }}
-          <datalist id="ItemDatalistOptions">
-            {% for item in items %}
-              <option value="{{item.id}} | {{item.name}}">
-            {% endfor %}
-          </datalist>
-          <span class="input-group-text">Qty</span>
-          {{ invoice_detail_create_form.quantity(class="form-control") }}
-          <!-- <input type="text" class="form-control" placeholder="1" aria-label="Server"> -->
-          {{ invoice_detail_create_form.submit(class="btn btn-primary") }}
-          <!-- <button class="btn btn-primary">Add Item</button> -->
+        <div class="row g-3 position-relative"> <!-- Position relative to parent -->
+            {{ invoice_detail_create_form.item_id(class="form-control", id="itemId") }}
+            {{ invoice_detail_create_form.hidden_tag() }}
+
+            <div class="col-sm-8">
+              {{ invoice_detail_create_form.item(class="form-control", id="itemSearch", placeholder="Type to search item...", autocomplete="off") }}
+              <ul class="dropdown-menu w-100" id="itemDropdown" aria-labelledby="itemSearch" style="position: absolute; top: 100%; left: 0; z-index: 1050;"></ul>
+            </div>
+
+            <div class="col-sm">
+              {{ invoice_detail_create_form.quantity(class="form-control", placeholder="Qty.") }}
+            </div>
+
+            <div class="col-sm">
+              {{ invoice_detail_create_form.submit(class="btn btn-primary") }}
+            </div>
         </div>
       </form>
+
       <table class="table table-success table-striped table-hover" border="1">
         <thead class="thread-dark">
           <tr>
@@ -166,4 +169,9 @@
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+      setupDynamicDropdown("itemSearch", "itemDropdown", "/search/items", "itemId");
+  });
+</script>
 {% endblock %}
