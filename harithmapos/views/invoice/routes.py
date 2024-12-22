@@ -99,7 +99,7 @@ def insert_invoice_head():
         db.session.commit()
 
         token = invoice.get_customer_view_token()
-        msg = f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('invoice_blueprint.invoice_customer_view', token=token, _external=True)}"
+        msg = f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
         utils.send_sms(vehical.owner.contact, msg)
         
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
@@ -449,27 +449,15 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
-@invoice_blueprint.route("/invoice/customer/view/<token>", methods=['GET', 'POST'])
-def invoice_customer_view(token):
-
-    invoice_head = InvoiceHead.verify_customer_view_token(token)
-    if not invoice_head:
-        flash('Invalid or expired token.', category='warning')
-        return render_template('error/404.html')
-
-    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head.id)
-
-    return render_template(
-            'invoice/customer_view.html', 
-            title='Invoice', 
-            invoice_head=invoice_head,
-            invoice_details=invoice_details,
-            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
-            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
-        )
-
-
 # supporting fuctions
+
+@invoice_blueprint.app_template_filter('format_quantity')
+def format_quantity(value):
+    if value is None:
+        return ''
+    return f"{float(value):g}"  # Removes trailing zeros and shows decimals only if necessary
+
+
 def update_total_values(invoice_head):
     if isinstance(invoice_head,InvoiceHead):
         invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]

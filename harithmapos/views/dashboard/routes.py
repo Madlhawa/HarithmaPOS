@@ -39,6 +39,25 @@ def dashboard():
         service_status_list=config.SERVICE_STATUS_LIST
     )
 
+@dashboard_blueprint.route("/dashboard/customer/invoice/<token>", methods=['GET', 'POST'])
+def customer_invoice(token):
+
+    invoice_head = InvoiceHead.verify_customer_view_token(token)
+    if not invoice_head:
+        flash('Invalid or expired token.', category='warning')
+        return render_template('error/404.html')
+
+    invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id==invoice_head.id)
+
+    return render_template(
+            'dashboard/customer_invoice.html', 
+            title='Invoice', 
+            invoice_head=invoice_head,
+            invoice_details=invoice_details,
+            service_status_form_list=config.SERVICE_STATUS_FORM_LIST,
+            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
+        )
+
 # supporting functions
 @dashboard_blueprint.app_template_filter('to_ist')
 def to_ist_filter(dt):

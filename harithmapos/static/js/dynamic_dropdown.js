@@ -53,11 +53,17 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
 
     // When user types in the input field
     inputElement.addEventListener("input", () => {
+        const query = inputElement.value;
+
+        if (isItemSelected && query === "") {
+            // If the input is cleared after selection, reset the hidden input value
+            hiddenElement.value = "";
+            isItemSelected = false; // Mark item as not selected
+        }
+
         if (isItemSelected) {
             return; // Stop searching if an item has already been selected
         }
-
-        const query = inputElement.value;
 
         // Clear the hidden element's value if the user starts typing
         hiddenElement.value = "";
