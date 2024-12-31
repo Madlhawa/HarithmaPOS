@@ -8,7 +8,7 @@ from harithmapos.views.customer.forms import CustomerForm
 
 customer_blueprint = Blueprint('customer_blueprint', __name__)
 
-@customer_blueprint.route('/customer/', methods = ['GET', 'POST'])
+@customer_blueprint.route('/app/customer/', methods = ['GET', 'POST'])
 @login_required
 def customer():
     customer_form = CustomerForm()
@@ -21,7 +21,7 @@ def customer():
         customers = Customer.query.all()
         return render_template('customer.html', title='Customers', customer_form=customer_form, vehical_form=vehical_form, customers=customers)
 
-@customer_blueprint.route('/insert_customer/', methods = ['POST'])
+@customer_blueprint.route('/app/insert_customer/', methods = ['POST'])
 @login_required
 def insert_customer():
     form = CustomerForm()
@@ -39,7 +39,7 @@ def insert_customer():
         flash("Customer failed to add.", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
 
-@customer_blueprint.route('/update_customer/', methods = ['POST'])
+@customer_blueprint.route('/app/update_customer/', methods = ['POST'])
 @login_required
 def update_customer():
     form = CustomerForm()
@@ -56,7 +56,7 @@ def update_customer():
         flash("Customer failed to update", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
  
-@customer_blueprint.route('/delete_customer/<id>', methods = ['GET', 'POST'])
+@customer_blueprint.route('/app/delete_customer/<id>', methods = ['GET', 'POST'])
 @login_required
 def delete_customer(id):
     customer = db.session.get(Customer, id)

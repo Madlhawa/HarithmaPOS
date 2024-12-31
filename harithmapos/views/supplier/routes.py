@@ -7,7 +7,7 @@ from harithmapos.views.supplier.forms import SupplierCreateForm, SupplierUpdateF
 
 supplier_blueprint = Blueprint('supplier_blueprint', __name__)
 
-@supplier_blueprint.route("/supplier", methods=['GET', 'POST'])
+@supplier_blueprint.route("/app/supplier", methods=['GET', 'POST'])
 @login_required
 def supplier():
     supplier_create_form = SupplierCreateForm()
@@ -30,7 +30,7 @@ def supplier():
         query=query
     )
 
-@supplier_blueprint.route("/supplier/create", methods=['GET', 'POST'])
+@supplier_blueprint.route("/app/supplier/create", methods=['GET', 'POST'])
 @login_required
 def insert_supplier():
     supplier_create_form = SupplierCreateForm()
@@ -47,7 +47,7 @@ def insert_supplier():
         flash("Supplier failed to add!", category='danger')
     return redirect(url_for('supplier_blueprint.supplier'))
 
-@supplier_blueprint.route("/supplier/<int:supplier_id>/update", methods=['GET', 'POST'])
+@supplier_blueprint.route("/app/supplier/<int:supplier_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_supplier(supplier_id):
     supplier_update_form = SupplierUpdateForm()
@@ -62,7 +62,7 @@ def update_supplier(supplier_id):
         flash("Suppler failed to add!", category='danger')
     return redirect(url_for('supplier_blueprint.supplier'))
 
-@supplier_blueprint.route('/supplier/<int:supplier_id>/delete', methods = ['GET', 'POST'])
+@supplier_blueprint.route('/app/supplier/<int:supplier_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_supplier(supplier_id):
     supplier = Supplier.query.get_or_404(supplier_id)

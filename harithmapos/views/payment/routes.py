@@ -8,7 +8,7 @@ from harithmapos.views.payment.forms import PaymentCreateForm, PaymentUpdateForm
 
 payment_blueprint = Blueprint('payment_blueprint', __name__)
 
-@payment_blueprint.route("/payment", methods=['GET', 'POST'])
+@payment_blueprint.route("/app/payment", methods=['GET', 'POST'])
 @login_required
 def payment():
     payment_create_form = PaymentCreateForm()
@@ -42,7 +42,7 @@ def payment():
         employees=employees
     )
 
-@payment_blueprint.route("/payment/create", methods=['GET', 'POST'])
+@payment_blueprint.route("/app/payment/create", methods=['GET', 'POST'])
 @login_required
 def insert_payment():
     payment_create_form = PaymentCreateForm()
@@ -74,7 +74,7 @@ def insert_payment():
         flash("Payment failed to add!", category='danger')
     return redirect(url_for('payment_blueprint.payment'))
 
-@payment_blueprint.route("/payment/<int:payment_id>/update", methods=['GET', 'POST'])
+@payment_blueprint.route("/app/payment/<int:payment_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_payment(payment_id):
     payment_update_form = PaymentUpdateForm()
@@ -96,7 +96,7 @@ def update_payment(payment_id):
         flash("Suppler failed to add!", category='danger')
     return redirect(url_for('payment_blueprint.payment'))
 
-@payment_blueprint.route('/payment/<int:payment_id>/delete', methods = ['GET', 'POST'])
+@payment_blueprint.route('/app/payment/<int:payment_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
