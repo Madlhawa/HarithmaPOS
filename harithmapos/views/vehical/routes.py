@@ -43,10 +43,10 @@ def update_vehical():
         flash("Vehical failed to add!", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
 
-@vehical_blueprint.route('/app/delete_vehical/<id>', methods = ['GET', 'POST'])
+@vehical_blueprint.route('/app/delete_vehical/<int:vehical_id>', methods = ['GET', 'POST'])
 @login_required
-def delete_vehical(id):
-    vehical = Vehical.query.get(id)
+def delete_vehical(vehical_id):
+    vehical = Vehical.query.get(vehical_id)
     db.session.delete(vehical)
     db.session.commit()
     flash("Vehical is deleted!", category='success')
