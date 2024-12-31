@@ -11,7 +11,7 @@ from harithmapos.views.purchase_order.utils import get_id
 
 purchase_order_blueprint = Blueprint('purchase_order_blueprint', __name__)
 
-@purchase_order_blueprint.route("/purchase_order/search", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/search", methods=['GET', 'POST'])
 @login_required
 def purchase_order_head_search():
     query = request.args.get(query)
@@ -29,7 +29,7 @@ def purchase_order_head_search():
         query=query
     )
 
-@purchase_order_blueprint.route("/purchase_order/head", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/head", methods=['GET', 'POST'])
 @login_required
 def purchase_order_head():
     purchase_order_head_create_form = PurchaseOrderHeadCreateForm()
@@ -55,7 +55,7 @@ def purchase_order_head():
         query=query
     )
 
-@purchase_order_blueprint.route("/purchase_order/head/create", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/head/create", methods=['GET', 'POST'])
 @login_required
 def insert_purchase_order_head():
     form = PurchaseOrderHeadCreateForm()
@@ -79,7 +79,7 @@ def insert_purchase_order_head():
         flash("Error: PurchaseOrder create failed!", category='danger')
     return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
 
-@purchase_order_blueprint.route("/purchase_order/head/<int:purchase_order_head_id>", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/head/<int:purchase_order_head_id>", methods=['GET', 'POST'])
 @login_required
 def purchase_order_head_detail(purchase_order_head_id):
     purchase_order_head_update_form = PurchaseOrderHeadUpdateForm()
@@ -124,7 +124,7 @@ def purchase_order_head_detail(purchase_order_head_id):
             purchase_order_details=purchase_order_details
         )
 
-@purchase_order_blueprint.route('/purchase_order/head/<int:purchase_order_head_id>/delete', methods = ['GET', 'POST'])
+@purchase_order_blueprint.route('/app/purchase_order/head/<int:purchase_order_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_purchase_order_head(purchase_order_head_id):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
@@ -133,7 +133,7 @@ def delete_purchase_order_head(purchase_order_head_id):
     flash("PurchaseOrderHead is deleted!", category='success')
     return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
 
-@purchase_order_blueprint.route("/purchase_order/detail/add/<int:purchase_order_head_id>", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/detail/add/<int:purchase_order_head_id>", methods=['GET', 'POST'])
 @login_required
 def add_purchase_order_detail(purchase_order_head_id):
     purchase_order_detail_create_form = PurchaseOrderDetailCreateForm()
@@ -166,7 +166,7 @@ def add_purchase_order_detail(purchase_order_head_id):
         flash("PurchaseOrder Item failed to add!", category='danger')
     return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',purchase_order_head_id=purchase_order_head_id))
 
-@purchase_order_blueprint.route("/purchase_order/detail/delete/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/detail/delete/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
 @login_required
 def delete_purchase_order_detail(purchase_order_detail_id):
     purchase_order_detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)
@@ -181,7 +181,7 @@ def delete_purchase_order_detail(purchase_order_detail_id):
 
     return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',purchase_order_head_id=purchase_order_detail.purchase_order_head_id))
 
-@purchase_order_blueprint.route("/purchase_order/detail/quantity/add/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/detail/quantity/add/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
 @login_required
 def increase_quantity_purchase_order_detail(purchase_order_detail_id):
 
@@ -199,7 +199,7 @@ def increase_quantity_purchase_order_detail(purchase_order_detail_id):
     update_total_values(purchase_order_head)
     return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',purchase_order_head_id=purchase_order_detail.purchase_order_head_id))
 
-@purchase_order_blueprint.route("/purchase_order/detail/quantity/remove/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
+@purchase_order_blueprint.route("/app/purchase_order/detail/quantity/remove/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
 @login_required
 def decrease_quantity_purchase_order_detail(purchase_order_detail_id):
     purchase_order_detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)

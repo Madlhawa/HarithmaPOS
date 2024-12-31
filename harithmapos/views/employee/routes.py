@@ -7,7 +7,7 @@ from harithmapos.views.employee.forms import EmployeeCreateForm, EmployeeUpdateF
 
 employee_blueprint = Blueprint('employee_blueprint', __name__)
 
-@employee_blueprint.route("/employee", methods=['GET', 'POST'])
+@employee_blueprint.route("/app/employee", methods=['GET', 'POST'])
 @login_required
 def employee():
     employee_create_form = EmployeeCreateForm()
@@ -30,7 +30,7 @@ def employee():
         query=query
     )
 
-@employee_blueprint.route("/employee/create", methods=['GET', 'POST'])
+@employee_blueprint.route("/app/employee/create", methods=['GET', 'POST'])
 @login_required
 def insert_employee():
     employee_create_form = EmployeeCreateForm()
@@ -50,7 +50,7 @@ def insert_employee():
         flash("Employee failed to add!", category='danger')
     return redirect(url_for('employee_blueprint.employee'))
 
-@employee_blueprint.route("/employee/<int:employee_id>/update", methods=['GET', 'POST'])
+@employee_blueprint.route("/app/employee/<int:employee_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_employee(employee_id):
     employee_update_form = EmployeeUpdateForm()
@@ -68,7 +68,7 @@ def update_employee(employee_id):
         flash("Employee failed to add!", category='danger')
     return redirect(url_for('employee_blueprint.employee'))
 
-@employee_blueprint.route('/employee/<int:employee_id>/delete', methods = ['GET', 'POST'])
+@employee_blueprint.route('/app/employee/<int:employee_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_employee(employee_id):
     employee = Employee.query.get_or_404(employee_id)

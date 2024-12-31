@@ -9,10 +9,10 @@ from harithmapos.views.user.forms import UserRegisterForm, UserLoginForm, UserUp
 
 user_blueprint = Blueprint('user_blueprint', __name__)
 
-@user_blueprint.route("/register", methods=['GET', 'POST'])
+@user_blueprint.route("/app/register", methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('customer_blueprint.customer'))
+        return redirect(url_for('dashboard_blueprint.customer'))
     form = UserRegisterForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
@@ -25,10 +25,11 @@ def register():
         db.session.commit()
         flash(f'Account has been created. Please login.',category='success')
         return redirect(url_for('user_blueprint.login'))
-    return render_template('user/register.html', title='Register', form = form)
+    return redirect(url_for('user_blueprint.login'))
+    # return render_template('user/register.html', title='Register', form = form)
 
-@user_blueprint.route("/", methods=['GET', 'POST'])
-@user_blueprint.route("/login", methods=['GET', 'POST'])
+@user_blueprint.route("/app", methods=['GET', 'POST'])
+@user_blueprint.route("/app/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard_blueprint.dashboard'))
@@ -43,7 +44,7 @@ def login():
             flash(f'Login unsuccessfull. Please check email and password.', category='danger')
     return render_template('user/login.html', title='Login', form = form)
 
-@user_blueprint.route("/account", methods=['GET', 'POST'])
+@user_blueprint.route("/app/account", methods=['GET', 'POST'])
 @login_required
 def account():
     form=UserUpdateForm()
@@ -51,7 +52,7 @@ def account():
         if form.image.data:
             if current_user.image != 'default.jpg':
                 try:
-                    os.remove(os.path.join('harithmapos','static','user_images', current_user.image))
+                    os.remove(os.path.join('harithmapos','static', 'images', 'user_images', current_user.image))
                 except:
                     pass
             image = save_image(form.image.data)
@@ -66,11 +67,11 @@ def account():
         form.name.data = current_user.name
         form.email.data = current_user.email
         form.ui_theme.data = current_user.ui_theme
-    image_path = url_for('static', filename=f'user_images/{current_user.image}')
+    image_path = url_for('static', filename=f'images/user_images/{current_user.image}')
     print(f'{image_path = }')
     return render_template('user/account.html', title='Account', user_image_file=image_path, form=form)
 
-@user_blueprint.route("/reset_password", methods=['GET', 'POST'])
+@user_blueprint.route("/app/reset_password", methods=['GET', 'POST'])
 def reset_request():
     if current_user.is_authenticated:
         return redirect(url_for('customer_blueprint.customer'))
@@ -82,7 +83,7 @@ def reset_request():
         return redirect(url_for('user_blueprint.login'))
     return render_template('user/reset_request.html', title='Password Reset', form = form)
 
-@user_blueprint.route("/reset_password/<token>", methods=['GET', 'POST'])
+@user_blueprint.route("/app/reset_password/<token>", methods=['GET', 'POST'])
 def reset_token(token):
     if current_user.is_authenticated:
         return redirect(url_for('customer_blueprint.customer'))
@@ -99,7 +100,7 @@ def reset_token(token):
         return redirect(url_for('user_blueprint.login'))
     return render_template('user/reset_token.html', title='Password Reset', form = form)
 
-@user_blueprint.route("/logout", methods=['GET', 'POST'])
+@user_blueprint.route("/app/logout", methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()

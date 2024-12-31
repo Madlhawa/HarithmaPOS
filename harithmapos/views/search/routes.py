@@ -5,7 +5,7 @@ from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOr
 
 search_blueprint = Blueprint('search_blueprint', __name__)
 
-@search_blueprint.route("/search/vehicals", methods=["GET"])
+@search_blueprint.route("/app/search/vehicals", methods=["GET"])
 @login_required
 def search_vehicals():
     query = request.args.get("q", "").strip().lower()
@@ -16,7 +16,7 @@ def search_vehicals():
     return jsonify([{"id": v.id, "number": v.number} for v in vehicals])
 
 
-@search_blueprint.route("/search/employees", methods=["GET"])
+@search_blueprint.route("/app/search/employees", methods=["GET"])
 @login_required
 def search_employees():
     query = request.args.get("q", "").strip().lower()
@@ -27,7 +27,7 @@ def search_employees():
     return jsonify([{"id": e.id, "name": e.name} for e in employees])
 
 
-@search_blueprint.route("/search/washbays", methods=["GET"])
+@search_blueprint.route("/app/search/washbays", methods=["GET"])
 @login_required
 def search_washbays():
     query = request.args.get("q", "").strip().lower()
@@ -37,7 +37,7 @@ def search_washbays():
         washbays = WashBay.query.filter(WashBay.name.ilike(f"%{query}%")).all()
     return jsonify([{"id": w.id, "name": w.name} for w in washbays])
 
-@search_blueprint.route("/search/items", methods=["GET"])
+@search_blueprint.route("/app/search/items", methods=["GET"])
 @login_required
 def search_Items():
     query = request.args.get("q", "").strip().lower()

@@ -7,7 +7,7 @@ from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
 
 item_blueprint = Blueprint('item_blueprint', __name__)
 
-@item_blueprint.route("/item", methods=['GET', 'POST'])
+@item_blueprint.route("/app/item", methods=['GET', 'POST'])
 @login_required
 def item():
     item_create_form = ItemCreateForm()
@@ -30,7 +30,7 @@ def item():
         query=query
     )
 
-@item_blueprint.route("/item/create", methods=['GET', 'POST'])
+@item_blueprint.route("/app/item/create", methods=['GET', 'POST'])
 @login_required
 def insert_item():
     item_create_form = ItemCreateForm()
@@ -51,7 +51,7 @@ def insert_item():
         flash("Item failed to add!", category='danger')
     return redirect(url_for('item_blueprint.item'))
 
-@item_blueprint.route("/item/<int:item_id>/update", methods=['GET', 'POST'])
+@item_blueprint.route("/app/item/<int:item_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_item(item_id):
     item_update_form = ItemUpdateForm()
@@ -70,7 +70,7 @@ def update_item(item_id):
         flash("Suppler failed to add!", category='danger')
     return redirect(url_for('item_blueprint.item'))
 
-@item_blueprint.route('/item/<int:item_id>/delete', methods = ['GET', 'POST'])
+@item_blueprint.route('/app/item/<int:item_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)

@@ -7,7 +7,7 @@ from harithmapos.views.vehical.forms import VehicalForm
 
 vehical_blueprint = Blueprint('vehical_blueprint', __name__)
 
-@vehical_blueprint.route('/insert_vehical/', methods = ['GET', 'POST'])
+@vehical_blueprint.route('/app/insert_vehical/', methods = ['GET', 'POST'])
 @login_required
 def insert_vehical():
     form = VehicalForm()
@@ -26,7 +26,7 @@ def insert_vehical():
         flash("Vehical failed to add!", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
 
-@vehical_blueprint.route('/update_vehical/', methods = ['POST'])
+@vehical_blueprint.route('/app/update_vehical/', methods = ['POST'])
 @login_required
 def update_vehical():
     form = VehicalForm()
@@ -43,7 +43,7 @@ def update_vehical():
         flash("Vehical failed to add!", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
 
-@vehical_blueprint.route('/delete_vehical/<id>', methods = ['GET', 'POST'])
+@vehical_blueprint.route('/app/delete_vehical/<id>', methods = ['GET', 'POST'])
 @login_required
 def delete_vehical(id):
     vehical = Vehical.query.get(id)

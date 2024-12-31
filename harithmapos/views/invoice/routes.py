@@ -13,7 +13,7 @@ from harithmapos.views.invoice import utils
 
 invoice_blueprint = Blueprint('invoice_blueprint', __name__)
 
-@invoice_blueprint.route("/invoice/head", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/head", methods=['GET', 'POST'])
 @login_required
 def invoice_head():
     invoice_head_create_form = InvoiceHeadCreateForm()
@@ -44,7 +44,7 @@ def invoice_head():
         query=query
     )
 
-@invoice_blueprint.route("/item_invoice/head", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/head", methods=['GET', 'POST'])
 @login_required
 def item_invoice_head():
     item_invoice_head_create_form = ItemInvoiceHeadCreateForm()
@@ -70,7 +70,7 @@ def item_invoice_head():
         query=query
     )
 
-@invoice_blueprint.route("/invoice/head/create", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/head/create", methods=['GET', 'POST'])
 @login_required
 def insert_invoice_head():
     form = InvoiceHeadCreateForm()
@@ -117,7 +117,7 @@ def insert_invoice_head():
                 flash(f"Error: {field} - {error}", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head'))
 
-@invoice_blueprint.route("/item_invoice/head/create", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/head/create", methods=['GET', 'POST'])
 @login_required
 def insert_item_invoice_head():
     form = ItemInvoiceHeadCreateForm()
@@ -141,7 +141,7 @@ def insert_item_invoice_head():
         flash("Error: Item Invoice create failed!", category='danger')
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
-@invoice_blueprint.route("/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
 @login_required
 def invoice_head_detail(invoice_head_id):
     invoice_head_update_form = InvoiceHeadUpdateForm()
@@ -231,7 +231,7 @@ def invoice_head_detail(invoice_head_id):
             payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST,
         )
 
-@invoice_blueprint.route("/item_invoice/head/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/head/<int:item_invoice_head_id>", methods=['GET', 'POST'])
 @login_required
 def item_invoice_head_detail(item_invoice_head_id):
     item_invoice_head_update_form = ItemInvoiceHeadUpdateForm()
@@ -280,7 +280,7 @@ def item_invoice_head_detail(item_invoice_head_id):
             item_invoice_details=item_invoice_details
         )
 
-@invoice_blueprint.route('/invoice/head/<int:invoice_head_id>/delete', methods = ['GET', 'POST'])
+@invoice_blueprint.route('/app/invoice/head/<int:invoice_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_invoice_head(invoice_head_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
@@ -289,7 +289,7 @@ def delete_invoice_head(invoice_head_id):
     flash("InvoiceHead is deleted!", category='success')
     return redirect(url_for('invoice_blueprint.invoice_head'))
 
-@invoice_blueprint.route('/item_invoice/head/<int:item_invoice_head_id>/delete', methods = ['GET', 'POST'])
+@invoice_blueprint.route('/app/item_invoice/head/<int:item_invoice_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_item_invoice_head(item_invoice_head_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
@@ -298,7 +298,7 @@ def delete_item_invoice_head(item_invoice_head_id):
     flash("Success: Invoice is deleted!", category='success')
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
-@invoice_blueprint.route("/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
 @login_required
 def add_invoice_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
@@ -331,7 +331,7 @@ def add_invoice_detail(invoice_head_id):
         flash("Invoice Item failed to add!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
 
-@invoice_blueprint.route("/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['GET', 'POST'])
 @login_required
 def add_item_invoice_detail(item_invoice_head_id):
     item_invoice_detail_create_form = InvoiceDetailCreateForm()
@@ -364,7 +364,7 @@ def add_item_invoice_detail(item_invoice_head_id):
         flash("Item Invoice Item failed to add!", category='danger')
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_head_id))
 
-@invoice_blueprint.route("/invoice/detail/delete/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/detail/delete/<int:invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def delete_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
@@ -379,7 +379,7 @@ def delete_invoice_detail(invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
-@invoice_blueprint.route("/item_invoice/detail/delete/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/detail/delete/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def delete_item_invoice_detail(item_invoice_detail_id):
     item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
@@ -394,7 +394,7 @@ def delete_item_invoice_detail(item_invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
-@invoice_blueprint.route("/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def increase_quantity_invoice_detail(invoice_detail_id):
 
@@ -412,7 +412,7 @@ def increase_quantity_invoice_detail(invoice_detail_id):
     update_total_values(invoice_head)
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
-@invoice_blueprint.route("/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def increase_quantity_item_invoice_detail(item_invoice_detail_id):
 
@@ -430,7 +430,7 @@ def increase_quantity_item_invoice_detail(item_invoice_detail_id):
     update_total_values(item_invoice_head)
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
-@invoice_blueprint.route("/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def decrease_quantity_invoice_detail(invoice_detail_id):
     invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
@@ -450,7 +450,7 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
-@invoice_blueprint.route("/item_invoice/detail/quantity/remove/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
+@invoice_blueprint.route("/app/item_invoice/detail/quantity/remove/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
 @login_required
 def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
     item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)

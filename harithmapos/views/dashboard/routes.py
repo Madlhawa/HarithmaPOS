@@ -12,7 +12,7 @@ from harithmapos.views.invoice.utils import get_id
 
 dashboard_blueprint = Blueprint('dashboard_blueprint', __name__)
 
-@dashboard_blueprint.route('/dashboard')
+@dashboard_blueprint.route('/app/dashboard')
 @login_required
 def dashboard():
     invoice_head_create_form = InvoiceHeadCreateForm()
@@ -39,7 +39,7 @@ def dashboard():
         service_status_list=config.SERVICE_STATUS_LIST
     )
 
-@dashboard_blueprint.route("/dashboard/customer/invoice/<token>", methods=['GET', 'POST'])
+@dashboard_blueprint.route("/app/dashboard/customer/invoice/<token>", methods=['GET', 'POST'])
 def customer_invoice(token):
 
     invoice_head = InvoiceHead.verify_customer_view_token(token)

@@ -7,7 +7,7 @@ from harithmapos.views.washbay.forms import WashBayCreateForm, WashBayUpdateForm
 
 washbay_blueprint = Blueprint('washbay_blueprint', __name__)
 
-@washbay_blueprint.route("/washbay", methods=['GET', 'POST'])
+@washbay_blueprint.route("/app/washbay", methods=['GET', 'POST'])
 @login_required
 def washbay():
     washbay_create_form = WashBayCreateForm()
@@ -30,7 +30,7 @@ def washbay():
         query=query
     )
 
-@washbay_blueprint.route("/washbay/create", methods=['GET', 'POST'])
+@washbay_blueprint.route("/app/washbay/create", methods=['GET', 'POST'])
 @login_required
 def insert_washbay():
     washbay_create_form = WashBayCreateForm()
@@ -47,7 +47,7 @@ def insert_washbay():
         flash("WashBay failed to add!", category='danger')
     return redirect(url_for('washbay_blueprint.washbay'))
 
-@washbay_blueprint.route("/washbay/<int:washbay_id>/update", methods=['GET', 'POST'])
+@washbay_blueprint.route("/app/washbay/<int:washbay_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_washbay(washbay_id):
     washbay_update_form = WashBayUpdateForm()
@@ -62,7 +62,7 @@ def update_washbay(washbay_id):
         flash("Suppler failed to add!", category='danger')
     return redirect(url_for('washbay_blueprint.washbay'))
 
-@washbay_blueprint.route('/washbay/<int:washbay_id>/delete', methods = ['GET', 'POST'])
+@washbay_blueprint.route('/app/washbay/<int:washbay_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_washbay(washbay_id):
     washbay = WashBay.query.get_or_404(washbay_id)
