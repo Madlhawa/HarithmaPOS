@@ -56,10 +56,10 @@ def update_customer():
         flash("Customer failed to update", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
  
-@customer_blueprint.route('/app/delete_customer/<id>', methods = ['GET', 'POST'])
+@customer_blueprint.route('/app/delete_customer/<int:customer_id>', methods = ['GET', 'POST'])
 @login_required
-def delete_customer(id):
-    customer = db.session.get(Customer, id)
+def delete_customer(customer_id):
+    customer = db.session.get(Customer, customer_id)
     db.session.delete(customer)
     db.session.commit()
     flash("Customer is deleted!", category="success")
