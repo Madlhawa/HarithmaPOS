@@ -9,6 +9,10 @@ data = ["Apple", "Banana", "Cherry", "Date", "Elderberry", "Fig", "Grape"]
 def home():
     return render_template('index.html', title='Home')
 
+@main_blueprint.route("/test", methods=['GET', 'POST'])
+def test():
+    return render_template('test.html', title='Home')
+
 @main_blueprint.route('/app/search', methods=['GET'])
 def search():
     query = request.args.get('q', '').lower()  # Get the query parameter
