@@ -93,7 +93,8 @@ def insert_invoice_head():
             vehical_id=form.vehical_id.data,
             washbay_id=form.washbay_id.data,
             employee_id=form.employee_id.data,
-            current_milage=form.current_milage.data
+            current_milage=form.current_milage.data,
+            payment_method='cash'
         )
         db.session.add(invoice)
         db.session.commit()
