@@ -17,7 +17,7 @@ RABBIT_MQ_PASSWORD = os.environ.get('RABBIT_MQ_PASSWORD')
 NOTIFYLK_USER_ID = os.environ.get('NOTIFYLK_USER_ID')
 NOTIFYLK_API_KEY = os.environ.get('NOTIFYLK_API_KEY')
 NOTIFYLK_API_URL = "https://app.notify.lk/api/v1/send"
-NOTIFYLK_SENDER_ID = "NotifyDEMO"
+NOTIFYLK_SENDER_ID = "Harithma"
 
 
 SERVICE_STATUS_LIST = [
@@ -25,7 +25,6 @@ SERVICE_STATUS_LIST = [
     'Vacumming',
     'Washing',
     'Drying',
-    'Polishing',
     'Done'
 ]
 
@@ -34,7 +33,6 @@ SERVICE_STATUS_FORM_LIST = [
     (1, 'Vacumming'), 
     (2, 'Washing'), 
     (3, 'Drying'), 
-    (4, 'Polishing'), 
     (5, 'Done')
 ]
 
