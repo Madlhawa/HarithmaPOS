@@ -9,7 +9,7 @@
     <style>
         /* Inline styles for hero section background image */
         header {
-            background: url('https://via.placeholder.com/1920x600') no-repeat center center/cover;
+            background: url("{{ url_for('static', filename='frontpage/images/hero.png') }}") no-repeat center center/cover;
         }
         /* Vertically center the contact details */
         .contact-details {
@@ -75,28 +75,28 @@
                 <!-- Row 1 -->
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Basic Wash"> <!-- Placeholder image for Basic Wash -->
+                        <img src="{{ url_for('static', filename='frontpage/images/interiorCleaning150x150.png') }}" class="img-fluid me-3" alt="Deluxe Wash"> <!-- Placeholder image for Deluxe Wash -->
                         <div class="card-body">
-                            <h5 class="card-title">Basic Wash</h5>
-                            <p class="card-text">Includes exterior wash and dry.</p>
+                            <h5 class="card-title">Interior Cleaning</h5>
+                            <p class="card-text">Include vacuuming, dashboard polishing, and seat sanitization.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Deluxe Wash"> <!-- Placeholder image for Deluxe Wash -->
+                        <img src="{{ url_for('static', filename='frontpage/images/underbodyWash150x150.png') }}" class="img-fluid me-3" alt="Deluxe Wash"> <!-- Placeholder image for Deluxe Wash -->
                         <div class="card-body">
-                            <h5 class="card-title">Deluxe Wash</h5>
-                            <p class="card-text">Includes exterior wash, dry, and interior vacuum.</p>
+                            <h5 class="card-title">Underbody Cleaning</h5>
+                            <p class="card-text">Ensure your vehicle's underbody is free from corrosion-causing debris and salts.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Premium Wash"> <!-- Placeholder image for Premium Wash -->
+                        <img src="{{ url_for('static', filename='frontpage/images/pressureWash150x150.png') }}" class="img-fluid me-3" alt="Premium Wash"> <!-- Placeholder image for Premium Wash -->
                         <div class="card-body">
-                            <h5 class="card-title">Premium Wash</h5>
-                            <p class="card-text">Full service including wax and tire shine.</p>
+                            <h5 class="card-title">Pressure Washing</h5>
+                            <p class="card-text">High-pressure washing to remove dirt, grease, and grime from all types of vehicles.</p>
                         </div>
                     </div>
                 </div>
@@ -105,28 +105,28 @@
                 <!-- Row 2 -->
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Interior Detailing"> <!-- Placeholder image for Interior Detailing -->
+                        <img src="{{ url_for('static', filename='frontpage/images/detailing150x150.png') }}" class="img-fluid me-3" alt="Interior Detailing"> <!-- Placeholder image for Interior Detailing -->
                         <div class="card-body">
-                            <h5 class="card-title">Interior Detailing</h5>
-                            <p class="card-text">Deep cleaning of car interiors including seats and carpets.</p>
+                            <h5 class="card-title">Detailing Services</h5>
+                            <p class="card-text">Comprehensive detailing to restore the shine and beauty of your vehicle.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Engine Cleaning"> <!-- Placeholder image for Engine Cleaning -->
+                        <img src="{{ url_for('static', filename='frontpage/images/engineCleaning150x150.png') }}" class="img-fluid me-3" alt="Engine Cleaning"> <!-- Placeholder image for Engine Cleaning -->
                         <div class="card-body">
                             <h5 class="card-title">Engine Cleaning</h5>
-                            <p class="card-text">Thorough cleaning of the car engine.</p>
+                            <p class="card-text">Expert cleaning of engine components to improve performance and longevity.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm d-flex flex-row">
-                        <img src="https://via.placeholder.com/150" class="img-fluid me-3" alt="Tire Detailing"> <!-- Placeholder image for Tire Detailing -->
+                        <img src="{{ url_for('static', filename='frontpage/images/wheelPolish150x150.png') }}" class="img-fluid me-3" alt="Tire Detailing"> <!-- Placeholder image for Tire Detailing -->
                         <div class="card-body">
-                            <h5 class="card-title">Tire Detailing</h5>
-                            <p class="card-text">Shine and protect your car tires for a brand-new look.</p>
+                            <h5 class="card-title">Wheel Polishing</h5>
+                            <p class="card-text">Get your wheels polished and cleaned for that extra sparkle.</p>
                         </div>
                     </div>
                 </div>
@@ -140,7 +140,7 @@
             <h2 class="text-center mb-4">About Us</h2>
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <img src="https://via.placeholder.com/500x300" alt="About Us" class="img-fluid"> <!-- Placeholder image for About Us -->
+                    <img src="{{ url_for('static', filename='frontpage/images/aboutUs.png') }}" alt="About Us" class="img-fluid"> <!-- Placeholder image for About Us -->
                 </div>
                 <div class="col-md-6">
                     <p>At Harithma Service Center, we are dedicated to providing top-notch car washing and detailing services. With years of experience and a passion for excellence, our team ensures that your vehicle looks its best every time you visit. We use state-of-the-art equipment and eco-friendly products to deliver a superior clean while caring for the environment. Your satisfaction is our priority, and we strive to exceed your expectations with every wash.</p>
@@ -156,13 +156,13 @@
             <div class="row">
                 <div class="col-md-6 contact-details">
                     <h5>Contact Details</h5>
-                    <p><strong>Address:</strong> 123 Main Street, Your City, Country</p>
-                    <p><strong>Phone:</strong> +123 456 7890</p>
-                    <p><strong>Email:</strong> contact@harithma.com</p>
+                    <p><strong>Address:</strong>Harithma Service Center, Godigamuwa road, Dunagaha.</p>
+                    <p><strong>Phone:</strong>031-2246341</p>
+                    <p><strong>Email:</strong>Harithma.racing@gmail.com</p>
                 </div>
                 <div class="col-md-6">
                     <h5>Our Location</h5>
-                    <img src="https://via.placeholder.com/600x400" class="img-fluid" alt="Google Map Location"> <!-- Placeholder for Google Map location -->
+                    <img src="{{ url_for('static', filename='frontpage/images/googleMap.png') }}" class="img-fluid" alt="Google Map Location"> <!-- Placeholder for Google Map location -->
                 </div>
             </div>
         </div>
