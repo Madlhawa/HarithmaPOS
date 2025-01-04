@@ -19,3 +19,9 @@
     python -m flask shell
     from harithmapos import db
     db.create_all()
+
+# migrating db
+    set FLASK_APP=harithmapos
+    flask db init #only first time
+    flask db migrate
+    flask db upgrade

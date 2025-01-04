@@ -2,10 +2,12 @@ from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_mail import Mail
 from harithmapos.config import Config
 
 db = SQLAlchemy()
+migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 mail = Mail()
@@ -18,6 +20,7 @@ def create_app(Config_class=Config):
     app.config.from_object(Config_class)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     mail.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)

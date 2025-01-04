@@ -94,6 +94,7 @@ def insert_invoice_head():
             washbay_id=form.washbay_id.data,
             employee_id=form.employee_id.data,
             current_milage=form.current_milage.data,
+            next_milage=form.current_milage.data,
             payment_method='cash'
         )
         db.session.add(invoice)
@@ -106,10 +107,6 @@ def insert_invoice_head():
         )
         db.session.add(invoice_status_log)
         db.session.commit()
-
-        token = invoice.get_customer_view_token()
-        msg = f"Hi {vehical.owner.name}, Your vehical {vehical.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
-        utils.send_sms(vehical.owner.contact, msg)
         
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
     else:
@@ -149,7 +146,6 @@ def invoice_head_detail(invoice_head_id):
     invoice_detail_create_form = InvoiceDetailCreateForm()
 
     items = Item.query.all()
-    vehicals = Vehical.query.all()
     employees = Employee.query.all()
     washbays = WashBay.query.all()
 
@@ -160,21 +156,21 @@ def invoice_head_detail(invoice_head_id):
     previous_service_status_id = previous_invoice_status.service_status if previous_invoice_status else 0
 
     if invoice_head_update_form.validate_on_submit():
-        if invoice_head_update_form.update_invoice.data or invoice_head_update_form.complete_invoice.data:
-            vehical = Vehical.query.get(utils.get_id(invoice_head_update_form.vehical.data))
-
-            invoice_head.customer_id=vehical.owner.id
-            invoice_head.vehical_id=utils.get_id(invoice_head_update_form.vehical.data)
+        if not invoice_head_update_form.cancel_invoice.data:
             invoice_head.washbay_id=utils.get_id(invoice_head_update_form.washbay.data)
             invoice_head.employee_id=utils.get_id(invoice_head_update_form.employee.data)
             invoice_head.current_milage=invoice_head_update_form.current_milage.data
-            invoice_head.next_milage=invoice_head_update_form.next_milage.data
+            invoice_head.next_milage_in=invoice_head_update_form.next_milage_in.data
             invoice_head.service_status=invoice_head_update_form.service_status.data
             invoice_head.payment_method=invoice_head_update_form.payment_method.data
             invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
             invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
             invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
             invoice_head.update_dttm = datetime.now()
+
+            if invoice_head_update_form.next_milage_in.data:
+                invoice_head.next_milage = invoice_head.next_milage_in + invoice_head.current_milage
+                db.session.commit()
 
             if str(previous_service_status_id).strip() != str(invoice_head.service_status).strip():
                 invoice_status_log = InvoiceStatusLog(
@@ -191,8 +187,25 @@ def invoice_head_detail(invoice_head_id):
             
             if invoice_head.paid_amount:
                 invoice_head.last_payment_date = datetime.now()
+                
 
-            if invoice_head_update_form.complete_invoice.data:
+            if invoice_head_update_form.send_service_start_msg.data:
+                invoice_head.service_start_msg_sent_ind = True
+                db.session.commit()
+
+                token = invoice_head.get_customer_view_token()
+                msg = f"Hi {invoice_head.vehical.owner.name}, Your vehical {invoice_head.vehical.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
+                utils.send_sms(invoice_head.vehical.owner.contact, msg)
+
+            elif invoice_head_update_form.send_service_complete_msg.data:
+                invoice_head.service_complete_msg_sent_ind = True
+                db.session.commit()
+                
+                token = invoice_head.get_customer_view_token()
+                msg = f"Hi {invoice_head.vehical.owner.name}, Your vehical {invoice_head.vehical.number}'s service has been completed."
+                utils.send_sms(invoice_head.vehical.owner.contact, msg)
+
+            elif invoice_head_update_form.complete_invoice.data:
                 invoice_head.service_status = 5
                 payment = Payment(
                     invoice_id = invoice_head_id,
@@ -208,7 +221,7 @@ def invoice_head_detail(invoice_head_id):
                 utils.send_print_invoice(service_invoice_json,'harithmaq')
                 return redirect(url_for('dashboard_blueprint.dashboard'))
 
-        elif invoice_head_update_form.cancel_invoice.data:
+        else:
             db.session.delete(invoice_head)
             db.session.commit()
             flash("Invoice deleted.", category='warning')
@@ -217,6 +230,16 @@ def invoice_head_detail(invoice_head_id):
     elif request.method == 'POST':
         flash("Invoice update failed!", category='danger')
 
+    if invoice_head.service_complete_msg_sent_ind:
+        invoice_head_update_form.send_service_start_msg.render_kw = {'disabled': 'disabled'}
+        invoice_head_update_form.send_service_complete_msg.render_kw = {'disabled': 'disabled'}
+    elif invoice_head.service_start_msg_sent_ind:
+        invoice_head_update_form.send_service_start_msg.render_kw = {'disabled': 'disabled'}
+        invoice_head_update_form.send_service_complete_msg.render_kw = {}
+    else:
+        invoice_head_update_form.send_service_start_msg.render_kw = {}
+        invoice_head_update_form.send_service_complete_msg.render_kw = {'disabled': 'disabled'}
+
     return render_template(
             'invoice/update.html', 
             title='Invoice', 
@@ -224,7 +247,6 @@ def invoice_head_detail(invoice_head_id):
             invoice_head_update_form=invoice_head_update_form,
             invoice_detail_create_form=invoice_detail_create_form,
             items=items,
-            vehicals=vehicals,
             employees=employees,
             washbays=washbays,
             invoice_details=invoice_details,
@@ -306,19 +328,21 @@ def add_invoice_detail(invoice_head_id):
     if invoice_detail_create_form.validate_on_submit():
         item_id = invoice_detail_create_form.item_id.data
         quantity = invoice_detail_create_form.quantity.data
+        discount_amount = invoice_detail_create_form.discount_amount.data
 
         item = Item.query.get_or_404(item_id)
         invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
 
         item.quantity -= quantity
+        item_discount_amount = item.discount_pct*item.unit_price*quantity/100
 
         invoice_detail = InvoiceDetail(
             invoice_head_id = invoice_head_id,
             item_id = item_id,
             quantity = quantity,
             total_cost = item.unit_cost*quantity,
-            total_price = item.unit_price*quantity,
-            discount_pct = 0
+            total_price = item.unit_price*quantity-item_discount_amount-discount_amount,
+            discount_amount = discount_amount+item_discount_amount
         )
 
         db.session.add(invoice_detail)
@@ -339,19 +363,21 @@ def add_item_invoice_detail(item_invoice_head_id):
     if item_invoice_detail_create_form.validate_on_submit():
         item_id = utils.get_id(item_invoice_detail_create_form.item.data)
         quantity = item_invoice_detail_create_form.quantity.data
+        discount_amount = item_invoice_detail_create_form.discount_amount.data
 
         item = Item.query.get_or_404(item_id)
         item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
 
         item.quantity -= quantity
+        item_discount_amount = item.discount_pct*item.unit_price*quantity/100
 
         item_invoice_detail = ItemInvoiceDetail(
             item_invoice_head_id = item_invoice_head_id,
             item_id = item_id,
             quantity = quantity,
             total_cost = item.unit_cost*quantity,
-            total_price = item.unit_price*quantity,
-            discount_pct = 0
+            total_price = item.unit_price*quantity-item_discount_amount-discount_amount,
+            discount_amount = discount_amount+item_discount_amount
         )
 
         db.session.add(item_invoice_detail)
@@ -484,10 +510,12 @@ def update_total_values(invoice_head):
     if isinstance(invoice_head,InvoiceHead):
         invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
         invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+        invoice_head.total_discount = (db.session.query(func.sum(InvoiceDetail.discount_amount)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0] or 0)+invoice_head.discount_amount
     else:
         invoice_head.total_cost = db.session.query(func.sum(ItemInvoiceDetail.total_cost)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
         invoice_head.total_price = db.session.query(func.sum(ItemInvoiceDetail.total_price)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
-    invoice_head.gross_price = (invoice_head.total_price - (invoice_head.total_price*(invoice_head.discount_pct/100))) if invoice_head.discount_pct else invoice_head.total_price
+        invoice_head.total_discount = (db.session.query(func.sum(ItemInvoiceDetail.discount_amount)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0] or 0)+invoice_head.discount_amount
+    invoice_head.gross_price = (invoice_head.total_price or 0) - invoice_head.total_discount
 
     invoice_head.total_cost = invoice_head.total_cost if invoice_head.total_cost else 0
     invoice_head.total_price = invoice_head.total_price if invoice_head.total_price else 0
@@ -500,7 +528,7 @@ def convert_item_invoice_to_json(item_invoice):
         "invoice_number": item_invoice.id,  
         "invoice_type": 2,
         "total_price": item_invoice.total_price,
-        "discount_pct": item_invoice.discount_pct,
+        "discount_amount": item_invoice.discount_acount,
         "gross_price": item_invoice.gross_price,
         "paid_amount": item_invoice.paid_amount,
         "invoice_details": []
