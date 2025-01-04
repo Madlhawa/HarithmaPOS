@@ -1,7 +1,9 @@
 {% extends 'layout/base.html' %}
 {% block title %} Home {% endblock %}
 {% block body %}
+
 <div class="container mt-3">
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -11,45 +13,47 @@
       {% endfor %}
     {% endif %}
   {% endwith %}
+
   <div class="row">
-    <div class="col">
+    <div class="col-8"> <!-- Invoice Detail Side -->
       <form action="{{url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=invoice_head.id)}}" method="POST">
         <div class="row g-3 position-relative"> <!-- Position relative to parent -->
             {{ invoice_detail_create_form.item_id(class="form-control", id="itemId") }}
             {{ invoice_detail_create_form.hidden_tag() }}
-
-            <div class="col-sm-8">
+            <div class="col-6">
               {{ invoice_detail_create_form.item(class="form-control", id="itemSearch", placeholder="Type to search item...", autocomplete="off") }}
               <ul class="dropdown-menu w-100" id="itemDropdown" aria-labelledby="itemSearch" style="position: absolute; top: 100%; left: 0; z-index: 1050;"></ul>
             </div>
-
-            <div class="col-sm">
+            <div class="col-2">
               {{ invoice_detail_create_form.quantity(class="form-control", placeholder="Qty.") }}
             </div>
-
-            <div class="col-sm">
+            <div class="col-2">
+              {{ invoice_detail_create_form.discount_amount(class="form-control", placeholder="Disc.") }}
+            </div>
+            <div class="col-2 d-grid gap-2">
               {{ invoice_detail_create_form.submit(class="btn btn-primary") }}
             </div>
         </div>
       </form>
 
-      <table class="table table-success table-striped table-hover" border="1">
+      <table class="table table-primary table-bordered table-hover align-middle" border="1">
         <thead class="thread-dark">
           <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Name</th>
-            <th scope="col">Quantity</th>
-            <th scope="col">Price</th>
-            <th scope="col">Total Price</th>
-            <th scope="col">Actions</th>
+            <th class="col-1 text-center">ID</th>
+            <th class="col-4">Name</th>
+            <th class="col-1 text-center">Quantity</th>
+            <th class="col-1 text-end">Price</th>
+            <th class="col-1 text-end">Discount</th>
+            <th class="col-2 text-end">Total Price</th>
+            <th class="col-1 text-center">Actions</th>
           </tr>
         </thead>
         <tbody id="results">
           {% for invoice_detail in invoice_details %}
           <tr>
-            <td class="align-middle">{{invoice_detail.id}}</td>
-            <td class="align-middle">{{invoice_detail.item.name}}</td>
-            <td class="text-center align-middle">
+            <td class="text-center">{{invoice_detail.id}}</td>
+            <td class="">{{invoice_detail.item.name}}</td>
+            <td class="text-center"> <!-- Quantity -->
               <div class="flex-column">
                 <span>{{ invoice_detail.quantity }}</span>
                 <div class="d-flex gap-1">
@@ -60,9 +64,10 @@
                 </div>
               </div>
             </td>
-            <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
-            <td class="align-middle">{{invoice_detail.total_price}}</td>
-            <td class="align-middle">
+            <td class="text-end">{{invoice_detail.item.unit_price}}</td>
+            <td class="text-end">{{invoice_detail.discount_amount}}</td>
+            <td class="text-end">{{invoice_detail.total_price}}</td>
+            <td class="text-end"> <!-- Actions -->
               <a href="{{url_for('invoice_blueprint.delete_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
                 onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
             </td>
@@ -70,6 +75,7 @@
           {% endfor %}
         </tbody>
       </table>
+      <hr>
       <ul class="list-group mb-3">
         <li class="list-group-item d-flex justify-content-between">
           <span>Net Price</span>
@@ -77,7 +83,7 @@
         </li>
         <li class="list-group-item d-flex justify-content-between">
           <span>Discount</span>
-          <text>- {{ invoice_head.discount_pct }} %</text>
+          <text>{{ invoice_head.total_discount }}</text>
         </li>
         <li class="list-group-item d-flex justify-content-between">
           <h4>Gross Price</h4>
@@ -85,99 +91,159 @@
         </li>
       </ul>
     </div>
-    <div class="col">
+
+    <div class="col-4"> <!-- Invoice Head Side -->
       <form action="{{url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
           {{ invoice_head_update_form.hidden_tag() }}
-        <div class="row">
-            <div class="col">
-              <div class="input-group mb-3">
-                  <span class="input-group-text" id="inputGroup-sizing-default">Customer</span>
-                  <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.customer.name}}" disabled>
-              </div>
-              <div class="input-group mb-3">
-                  <span class="input-group-text" id="inputGroup-sizing-default">Vehical</span>
-                  {{ invoice_head_update_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", value=invoice_head.vehical.id|string+" | "+invoice_head.vehical.number) }}
-                      <datalist id="datalistOptionsVehical">
-                          {% for vehical in vehicals %}
-                              <option value="{{vehical.id}} | {{vehical.number}}">
-                          {% endfor %}
-                      </datalist>
-              </div>
-            </div>
-            <div class="col">
-              <div class="input-group mb-3">
-                  <span class="input-group-text" id="inputGroup-sizing-default">Employee</span>
-                  {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", value=invoice_head.employee.id|string+" | "+invoice_head.employee.name) }}
-                      <datalist id="datalistOptionsEmployee">
-                          {% for employee in employees %}
-                              <option value="{{employee.id}} | {{employee.name}}">
-                          {% endfor %}
-                      </datalist>
-              </div>
-              <div class="input-group mb-3">
-                  <span class="input-group-text" id="inputGroup-sizing-default">Wash Bay</span>
-                  {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", value=invoice_head.washbay.id|string+" | "+invoice_head.washbay.name) }}
-                      <datalist id="datalistOptionsWashBay">
-                          {% for washbay in washbays %}
-                              <option value="{{washbay.id}} | {{washbay.name}}">
-                          {% endfor %}
-                      </datalist>
-              </div>
-            </div>
-            <div class="btn-group mb-4 mt-2" role="group" aria-label="Basic radio toggle button group">
-              {% for status_number, service_status in service_status_form_list %}
-                  <input type="radio" class="btn-check" name="service_status" id="serviceStatusRadio{{ status_number }}" value="{{ status_number }}" autocomplete="off" {{ "checked" if invoice_head.service_status == status_number }}>
-                  <label class="btn btn-outline-info btn-lg" for="serviceStatusRadio{{ status_number }}">{{ service_status }}</label>
-              {% endfor %}
-            </div>
+
+        <div class="row"> <!-- Customer Name -->
+          <div class="input-group mb-3">
+              <span class="input-group-text" id="inputGroup-sizing-default">Customer</span>
+              <input type="text" class="form-control" aria-label="Customer Name" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.customer.name}}" disabled>
+          </div>
         </div>
-        <div class="row">
-          <div class="col">
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="inputGroup-sizing-default">Current Milage</span>
-              {{ invoice_head_update_form.current_milage(class="form-control form-control", value=invoice_head.current_milage) }}
-            </div>
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
-              {{ invoice_head_update_form.discount_pct(class="form-control form-control", value=invoice_head.discount_pct) }}
-            </div>
+
+        <div class="row"> <!-- Vehical Number -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Vehical</span>
+            <input type="text" class="form-control" aria-label="Vehical Number" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.vehical.id|string+' | '+invoice_head.vehical.number}}" disabled>
           </div>
-          <div class="col">
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="inputGroup-sizing-default">Next Milage</span>
-              {{ invoice_head_update_form.next_milage(class="form-control form-control", value=invoice_head.next_milage) }}
-            </div>
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="inputGroup-sizing-default">Payment Amount</span>
-              {{ invoice_head_update_form.paid_amount(class="form-control form-control", value=invoice_head.paid_amount) }}
-            </div>
+        </div>
+
+        <div class="row"> <!-- Employee -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Employee</span>
+            {{ invoice_head_update_form.employee(class="form-control", list="datalistOptionsEmployee", id="employeeDataList", value=invoice_head.employee.id|string+" | "+invoice_head.employee.name) }}
+              <datalist id="datalistOptionsEmployee">
+                  {% for employee in employees %}
+                      <option value="{{employee.id}} | {{employee.name}}">
+                  {% endfor %}
+              </datalist>
           </div>
-          <div class="btn-group mb-4 mt-2" role="group" aria-label="Basic radio toggle button group">
-            {% for payment_method_number, payment_method in payment_method_form_list %}
-                <input type="radio" class="btn-check" name="payment_method" id="paymentMethodRadio{{ payment_method_number }}" value="{{ payment_method_number }}" autocomplete="off" {{ "checked" if invoice_head.payment_method == payment_method_number }}>
-                <label class="btn btn-outline-secondary btn-lg" for="paymentMethodRadio{{ payment_method_number }}">{{ payment_method }}</label>
+        </div>
+
+        <div class="row"> <!-- Service Bay -->
+          <div class="input-group">
+            <span class="input-group-text" id="inputGroup-sizing-default">Wash Bay</span>
+            {{ invoice_head_update_form.washbay(class="form-control", list="datalistOptionsWashBay", id="washbayDataList", value=invoice_head.washbay.id|string+" | "+invoice_head.washbay.name) }}
+              <datalist id="datalistOptionsWashBay">
+                  {% for washbay in washbays %}
+                      <option value="{{washbay.id}} | {{washbay.name}}">
+                  {% endfor %}
+              </datalist>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="row"> <!-- Service Status -->
+          <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+            {% for status_number, service_status in service_status_form_list %}
+              <input type="radio" class="btn-check" name="service_status" id="serviceStatusRadio{{ status_number }}" value="{{ status_number }}" autocomplete="off" {{ "checked" if invoice_head.service_status == status_number }}>
+              <label class="btn btn-outline-secondary" for="serviceStatusRadio{{ status_number }}">{{ service_status }}</label>
             {% endfor %}
           </div>
         </div>
-        <div class="btn-group" role="group" aria-label="Basic example">
-          <div class="col-auto">
-            {{ invoice_head_update_form.update_invoice(class="btn btn-primary btn-lg mb-3") }}
-            {{ invoice_head_update_form.complete_invoice(class="btn btn-success btn-lg mb-3") }}
-            {{ invoice_head_update_form.cancel_invoice(class="btn btn-danger btn-lg mb-3", onclick="return confirm('Are you sure to delete?')") }}
+
+        <hr>
+
+        <div class="row"> <!-- Current Milage -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Current Milage</span>
+            {{ invoice_head_update_form.current_milage(class="form-control form-control", value=invoice_head.current_milage) }}
+            <span class="input-group-text" id="inputGroup-sizing-default">km</span>
           </div>
-          {% if invoice_head_update_form.errors %}
-              {% for error in invoice_head_update_form.errors.items() %}
-                  <small class="text-danger mt-2">{{ error }}</small><br>
-              {% endfor %}
-          {% endif %}
         </div>
-      </form>
+
+        <div class="row"> <!-- Next Milage In -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Next Milage In</span>
+            {{ invoice_head_update_form.next_milage_in(class="form-control form-control", value=invoice_head.next_milage_in) }}
+            <span class="input-group-text" id="inputGroup-sizing-default">km</span>
+          </div>
+        </div>
+
+        <div class="row"> <!-- Next Milage -->
+          <div class="input-group">
+            <span class="input-group-text" id="inputGroup-sizing-default">Next Milage</span>
+            <input type="text" class="form-control" aria-label="Next Milage" aria-describedby="inputGroup-sizing-default" placeholder="{{invoice_head.next_milage}}" disabled>
+            <span class="input-group-text" id="inputGroup-sizing-default">km</span>
+          </div>
+        </div>
+
+        <hr>
+        
+        <div class="row"> <!-- Discount -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
+            {{ invoice_head_update_form.discount_amount(class="form-control form-control", value=invoice_head.discount_pct) }}
+          </div>
+        </div>
+
+        <div class="row"> <!-- Payment Amount -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">Payment Amount</span>
+            {{ invoice_head_update_form.paid_amount(class="form-control form-control", value=invoice_head.paid_amount) }}
+          </div>
+        </div>
+
+        <div class="row"> <!-- Payment Method -->
+          <div class="btn-group mb-4 mt-2" role="group" aria-label="Basic radio toggle button group">
+            {% for payment_method_number, payment_method in payment_method_form_list %}
+              <input type="radio" class="btn-check" name="payment_method" id="paymentMethodRadio{{ payment_method_number }}" value="{{ payment_method_number }}" autocomplete="off" {{ "checked" if invoice_head.payment_method == payment_method_number }}>
+              <label class="btn btn-outline-secondary" for="paymentMethodRadio{{ payment_method_number }}">{{ payment_method }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="row justify-content-between align-items-center mb-4"> <!-- Submit Section -->
+          <div class="col-auto">
+            {{ invoice_head_update_form.update_invoice(class="btn btn-primary btn-lg") }}
+          </div>
+          <div class="col text-center">
+            {{ invoice_head_update_form.complete_invoice(class="btn btn-success btn-lg") }}
+          </div>
+          <div class="col-auto text-end">
+            {{ invoice_head_update_form.cancel_invoice(class="btn btn-danger btn-lg", onclick="return confirm('Are you sure to delete?')") }}
+          </div>
+        </div>
+
+        <div class="row"> <!-- Send Message -->
+          <div class="col d-grid">
+            {% if invoice_head.service_start_msg_sent_ind %}
+              {{ invoice_head_update_form.send_service_start_msg(class="btn btn-outline-secondary") }}
+            {% else %}
+              {{ invoice_head_update_form.send_service_start_msg(class="btn btn-secondary") }}
+            {% endif %}
+          </div>
+          <div class="col d-grid">
+            {% if invoice_head.service_complete_msg_sent_ind %}
+              {{ invoice_head_update_form.send_service_complete_msg(class="btn btn-outline-secondary") }}
+            {% else %}
+              {{ invoice_head_update_form.send_service_complete_msg(class="btn btn-secondary") }}
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="row"> <!-- Error Messages -->
+          <div class="col-auto">
+            {% if invoice_head_update_form.errors %}
+                {% for error in invoice_head_update_form.errors.items() %}
+                    <small class="text-danger mt-2">{{ error }}</small><br>
+                {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+      </form> 
     </div>
   </div>
+
 </div>
+
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-      setupDynamicDropdown("itemSearch", "itemDropdown", "/search/items", "itemId");
+      setupDynamicDropdown("itemSearch", "itemDropdown", "/app/search/items", "itemId");
   });
 </script>
 {% endblock %}
