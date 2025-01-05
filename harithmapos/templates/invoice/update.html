@@ -67,7 +67,7 @@
             <td class="text-end">{{invoice_detail.item.unit_price}}</td>
             <td class="text-end">{{invoice_detail.discount_amount}}</td>
             <td class="text-end">{{invoice_detail.total_price}}</td>
-            <td class="text-end"> <!-- Actions -->
+            <td class="text-center"> <!-- Actions -->
               <a href="{{url_for('invoice_blueprint.delete_invoice_detail', invoice_detail_id=invoice_detail.id)}}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier"
                 onclick="return confirm('Are you sure to delete?')"><i class="bi bi-trash3-fill"></i></a>
             </td>
