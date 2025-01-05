@@ -74,3 +74,9 @@ def elapsed_time_filter(dt):
     hours = int(elapsed.total_seconds() // 3600)
     minutes = int((elapsed.total_seconds() % 3600) // 60)
     return f"{hours} hrs, {minutes} mins"
+
+@dashboard_blueprint.app_template_filter('format_quantity')
+def format_quantity(value):
+    if value is None:
+        return ''
+    return f"{float(value):g}"  # Removes trailing zeros and shows decimals only if necessary
