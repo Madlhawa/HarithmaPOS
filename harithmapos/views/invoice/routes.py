@@ -164,7 +164,7 @@ def invoice_head_detail(invoice_head_id):
             invoice_head.service_status=invoice_head_update_form.service_status.data
             invoice_head.payment_method=invoice_head_update_form.payment_method.data
             invoice_head.paid_amount=invoice_head_update_form.paid_amount.data
-            invoice_head.discount_pct=invoice_head_update_form.discount_pct.data
+            invoice_head.discount_amount=invoice_head_update_form.discount_amount.data
             invoice_head.remaining_amount = invoice_head.gross_price-invoice_head.paid_amount
             invoice_head.update_dttm = datetime.now()
 
@@ -181,9 +181,6 @@ def invoice_head_detail(invoice_head_id):
                 )
                 db.session.add(invoice_status_log)
                 db.session.commit()
-
-            if invoice_details:
-                update_total_values(invoice_head)
             
             if invoice_head.paid_amount:
                 invoice_head.last_payment_date = datetime.now()
@@ -217,6 +214,7 @@ def invoice_head_detail(invoice_head_id):
                 )
                 db.session.add(payment)
                 db.session.commit()
+                update_total_values(invoice_head)
                 service_invoice_json = convert_service_invoice_to_json(invoice_head)
                 utils.send_print_invoice(service_invoice_json,'harithmaq')
                 return redirect(url_for('dashboard_blueprint.dashboard'))
@@ -240,6 +238,7 @@ def invoice_head_detail(invoice_head_id):
         invoice_head_update_form.send_service_start_msg.render_kw = {}
         invoice_head_update_form.send_service_complete_msg.render_kw = {'disabled': 'disabled'}
 
+    update_total_values(invoice_head)
     return render_template(
             'invoice/update.html', 
             title='Invoice', 
@@ -335,23 +334,25 @@ def add_invoice_detail(invoice_head_id):
 
         item.quantity -= quantity
         item_discount_amount = item.discount_pct*item.unit_price*quantity/100
+        total_item_cost = item.unit_cost*quantity
+        total_item_price = item.unit_price*quantity
+        total_item_discount = discount_amount+item_discount_amount
+        total_gross_price = total_item_price-total_item_discount
 
         invoice_detail = InvoiceDetail(
             invoice_head_id = invoice_head_id,
             item_id = item_id,
             quantity = quantity,
-            total_cost = item.unit_cost*quantity,
-            total_price = item.unit_price*quantity-item_discount_amount-discount_amount,
-            discount_amount = discount_amount+item_discount_amount
+            total_cost = total_item_cost,
+            total_price = total_item_price,
+            discount_amount = total_item_discount,
+            gross_price = total_gross_price
         )
 
         db.session.add(invoice_detail)
         db.session.commit()
 
         update_total_values(invoice_head)
-
-        print(f"{invoice_head.total_cost=}")
-
     else:
         flash("Invoice Item failed to add!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
@@ -370,14 +371,19 @@ def add_item_invoice_detail(item_invoice_head_id):
 
         item.quantity -= quantity
         item_discount_amount = item.discount_pct*item.unit_price*quantity/100
+        total_item_cost = item.unit_cost*quantity
+        total_item_price = item.unit_price*quantity
+        total_item_discount = discount_amount+item_discount_amount
+        total_gross_price = total_item_price-total_item_discount
 
         item_invoice_detail = ItemInvoiceDetail(
             item_invoice_head_id = item_invoice_head_id,
             item_id = item_id,
             quantity = quantity,
-            total_cost = item.unit_cost*quantity,
-            total_price = item.unit_price*quantity-item_discount_amount-discount_amount,
-            discount_amount = discount_amount+item_discount_amount
+            total_cost = total_item_cost,
+            total_price = total_item_price,
+            discount_amount = discount_amount+item_discount_amount,
+            gross_price = total_gross_price
         )
 
         db.session.add(item_invoice_detail)
@@ -399,9 +405,9 @@ def delete_invoice_detail(invoice_detail_id):
     item = Item.query.get_or_404(invoice_detail.item.id)
 
     item.quantity += invoice_detail.quantity
-
     db.session.delete(invoice_detail)
     db.session.commit()
+
     update_total_values(invoice_head)
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
@@ -414,9 +420,9 @@ def delete_item_invoice_detail(item_invoice_detail_id):
     item = Item.query.get_or_404(item_invoice_detail.item.id)
 
     item.quantity += item_invoice_detail.quantity
-
     db.session.delete(item_invoice_detail)
     db.session.commit()
+
     update_total_values(item_invoice_head)
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
@@ -430,13 +436,12 @@ def increase_quantity_invoice_detail(invoice_detail_id):
     item = Item.query.get_or_404(invoice_detail.item.id)
 
     item.quantity -= 1
-
     invoice_detail.quantity += 1
-    invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
-    invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
-
     db.session.commit()
+
+    update_invoice_detail_values(invoice_detail)
     update_total_values(invoice_head)
+
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
 @invoice_blueprint.route("/app/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['GET', 'POST'])
@@ -448,13 +453,12 @@ def increase_quantity_item_invoice_detail(item_invoice_detail_id):
     item = Item.query.get_or_404(item_invoice_detail.item.id)
 
     item.quantity -= 1
-
     item_invoice_detail.quantity += 1
-    item_invoice_detail.total_cost = item_invoice_detail.item.unit_cost*item_invoice_detail.quantity
-    item_invoice_detail.total_price = item_invoice_detail.item.unit_price*item_invoice_detail.quantity
-
     db.session.commit()
+
+    update_invoice_detail_values(item_invoice_detail)
     update_total_values(item_invoice_head)
+
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
 @invoice_blueprint.route("/app/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['GET', 'POST'])
@@ -467,12 +471,11 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
     if invoice_detail.quantity > 1:
         item.quantity += 1
         invoice_detail.quantity -= 1
-        invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
-        invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
+        db.session.commit()
     else:
         flash("Quantity should be at leaset one!", category='warning')
 
-    db.session.commit()
+    update_invoice_detail_values(invoice_detail)
     update_total_values(invoice_head)
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
@@ -487,12 +490,11 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
     if item_invoice_detail.quantity > 1:
         item.quantity += 1
         item_invoice_detail.quantity -= 1
-        item_invoice_detail.total_cost = item_invoice_detail.item.unit_cost*item_invoice_detail.quantity
-        item_invoice_detail.total_price = item_invoice_detail.item.unit_price*item_invoice_detail.quantity
+        db.session.commit()
     else:
         flash("Quantity should be at leaset one!", category='warning')
 
-    db.session.commit()
+    update_invoice_detail_values(item_invoice_detail)
     update_total_values(item_invoice_head)
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
@@ -508,18 +510,32 @@ def format_quantity(value):
 
 def update_total_values(invoice_head):
     if isinstance(invoice_head,InvoiceHead):
-        invoice_head.total_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
-        invoice_head.total_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
-        invoice_head.total_discount = (db.session.query(func.sum(InvoiceDetail.discount_amount)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0] or 0)+invoice_head.discount_amount
+        total_item_cost = db.session.query(func.sum(InvoiceDetail.total_cost)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+        total_item_price = db.session.query(func.sum(InvoiceDetail.total_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
+        total_item_discount = (db.session.query(func.sum(InvoiceDetail.discount_amount)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0] or 0)
+        total_item_gross_price = db.session.query(func.sum(InvoiceDetail.gross_price)).filter(InvoiceDetail.invoice_head_id == invoice_head.id).one()[0]
     else:
-        invoice_head.total_cost = db.session.query(func.sum(ItemInvoiceDetail.total_cost)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
-        invoice_head.total_price = db.session.query(func.sum(ItemInvoiceDetail.total_price)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
-        invoice_head.total_discount = (db.session.query(func.sum(ItemInvoiceDetail.discount_amount)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0] or 0)+invoice_head.discount_amount
-    invoice_head.gross_price = (invoice_head.total_price or 0) - invoice_head.total_discount
+        total_item_cost = db.session.query(func.sum(ItemInvoiceDetail.total_cost)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
+        total_item_price = db.session.query(func.sum(ItemInvoiceDetail.total_price)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
+        total_item_discount = (db.session.query(func.sum(ItemInvoiceDetail.discount_amount)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0] or 0)
+        total_item_gross_price = db.session.query(func.sum(ItemInvoiceDetail.gross_price)).filter(ItemInvoiceDetail.item_invoice_head_id == invoice_head.id).one()[0]
 
-    invoice_head.total_cost = invoice_head.total_cost if invoice_head.total_cost else 0
-    invoice_head.total_price = invoice_head.total_price if invoice_head.total_price else 0
-    invoice_head.gross_price = invoice_head.gross_price if invoice_head.gross_price else 0
+    total_discount = (total_item_discount or 0) + (invoice_head.discount_amount or 0)
+    total_gross_price = (total_item_gross_price or 0) - (invoice_head.discount_amount or 0)
+
+    invoice_head.total_cost = total_item_cost or 0
+    invoice_head.total_price = total_item_price or 0
+    invoice_head.total_discount = total_discount
+    invoice_head.gross_price = total_gross_price
+
+    db.session.commit()
+
+def update_invoice_detail_values(invoice_detail):
+    total_discount = (invoice_detail.discount_amount or 0)+(invoice_detail.item.discount_pct*invoice_detail.item.unit_price*invoice_detail.quantity/100 or 0)
+
+    invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
+    invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
+    invoice_detail.gross_price = invoice_detail.total_price-total_discount
 
     db.session.commit()
 
@@ -528,7 +544,7 @@ def convert_item_invoice_to_json(item_invoice):
         "invoice_number": item_invoice.id,  
         "invoice_type": 2,
         "total_price": item_invoice.total_price,
-        "discount_amount": item_invoice.discount_acount,
+        "discount_amount": item_invoice.discount_amount,
         "gross_price": item_invoice.gross_price,
         "paid_amount": item_invoice.paid_amount,
         "invoice_details": []
@@ -539,7 +555,8 @@ def convert_item_invoice_to_json(item_invoice):
             'item_name': detail.item.name,
             'unit_price': detail.item.unit_price,  # Assuming unit price is calculated as total price divided by quantity
             'quantity': detail.quantity,
-            'total_price': detail.total_price
+            'total_price': detail.total_price,
+            'discount_pct': detail.item.discount_pct
         }
         invoice_dictionary['invoice_details'].append(item_detail)
 
@@ -556,7 +573,7 @@ def convert_service_invoice_to_json(service_invoice):
         "current_milage": service_invoice.current_milage,
         "next_milage": service_invoice.next_milage,
         "total_price": service_invoice.total_price,
-        "discount_pct": service_invoice.discount_pct,
+        "total_discount": service_invoice.total_discount,
         "gross_price": service_invoice.gross_price,
         "paid_amount": service_invoice.paid_amount,
         "invoice_details": []
