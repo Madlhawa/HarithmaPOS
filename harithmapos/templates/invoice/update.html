@@ -51,7 +51,7 @@
         <tbody id="results">
           {% for invoice_detail in invoice_details %}
           <tr>
-            <td class="text-center">{{invoice_detail.id}}</td>
+            <td class="text-center">{{invoice_detail.item.id}}</td>
             <td class="">{{invoice_detail.item.name}}</td>
             <td class="text-center"> <!-- Quantity -->
               <div class="flex-column">
