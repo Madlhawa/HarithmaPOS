@@ -39,7 +39,7 @@ def dashboard():
         service_status_list=config.SERVICE_STATUS_LIST
     )
 
-@dashboard_blueprint.route("/app/dashboard/customer/invoice/<token>", methods=['GET', 'POST'])
+@dashboard_blueprint.route("/invoice/<token>", methods=['GET', 'POST'])
 def customer_invoice(token):
 
     invoice_head = InvoiceHead.verify_customer_view_token(token)

@@ -9,7 +9,7 @@ class InvoiceDetailCreateForm(FlaskForm):
     item = StringField("Item", validators=[DataRequired()])
     item_id = HiddenField("Item ID", validators=[DataRequired()])
     quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
-    discount_amount = DecimalField("Discount", places=4)
+    discount_amount = DecimalField("Discount", places=4, validators=[Optional()])
     submit = SubmitField('Add Item')
 
 class InvoiceHeadUpdateForm(FlaskForm):

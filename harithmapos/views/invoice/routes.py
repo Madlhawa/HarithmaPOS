@@ -327,7 +327,7 @@ def add_invoice_detail(invoice_head_id):
     if invoice_detail_create_form.validate_on_submit():
         item_id = invoice_detail_create_form.item_id.data
         quantity = invoice_detail_create_form.quantity.data
-        discount_amount = invoice_detail_create_form.discount_amount.data
+        discount_amount = invoice_detail_create_form.discount_amount.data or 0
 
         item = Item.query.get_or_404(item_id)
         invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
@@ -345,7 +345,7 @@ def add_invoice_detail(invoice_head_id):
             quantity = quantity,
             total_cost = total_item_cost,
             total_price = total_item_price,
-            discount_amount = total_item_discount,
+            discount_amount = total_item_discount or 0,
             gross_price = total_gross_price
         )
 
