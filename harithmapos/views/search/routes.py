@@ -13,7 +13,7 @@ def search_vehicals():
         vehicals = Vehical.query.filter((Vehical.id == int(query)) | (Vehical.number.ilike(f"%{query}%"))).all()
     else:
         vehicals = Vehical.query.filter(Vehical.number.ilike(f"%{query}%")).all()
-    return jsonify([{"id": v.id, "number": v.number} for v in vehicals])
+    return jsonify([{"id": vehical.id, "number": vehical.number} for vehical in vehicals])
 
 
 @search_blueprint.route("/app/search/employees", methods=["GET"])
@@ -24,7 +24,7 @@ def search_employees():
         employees = Employee.query.filter((Employee.id == int(query)) | (Employee.name.ilike(f"%{query}%"))).all()
     else:
         employees = Employee.query.filter(Employee.name.ilike(f"%{query}%")).all()
-    return jsonify([{"id": e.id, "name": e.name} for e in employees])
+    return jsonify([{"id": employee.id, "name": employee.name} for employee in employees])
 
 
 @search_blueprint.route("/app/search/washbays", methods=["GET"])
@@ -35,7 +35,7 @@ def search_washbays():
         washbays = WashBay.query.filter((WashBay.id == int(query)) | (WashBay.name.ilike(f"%{query}%"))).all()
     else:
         washbays = WashBay.query.filter(WashBay.name.ilike(f"%{query}%")).all()
-    return jsonify([{"id": w.id, "name": w.name} for w in washbays])
+    return jsonify([{"id": washbay.id, "name": washbay.name} for washbay in washbays])
 
 @search_blueprint.route("/app/search/items", methods=["GET"])
 @login_required
@@ -45,4 +45,4 @@ def search_Items():
         Items = Item.query.filter((Item.id == int(query)) | (Item.name.ilike(f"%{query}%"))).all()
     else:
         Items = Item.query.filter(Item.name.ilike(f"%{query}%")).all()
-    return jsonify([{"id": w.id, "name": w.name, "price":w.unit_price} for w in Items])
+    return jsonify([{"id": item.id, "name": item.name, "price":item.unit_price, "discount_pct":item.discount_pct} for item in Items])

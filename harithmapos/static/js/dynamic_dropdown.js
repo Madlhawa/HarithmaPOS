@@ -22,7 +22,7 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
 
                         // Conditionally include price for "itemSearch"
                         if (inputId === "itemSearch") {
-                            listItem.textContent = `${item.id} | ${item.number || item.name} ---------- ${item.price}`;
+                            listItem.textContent = `${item.id} | ${item.number || item.name} ---------- ${item.price}--${item.discount_pct||0}%`;
                         } else {
                             listItem.textContent = `${item.id} | ${item.number || item.name}`;
                         }

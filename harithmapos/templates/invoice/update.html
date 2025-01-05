@@ -42,9 +42,9 @@
             <th class="col-1 text-center">ID</th>
             <th class="col-4">Name</th>
             <th class="col-1 text-center">Quantity</th>
-            <th class="col-1 text-end">Price</th>
+            <th class="col-1 text-end">U. Price</th>
             <th class="col-1 text-end">Discount</th>
-            <th class="col-2 text-end">Total Price</th>
+            <th class="col-2 text-end">Net Price</th>
             <th class="col-1 text-center">Actions</th>
           </tr>
         </thead>
@@ -78,15 +78,15 @@
       <hr>
       <ul class="list-group mb-3">
         <li class="list-group-item d-flex justify-content-between">
-          <span>Net Price</span>
+          <span>Total Net Price</span>
           <text>{{ '{:,}'.format(invoice_head.total_price) }}</text>
         </li>
         <li class="list-group-item d-flex justify-content-between">
-          <span>Discount</span>
+          <span>Total Discount</span>
           <text>{{ invoice_head.total_discount }}</text>
         </li>
         <li class="list-group-item d-flex justify-content-between">
-          <h4>Gross Price</h4>
+          <h4>Total Gross Price</h4>
           <h4 class="text-success">{{ '{:,}'.format(invoice_head.gross_price) }}</h4>
         </li>
       </ul>
@@ -175,8 +175,8 @@
         
         <div class="row"> <!-- Discount -->
           <div class="input-group mb-3">
-            <span class="input-group-text" id="inputGroup-sizing-default">Discount %</span>
-            {{ invoice_head_update_form.discount_amount(class="form-control form-control", value=invoice_head.discount_pct) }}
+            <span class="input-group-text" id="inputGroup-sizing-default">Discount Amount</span>
+            {{ invoice_head_update_form.discount_amount(class="form-control form-control", value=invoice_head.discount_amount) }}
           </div>
         </div>
 
