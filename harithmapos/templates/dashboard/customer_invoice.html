@@ -65,12 +65,12 @@
     
     <div class="row">
         <div class="col mt-2">
-            <h3 class="text-center">Current Bill</h3>
-            <table class="table table-success table-striped table-hover" border="1">
+            <h3 class="text-center">Current bill</h3>
+            <table class="table table-info table-striped" border="1">
                 <thead class="thread-dark">
                     <tr>
                         <th scope="col">Name</th>
-                        <th scope="col">Quantity</th>
+                        <th scope="col">Qty.</th>
                         <th scope="col">Price</th>
                         <th scope="col">Total Price</th>
                     </tr>
@@ -79,7 +79,7 @@
                     {% for invoice_detail in invoice_details %}
                     <tr>
                         <td class="align-middle">{{invoice_detail.item.name}}</td>
-                        <td class="align-middle">{{invoice_detail.quantity}}</td>
+                        <td class="align-middle">{{invoice_detail.quantity | format_quantity}}</td>
                         <td class="align-middle">{{invoice_detail.item.unit_price}}</td>
                         <td class="align-middle">{{invoice_detail.total_price}}</td>
                     </tr>
@@ -93,7 +93,7 @@
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Discount</span>
-                    <text>- {{ invoice_head.discount_pct }} %</text>
+                    <text>{{ invoice_head.total_discount }} </text>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
                     <h4>Gross Price</h4>
