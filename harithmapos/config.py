@@ -33,7 +33,7 @@ SERVICE_STATUS_FORM_LIST = [
     (1, 'Vacumming'), 
     (2, 'Washing'), 
     (3, 'Drying'), 
-    (5, 'Done')
+    (4, 'Done')
 ]
 
 PAYMENT_METHOD_FORM_LIST = [
