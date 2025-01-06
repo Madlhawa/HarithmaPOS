@@ -11,20 +11,15 @@
             <ul class="navbar-nav ms-auto">
                 {% if current_user.is_authenticated %}
                     <a class="nav-item nav-link" href="{{ url_for('dashboard_blueprint.dashboard') }}">Dashboard</a>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Invoice</a>
-                        <ul class="dropdown-menu">
-                            <a class="nav-item nav-link" href="{{ url_for('invoice_blueprint.invoice_head') }}">Service</a>
-                            <a class="nav-item nav-link" href="{{ url_for('invoice_blueprint.item_invoice_head') }}">Item</a>
-                        </ul>
-                    </li>
-                    <a class="nav-item nav-link" href="{{ url_for('purchase_order_blueprint.purchase_order_head') }}">Purchase Order</a>
-                    <a class="nav-item nav-link" href="{{ url_for('payment_blueprint.payment') }}">Payment</a>
+                    <a class="nav-item nav-link" href="{{ url_for('invoice_blueprint.invoice_head') }}">Service Invoice</a>
+                    <a class="nav-item nav-link" href="{{ url_for('invoice_blueprint.item_invoice_head') }}">Item Invoice</a>
                     <a class="nav-item nav-link" href="{{ url_for('item_blueprint.item') }}">Item</a>
                     <a class="nav-item nav-link" href="{{ url_for('customer_blueprint.customer') }}">Customer</a>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Other</a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('purchase_order_blueprint.purchase_order_head') }}">Purchase Order</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('payment_blueprint.payment') }}">Payment</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('supplier_blueprint.supplier') }}">Supplier</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('employee_blueprint.employee') }}">Employee</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('washbay_blueprint.washbay') }}">Wash Bay</a></li>
