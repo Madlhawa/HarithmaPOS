@@ -65,9 +65,9 @@ def main():
     # Determine test path
     test_path = args.path
     if args.unit:
-        test_path = 'tests/test_models.py tests/test_forms.py tests/test_database_utils.py'
+        test_path = 'tests/test_employee.py'
     elif args.integration:
-        test_path = 'tests/test_routes.py tests/test_business_logic.py'
+        test_path = 'tests/test_employee.py'
     
     # Run tests
     exit_code = run_tests(

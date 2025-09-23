@@ -88,3 +88,6 @@ test_output/
 
 # user images
 harithmapos/static/images/user_images/*.png
+
+# coverage reports
+htmlcov/

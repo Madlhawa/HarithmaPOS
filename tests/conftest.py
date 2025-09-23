@@ -7,7 +7,9 @@ import os
 import tempfile
 from harithmapos import create_app, db
 from harithmapos.models import User, Customer, Vehicle, Supplier, Employee, Item, WashBay, Payment, InvoiceHead, InvoiceDetail
-from tests.test_config import TestConfig
+# Simple test configuration
+class TestConfig:
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
 
 @pytest.fixture
 def app():
