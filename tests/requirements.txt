@@ -1,0 +1,10 @@
+# Testing requirements for Harithma POS
+pytest>=7.0.0
+pytest-flask>=1.2.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0
+coverage>=7.0.0
+factory-boy>=3.2.0
+faker>=18.0.0
+

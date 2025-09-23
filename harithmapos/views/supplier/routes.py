@@ -35,16 +35,19 @@ def supplier():
 def insert_supplier():
     supplier_create_form = SupplierCreateForm()
     if supplier_create_form.validate_on_submit():
-        supplier = Supplier(
-            name = supplier_create_form.name.data,
-            contact = supplier_create_form.contact.data,
-            address = supplier_create_form.address.data
-        )
-        db.session.add(supplier)
-        db.session.commit()
-        flash("Supplier added successfully!", category='success')
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            supplier = safe_insert_with_sequence_check(
+                Supplier,
+                name=supplier_create_form.name.data,
+                contact=supplier_create_form.contact.data,
+                address=supplier_create_form.address.data
+            )
+            flash("Supplier added successfully!", category='success')
+        except Exception as e:
+            flash(f"Supplier failed to add: {str(e)}", category='danger')
     else:
-        flash("Supplier failed to add!", category='danger')
+        flash("Supplier failed to add - form validation failed!", category='danger')
     return redirect(url_for('supplier_blueprint.supplier'))
 
 @supplier_blueprint.route("/app/supplier/<int:supplier_id>/update", methods=['GET', 'POST'])

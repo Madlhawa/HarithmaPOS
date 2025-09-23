@@ -35,19 +35,22 @@ def employee():
 def insert_employee():
     employee_create_form = EmployeeCreateForm()
     if employee_create_form.validate_on_submit():
-        employee = Employee(
-            name = employee_create_form.name.data,
-            contact = employee_create_form.contact.data,
-            address = employee_create_form.address.data,
-            designation = employee_create_form.designation.data,
-            joined_date = employee_create_form.joined_date.data,
-            wage = employee_create_form.wage.data
-        )
-        db.session.add(employee)
-        db.session.commit()
-        flash("Employee added successfully!", category='success')
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            employee = safe_insert_with_sequence_check(
+                Employee,
+                name=employee_create_form.name.data,
+                contact=employee_create_form.contact.data,
+                address=employee_create_form.address.data,
+                designation=employee_create_form.designation.data,
+                joined_date=employee_create_form.joined_date.data,
+                wage=employee_create_form.wage.data
+            )
+            flash("Employee added successfully!", category='success')
+        except Exception as e:
+            flash(f"Employee failed to add: {str(e)}", category='danger')
     else:
-        flash("Employee failed to add!", category='danger')
+        flash("Employee failed to add - form validation failed!", category='danger')
     return redirect(url_for('employee_blueprint.employee'))
 
 @employee_blueprint.route("/app/employee/<int:employee_id>/update", methods=['GET', 'POST'])

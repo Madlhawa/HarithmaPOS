@@ -12,18 +12,21 @@ vehicle_blueprint = Blueprint('vehicle_blueprint', __name__)
 def insert_vehicle():
     form = VehicleForm()
     if form.validate_on_submit():
-        vehicle = Vehicle( 
-            number = form.number.data,
-            make = form.make.data,
-            model = form.model.data,
-            year = form.year.data,
-            owner_id = form.owner_id.data
-        )
-        db.session.add(vehicle)
-        db.session.commit()
-        flash("Vehicle added successfully!", category='success')
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            vehicle = safe_insert_with_sequence_check(
+                Vehicle,
+                number=form.number.data,
+                make=form.make.data,
+                model=form.model.data,
+                year=form.year.data,
+                owner_id=form.owner_id.data
+            )
+            flash("Vehicle added successfully!", category='success')
+        except Exception as e:
+            flash(f"Vehicle failed to add: {str(e)}", category='danger')
     else:
-        flash("Vehicle failed to add!", category='danger')
+        flash("Vehicle failed to add - form validation failed!", category='danger')
     return redirect(url_for('customer_blueprint.customer'))
 
 @vehicle_blueprint.route('/app/update_vehicle/', methods = ['POST'])

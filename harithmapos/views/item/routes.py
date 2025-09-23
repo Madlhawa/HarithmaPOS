@@ -35,20 +35,23 @@ def item():
 def insert_item():
     item_create_form = ItemCreateForm()
     if item_create_form.validate_on_submit():
-        item = Item(
-            name = item_create_form.name.data,
-            description = item_create_form.description.data,
-            unit_of_measure = item_create_form.unit_of_measure.data,
-            quantity = item_create_form.quantity.data,
-            unit_cost = item_create_form.unit_cost.data,
-            unit_price = item_create_form.unit_price.data,
-            discount_pct = item_create_form.discount_pct.data
-        )
-        db.session.add(item)
-        db.session.commit()
-        flash("Item added successfully!", category='success')
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            item = safe_insert_with_sequence_check(
+                Item,
+                name=item_create_form.name.data,
+                description=item_create_form.description.data,
+                unit_of_measure=item_create_form.unit_of_measure.data,
+                quantity=item_create_form.quantity.data,
+                unit_cost=item_create_form.unit_cost.data,
+                unit_price=item_create_form.unit_price.data,
+                discount_pct=item_create_form.discount_pct.data
+            )
+            flash("Item added successfully!", category='success')
+        except Exception as e:
+            flash(f"Item failed to add: {str(e)}", category='danger')
     else:
-        flash("Item failed to add!", category='danger')
+        flash("Item failed to add - form validation failed!", category='danger')
     return redirect(url_for('item_blueprint.item'))
 
 @item_blueprint.route("/app/item/<int:item_id>/update", methods=['GET', 'POST'])

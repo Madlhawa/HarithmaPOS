@@ -87,28 +87,30 @@ def insert_invoice_head():
             washbays=washbays,
         )
     elif form.validate_on_submit():
-        vehicle = Vehicle.query.get(form.vehicle_id.data)
-        invoice = InvoiceHead(
-            customer_id=vehicle.owner.id,
-            vehicle_id=form.vehicle_id.data,
-            washbay_id=form.washbay_id.data,
-            employee_id=form.employee_id.data,
-            current_milage=form.current_milage.data,
-            next_milage=form.current_milage.data,
-            payment_method='cash'
-        )
-        db.session.add(invoice)
-        db.session.commit()
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            vehicle = Vehicle.query.get(form.vehicle_id.data)
+            invoice = safe_insert_with_sequence_check(
+                InvoiceHead,
+                customer_id=vehicle.owner.id,
+                vehicle_id=form.vehicle_id.data,
+                washbay_id=form.washbay_id.data,
+                employee_id=form.employee_id.data,
+                current_milage=form.current_milage.data,
+                next_milage=form.current_milage.data,
+                payment_method='cash'
+            )
 
-        invoice_status_log = InvoiceStatusLog(
-            invoice_id = invoice.id,
-            service_status = invoice.service_status,
-            employee_id = invoice.employee_id
-        )
-        db.session.add(invoice_status_log)
-        db.session.commit()
-        
-        return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
+            invoice_status_log = safe_insert_with_sequence_check(
+                InvoiceStatusLog,
+                invoice_id=invoice.id,
+                service_status=invoice.service_status,
+                employee_id=invoice.employee_id
+            )
+            
+            return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
+        except Exception as e:
+            flash(f"Error: Invoice creation failed: {str(e)}", category='danger')
     else:
         for field, errors in form.errors.items():
             for error in errors:
@@ -128,15 +130,18 @@ def insert_item_invoice_head():
             customers=customers,
         )
     elif form.validate_on_submit():
-        customer = Customer.query.get(form.customer.data)
-        item_invoice = ItemInvoiceHead(
-            customer_id=customer.id
-        )
-        db.session.add(item_invoice)
-        db.session.commit()
-        return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice.id))
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            customer = Customer.query.get(form.customer.data)
+            item_invoice = safe_insert_with_sequence_check(
+                ItemInvoiceHead,
+                customer_id=customer.id
+            )
+            return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice.id))
+        except Exception as e:
+            flash(f"Error: Item Invoice create failed: {str(e)}", category='danger')
     else:
-        flash("Error: Item Invoice create failed!", category='danger')
+        flash("Error: Item Invoice create failed - form validation failed!", category='danger')
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/app/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
@@ -173,14 +178,14 @@ def invoice_head_detail(invoice_head_id):
                 db.session.commit()
 
             if str(previous_service_status_id).strip() != str(invoice_head.service_status).strip():
-                invoice_status_log = InvoiceStatusLog(
-                    previous_invoice_status_log_id = previous_invoice_status_id,
-                    invoice_id = invoice_head.id,
-                    service_status = invoice_head.service_status,
-                    employee_id = invoice_head.employee_id
+                from utils.database import safe_insert_with_sequence_check
+                invoice_status_log = safe_insert_with_sequence_check(
+                    InvoiceStatusLog,
+                    previous_invoice_status_log_id=previous_invoice_status_id,
+                    invoice_id=invoice_head.id,
+                    service_status=invoice_head.service_status,
+                    employee_id=invoice_head.employee_id
                 )
-                db.session.add(invoice_status_log)
-                db.session.commit()
             
             if invoice_head.paid_amount:
                 invoice_head.last_payment_date = datetime.now()
@@ -204,16 +209,16 @@ def invoice_head_detail(invoice_head_id):
 
             elif invoice_head_update_form.complete_invoice.data:
                 invoice_head.service_status = 5
-                payment = Payment(
-                    invoice_id = invoice_head_id,
-                    payment_method = "cash",
-                    payment_direction = "in",
-                    payment_amount = invoice_head.paid_amount,
-                    payment_type = 'general',
-                    remarks = 'Initial Payment',
+                from utils.database import safe_insert_with_sequence_check
+                payment = safe_insert_with_sequence_check(
+                    Payment,
+                    invoice_id=invoice_head_id,
+                    payment_method="cash",
+                    payment_direction="in",
+                    payment_amount=invoice_head.paid_amount,
+                    payment_type='general',
+                    remarks='Initial Payment',
                 )
-                db.session.add(payment)
-                db.session.commit()
                 update_total_values(invoice_head)
                 service_invoice_json = convert_service_invoice_to_json(invoice_head)
                 utils.send_print_invoice(service_invoice_json,'harithmaq')
@@ -349,12 +354,23 @@ def add_invoice_detail(invoice_head_id):
             gross_price = total_gross_price
         )
 
-        db.session.add(invoice_detail)
-        db.session.commit()
-
-        update_total_values(invoice_head)
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            safe_insert_with_sequence_check(
+                InvoiceDetail,
+                invoice_head_id=invoice_head_id,
+                item_id=item_id,
+                quantity=quantity,
+                total_cost=total_item_cost,
+                total_price=total_item_price,
+                discount_amount=total_item_discount or 0,
+                gross_price=total_gross_price
+            )
+            update_total_values(invoice_head)
+        except Exception as e:
+            flash(f"Invoice Item failed to add: {str(e)}", category='danger')
     else:
-        flash("Invoice Item failed to add!", category='danger')
+        flash("Invoice Item failed to add - form validation failed!", category='danger')
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
 
 @invoice_blueprint.route("/app/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['GET', 'POST'])
@@ -376,20 +392,21 @@ def add_item_invoice_detail(item_invoice_head_id):
         total_item_discount = discount_amount+item_discount_amount
         total_gross_price = total_item_price-total_item_discount
 
-        item_invoice_detail = ItemInvoiceDetail(
-            item_invoice_head_id = item_invoice_head_id,
-            item_id = item_id,
-            quantity = quantity,
-            total_cost = total_item_cost,
-            total_price = total_item_price,
-            discount_amount = discount_amount+item_discount_amount,
-            gross_price = total_gross_price
-        )
-
-        db.session.add(item_invoice_detail)
-        db.session.commit()
-
-        update_total_values(item_invoice_head)
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            safe_insert_with_sequence_check(
+                ItemInvoiceDetail,
+                item_invoice_head_id=item_invoice_head_id,
+                item_id=item_id,
+                quantity=quantity,
+                total_cost=total_item_cost,
+                total_price=total_item_price,
+                discount_amount=discount_amount+item_discount_amount,
+                gross_price=total_gross_price
+            )
+            update_total_values(item_invoice_head)
+        except Exception as e:
+            flash(f"Item Invoice Item failed to add: {str(e)}", category='danger')
 
         print(f"{item_invoice_head.total_cost=}")
 

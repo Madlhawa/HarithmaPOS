@@ -15,16 +15,20 @@ def register():
         return redirect(url_for('dashboard_blueprint.customer'))
     form = UserRegisterForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(
-            name=form.name.data, 
-            email=form.email.data,
-            password=hashed_password
-        )
-        db.session.add(user)
-        db.session.commit()
-        flash(f'Account has been created. Please login.',category='success')
-        return redirect(url_for('user_blueprint.login'))
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+            user = safe_insert_with_sequence_check(
+                User,
+                name=form.name.data, 
+                email=form.email.data,
+                password=hashed_password
+            )
+            flash(f'Account has been created. Please login.',category='success')
+            return redirect(url_for('user_blueprint.login'))
+        except Exception as e:
+            flash(f'Account creation failed: {str(e)}', category='danger')
+            return redirect(url_for('user_blueprint.login'))
     return redirect(url_for('user_blueprint.login'))
     # return render_template('user/register.html', title='Register', form = form)
 
