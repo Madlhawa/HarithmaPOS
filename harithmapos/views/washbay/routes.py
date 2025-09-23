@@ -35,16 +35,19 @@ def washbay():
 def insert_washbay():
     washbay_create_form = WashBayCreateForm()
     if washbay_create_form.validate_on_submit():
-        washbay = WashBay(
-            name = washbay_create_form.name.data,
-            remarks = washbay_create_form.remarks.data,
-            capacity = washbay_create_form.capacity.data
-        )
-        db.session.add(washbay)
-        db.session.commit()
-        flash("WashBay added successfully!", category='success')
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            washbay = safe_insert_with_sequence_check(
+                WashBay,
+                name=washbay_create_form.name.data,
+                remarks=washbay_create_form.remarks.data,
+                capacity=washbay_create_form.capacity.data
+            )
+            flash("WashBay added successfully!", category='success')
+        except Exception as e:
+            flash(f"WashBay failed to add: {str(e)}", category='danger')
     else:
-        flash("WashBay failed to add!", category='danger')
+        flash("WashBay failed to add - form validation failed!", category='danger')
     return redirect(url_for('washbay_blueprint.washbay'))
 
 @washbay_blueprint.route("/app/washbay/<int:washbay_id>/update", methods=['GET', 'POST'])

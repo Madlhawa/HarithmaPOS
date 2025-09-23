@@ -47,31 +47,34 @@ def payment():
 def insert_payment():
     payment_create_form = PaymentCreateForm()
     if payment_create_form.validate_on_submit():
-        payment = Payment(
-            invoice_id = payment_create_form.invoice_id.data if payment_create_form.invoice_id.data != '' else None,
-            item_invoice_id = payment_create_form.item_invoice_id.data if payment_create_form.item_invoice_id.data != '' else None,
-            purchase_order_id = payment_create_form.purchase_order_id.data if payment_create_form.purchase_order_id.data != '' else None,
-            customer_id = payment_create_form.customer_id.data if payment_create_form.customer_id.data != '' else None,
-            employee_id = payment_create_form.employee_id.data if payment_create_form.employee_id.data != '' else None,
-            payment_method = payment_create_form.payment_method.data,
-            payment_direction = payment_create_form.payment_direction.data,
-            payment_amount = payment_create_form.payment_amount.data,
-            payment_type = payment_create_form.payment_type.data,
-            remarks = payment_create_form.remarks.data,
-        )
-        db.session.add(payment)
-        db.session.commit()
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            payment = safe_insert_with_sequence_check(
+                Payment,
+                invoice_id=payment_create_form.invoice_id.data if payment_create_form.invoice_id.data != '' else None,
+                item_invoice_id=payment_create_form.item_invoice_id.data if payment_create_form.item_invoice_id.data != '' else None,
+                purchase_order_id=payment_create_form.purchase_order_id.data if payment_create_form.purchase_order_id.data != '' else None,
+                customer_id=payment_create_form.customer_id.data if payment_create_form.customer_id.data != '' else None,
+                employee_id=payment_create_form.employee_id.data if payment_create_form.employee_id.data != '' else None,
+                payment_method=payment_create_form.payment_method.data,
+                payment_direction=payment_create_form.payment_direction.data,
+                payment_amount=payment_create_form.payment_amount.data,
+                payment_type=payment_create_form.payment_type.data,
+                remarks=payment_create_form.remarks.data,
+            )
 
-        if payment.invoice_id:
-            invoice_head = InvoiceHead.query.get_or_404(payment.invoice_id)
-            invoice_head.remaining_amount -= payment.payment_amount
-            invoice_head.paid_amount += payment.payment_amount
-            invoice_head.last_payment_date = datetime.utcnow()
-            db.session.commit()
+            if payment.invoice_id:
+                invoice_head = InvoiceHead.query.get_or_404(payment.invoice_id)
+                invoice_head.remaining_amount -= payment.payment_amount
+                invoice_head.paid_amount += payment.payment_amount
+                invoice_head.last_payment_date = datetime.utcnow()
+                db.session.commit()
 
-        flash("Payment added successfully!", category='success')
+            flash("Payment added successfully!", category='success')
+        except Exception as e:
+            flash(f"Payment failed to add: {str(e)}", category='danger')
     else:
-        flash("Payment failed to add!", category='danger')
+        flash("Payment failed to add - form validation failed!", category='danger')
     return redirect(url_for('payment_blueprint.payment'))
 
 @payment_blueprint.route("/app/payment/<int:payment_id>/update", methods=['GET', 'POST'])

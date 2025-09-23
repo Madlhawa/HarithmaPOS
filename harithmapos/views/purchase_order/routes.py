@@ -68,15 +68,18 @@ def insert_purchase_order_head():
             supplier=supplier
         )
     elif form.validate_on_submit():
-        purchase_order = PurchaseOrderHead(
-            supplier_id=form.supplier.data,
-            supplier_invoice_id=form.supplier_invoice_id.data
-        )
-        db.session.add(purchase_order)
-        db.session.commit()
-        return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=purchase_order.id))
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            purchase_order = safe_insert_with_sequence_check(
+                PurchaseOrderHead,
+                supplier_id=form.supplier.data,
+                supplier_invoice_id=form.supplier_invoice_id.data
+            )
+            return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=purchase_order.id))
+        except Exception as e:
+            flash(f"Error: PurchaseOrder create failed: {str(e)}", category='danger')
     else:
-        flash("Error: PurchaseOrder create failed!", category='danger')
+        flash("Error: PurchaseOrder create failed - form validation failed!", category='danger')
     return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
 
 @purchase_order_blueprint.route("/app/purchase_order/head/<int:purchase_order_head_id>", methods=['GET', 'POST'])
@@ -146,24 +149,25 @@ def add_purchase_order_detail(purchase_order_head_id):
 
         item.quantity += quantity
 
-        purchase_order_detail = PurchaseOrderDetail(
-            purchase_order_head_id = purchase_order_head_id,
-            item_id = item_id,
-            quantity = quantity,
-            total_cost = item.unit_cost*quantity,
-            total_price = item.unit_price*quantity,
-            discount_pct = 0
-        )
+        try:
+            from utils.database import safe_insert_with_sequence_check
+            purchase_order_detail = safe_insert_with_sequence_check(
+                PurchaseOrderDetail,
+                purchase_order_head_id=purchase_order_head_id,
+                item_id=item_id,
+                quantity=quantity,
+                total_cost=item.unit_cost*quantity,
+                total_price=item.unit_price*quantity,
+                discount_pct=0
+            )
 
-        db.session.add(purchase_order_detail)
-        db.session.commit()
+            update_total_values(purchase_order_head)
 
-        update_total_values(purchase_order_head)
-
-        print(f"{purchase_order_head.total_cost=}")
-
+            print(f"{purchase_order_head.total_cost=}")
+        except Exception as e:
+            flash(f"PurchaseOrder Item failed to add: {str(e)}", category='danger')
     else:
-        flash("PurchaseOrder Item failed to add!", category='danger')
+        flash("PurchaseOrder Item failed to add - form validation failed!", category='danger')
     return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',purchase_order_head_id=purchase_order_head_id))
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/delete/<int:purchase_order_detail_id>", methods=['GET', 'POST'])
