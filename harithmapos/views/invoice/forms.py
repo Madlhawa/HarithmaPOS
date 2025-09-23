@@ -31,8 +31,8 @@ class InvoiceHeadUpdateForm(FlaskForm):
     send_service_complete_msg = SubmitField('Notify Completed')
 
 class InvoiceHeadCreateForm(FlaskForm):
-    vehical = StringField("Vehical", validators=[DataRequired()])
-    vehical_id = HiddenField("Vehical ID", validators=[DataRequired()])
+    vehicle = StringField("Vehicle", validators=[DataRequired()])
+    vehicle_id = HiddenField("Vehicle ID", validators=[DataRequired()])
     employee = StringField("Employee", validators=[DataRequired()])
     employee_id = HiddenField("Employee ID", validators=[DataRequired()])
     washbay = StringField("Wash Bay", validators=[DataRequired()])

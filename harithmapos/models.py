@@ -105,7 +105,7 @@ class ItemInvoiceDetail(db.Model):
 class InvoiceHead(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
-    vehical_id = db.Column(db.Integer, db.ForeignKey('vehical.id'), nullable=False)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
     washbay_id = db.Column(db.Integer, db.ForeignKey('wash_bay.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
     current_milage = db.Column(db.Numeric(18,0))
@@ -239,7 +239,7 @@ class Customer(db.Model):
     email = db.Column(db.String(150))
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    vehicals = db.relationship('Vehical', backref='owner', lazy=True)
+    vehicles = db.relationship('Vehicle', backref='owner', lazy=True)
     invoices = db.relationship('InvoiceHead', backref='customer', lazy=True)
     item_invoices = db.relationship('ItemInvoiceHead', backref='customer', lazy=True)
     payments = db.relationship('Payment', backref='customer', lazy=True)
@@ -247,7 +247,7 @@ class Customer(db.Model):
     def __repr__(self):
         return f"Customer('{self.name}','{self.contact}')"
 
-class Vehical(db.Model):
+class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     number = db.Column(db.String(8), nullable=False)
     make = db.Column(db.String(20))
@@ -256,7 +256,7 @@ class Vehical(db.Model):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     owner_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
-    invoices = db.relationship('InvoiceHead', backref='vehical', lazy=True)
+    invoices = db.relationship('InvoiceHead', backref='vehicle', lazy=True)
 
     def __repr__(self):
-        return f"Vehical('{self.number}','{self.make}','{self.model}','{self.year}')"
+        return f"Vehicle('{self.number}','{self.make}','{self.model}','{self.year}')"

@@ -11,7 +11,7 @@
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Customer</th>
-                        <th scope="col">Vehical</th>
+                        <th scope="col">Vehicle</th>
                         <th scope="col">Employee</th>
                         <th scope="col">Wash Bay</th>
                     </tr>
@@ -23,7 +23,7 @@
                                 <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-warning btn-sm">{{invoice.id}}</a>
                             </td>
                             <td class="align-middle">{{invoice.customer.name}}</td>
-                            <td class="align-middle">{{invoice.vehical.number}}</td>
+                            <td class="align-middle">{{invoice.vehicle.number}}</td>
                             <td class="align-middle">{{invoice.employee.name}}</td>
                             <td class="align-middle">{{invoice.washbay.name}}</td>
                         </tr>
@@ -46,7 +46,7 @@
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Customer</th>
-                        <th scope="col">Vehical</th>
+                        <th scope="col">Vehicle</th>
                         <th scope="col">Employee</th>
                         <th scope="col">Wash Bay</th>
                     </tr>
@@ -58,7 +58,7 @@
                                 <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-success btn-sm">{{invoice.id}}</a>
                             </td>
                             <td class="align-middle">{{invoice.customer.name}}</td>
-                            <td class="align-middle">{{invoice.vehical.number}}</td>
+                            <td class="align-middle">{{invoice.vehicle.number}}</td>
                             <td class="align-middle">{{invoice.employee.name}}</td>
                             <td class="align-middle">{{invoice.washbay.name}}</td>
                         </tr>
@@ -80,7 +80,7 @@
                 <div class="card bg-body-tertiary">
                     <div class="card-header d-flex">
                         <span><b>{{ washbay.name }}</b></span>
-                        <span class="ms-auto"><b>{{ washbay.active_invoice.vehical.number }}</b></span>
+                        <span class="ms-auto"><b>{{ washbay.active_invoice.vehicle.number }}</b></span>
                         {% if washbay.active_invoice.is_in_bay %}
                             <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> In bay</span>
                         {% else %}
@@ -139,7 +139,7 @@
                 <div class="card bg-body-tertiary">
                     <div class="card-header d-flex">
                         <span>Polishing Area</span>
-                        <span class="ms-auto"><b>{{ invoice.vehical.number }}</b></span>
+                        <span class="ms-auto"><b>{{ invoice.vehicle.number }}</b></span>
                         {% if invoice.is_in_bay %}
                             <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> In bay</span>
                         {% else %}

@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 import pytz
 
 from harithmapos import db, config
-from harithmapos.models import InvoiceHead, InvoiceDetail, Customer, Vehical, WashBay, Employee, Item
+from harithmapos.models import InvoiceHead, InvoiceDetail, Customer, Vehicle, WashBay, Employee, Item
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 from harithmapos.views.invoice.utils import get_id

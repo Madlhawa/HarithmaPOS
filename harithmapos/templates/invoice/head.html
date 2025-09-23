@@ -5,7 +5,7 @@
         <div class="row">
             <div class="col d-flex justify-content-between align-items-center">
                 <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Vehical number...'}}">
+                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Vehicle number...'}}">
                     <input type="submit" value="Search" class="btn btn-primary me-2" name="">
                     <a href="{{ url_for('invoice_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
                 </form> 
@@ -23,16 +23,16 @@
             </div>
             <div class="modal-body">
                 <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
-                    {{ invoice_head_create_form.vehical_id(class="form-control", id="vehicalId") }}
+                    {{ invoice_head_create_form.vehicle_id(class="form-control", id="vehicleId") }}
                     {{ invoice_head_create_form.employee_id(class="form-control", id="employeeId") }}
                     {{ invoice_head_create_form.washbay_id(class="form-control", id="washbayId") }}
                     {{ invoice_head_create_form.hidden_tag() }}
                     <fieldset class="form-group">
                         <!-- Vehicle Search -->
                         <div class="form-group position-relative">
-                            {{ invoice_head_create_form.vehical.label(class="form-label mt-3", for="vehicalSearch") }}
-                            {{ invoice_head_create_form.vehical(class="form-control", id="vehicalSearch", placeholder="Search Vehical...", autocomplete="off") }}
-                            <ul class="dropdown-menu w-100" id="vehicalDropdown"></ul>
+                            {{ invoice_head_create_form.vehicle.label(class="form-label mt-3", for="vehicleSearch") }}
+                            {{ invoice_head_create_form.vehicle(class="form-control", id="vehicleSearch", placeholder="Search Vehicle...", autocomplete="off") }}
+                            <ul class="dropdown-menu w-100" id="vehicleDropdown"></ul>
                         </div>
                         <!-- Employee Search -->
                         <div class="form-group position-relative">
@@ -78,7 +78,7 @@
                     <th scope="col">ID</th>
                     <th scope="col">Date</th>
                     <th scope="col">Customer</th>
-                    <th scope="col">Vehical</th>
+                    <th scope="col">Vehicle</th>
                     <th scope="col">Employee</th>
                     <th scope="col">Wash Bay</th>
                     <th scope="col">Status</th>
@@ -93,7 +93,7 @@
                         <td class="align-middle"  scope="row">{{invoice_head.id}}</td>
                         <td class="align-middle">{{invoice_head.created_dttm.date()}}</td>
                         <td class="align-middle">{{invoice_head.customer.name}}</td>
-                        <td class="align-middle">{{invoice_head.vehical.number}}</td>
+                        <td class="align-middle">{{invoice_head.vehicle.number}}</td>
                         <td class="align-middle">{{invoice_head.employee.name}}</td>
                         <td class="align-middle">{{invoice_head.washbay.name}}</td>
                         <td class="align-middle">{{invoice_head.service_status_str}}</td>
@@ -128,7 +128,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        setupDynamicDropdown("vehicalSearch", "vehicalDropdown", "/app/search/vehicals", "vehicalId");
+        setupDynamicDropdown("vehicleSearch", "vehicleDropdown", "/app/search/vehicles", "vehicleId");
         setupDynamicDropdown("employeeSearch", "employeeDropdown", "/app/search/employees", "employeeId", true);
         setupDynamicDropdown("washbaySearch", "washbayDropdown", "/app/search/washbays", "washbayId", true);
     });

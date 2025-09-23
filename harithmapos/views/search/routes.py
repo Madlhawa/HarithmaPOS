@@ -1,19 +1,19 @@
 from flask_login import login_required
 from flask import Blueprint, request, jsonify
 
-from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead,Customer, Employee, Vehical, WashBay, Item
+from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead,Customer, Employee, Vehicle, WashBay, Item
 
 search_blueprint = Blueprint('search_blueprint', __name__)
 
-@search_blueprint.route("/app/search/vehicals", methods=["GET"])
+@search_blueprint.route("/app/search/vehicles", methods=["GET"])
 @login_required
-def search_vehicals():
+def search_vehicles():
     query = request.args.get("q", "").strip().lower()
     if query.isdigit():
-        vehicals = Vehical.query.filter((Vehical.id == int(query)) | (Vehical.number.ilike(f"%{query}%"))).all()
+        vehicles = Vehicle.query.filter((Vehicle.id == int(query)) | (Vehicle.number.ilike(f"%{query}%"))).all()
     else:
-        vehicals = Vehical.query.filter(Vehical.number.ilike(f"%{query}%")).all()
-    return jsonify([{"id": vehical.id, "number": vehical.number} for vehical in vehicals])
+        vehicles = Vehicle.query.filter(Vehicle.number.ilike(f"%{query}%")).all()
+    return jsonify([{"id": vehicle.id, "number": vehicle.number} for vehicle in vehicles])
 
 
 @search_blueprint.route("/app/search/employees", methods=["GET"])

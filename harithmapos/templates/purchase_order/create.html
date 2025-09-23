@@ -12,9 +12,9 @@
                         {{ form.hidden_tag() }}
                         <fieldset class="form-group">
                             <div class="form-group">
-                                {{ form.supplier.label(class="form-label mt-3",for="vehicalDataList") }}
-                                {{ form.supplier(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", placeholder="Search Vehical...") }}
-                                <datalist id="datalistOptionsVehical">
+                                {{ form.supplier.label(class="form-label mt-3",for="supplierDataList") }}
+                                {{ form.supplier(class="form-control", list="datalistOptionsSupplier", id="supplierDataList", placeholder="Search Supplier...") }}
+                                <datalist id="datalistOptionsSupplier">
                                     {% for supplier in suppliers %}
                                         <option value="{{supplier.id}}">{{supplier.name}}</option>
                                     {% endfor %}

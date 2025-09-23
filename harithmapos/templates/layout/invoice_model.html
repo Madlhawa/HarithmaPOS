@@ -10,11 +10,11 @@
                 {{ invoice_head_create_form.hidden_tag() }}
                 <fieldset class="form-group">
                     <div class="form-group">
-                        {{ invoice_head_create_form.vehical.label(class="form-label mt-3",for="vehicalDataList") }}
-                        {{ invoice_head_create_form.vehical(class="form-control", list="datalistOptionsVehical", id="vehicalDataList", placeholder="Search Vehical...") }}
-                        <datalist id="datalistOptionsVehical">
-                            {% for vehical in vehicals %}
-                                <option value="{{vehical.id}}">{{vehical.number}}</option>
+                        {{ invoice_head_create_form.vehicle.label(class="form-label mt-3",for="vehicleDataList") }}
+                        {{ invoice_head_create_form.vehicle(class="form-control", list="datalistOptionsVehicle", id="vehicleDataList", placeholder="Search Vehicle...") }}
+                        <datalist id="datalistOptionsVehicle">
+                            {% for vehicle in vehicles %}
+                                <option value="{{vehicle.id}}">{{vehicle.number}}</option>
                             {% endfor %}
                         </datalist>
                     </div>
