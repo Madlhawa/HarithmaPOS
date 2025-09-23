@@ -144,15 +144,18 @@ class InvoiceHead(db.Model):
 
     @hybrid_property
     def service_status_str(self):
-        return config.SERVICE_STATUS_LIST[int(self.service_status)]
+        try:
+            return config.SERVICE_STATUS_LIST[int(self.service_status)]
+        except (IndexError, ValueError):
+            return f"Unknown Status ({self.service_status})"
     
     @hybrid_property
     def is_in_bay(self):
-        return self.service_status in [1, 2, 3]    
-        
+        return self.service_status in [1, 2]    
+    
     @is_in_bay.expression
     def is_in_bay(cls):
-        return cls.service_status.in_([1, 2, 3])
+        return cls.service_status.in_([1, 2])
 
 
 class InvoiceDetail(db.Model):

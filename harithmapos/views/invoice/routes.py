@@ -208,7 +208,7 @@ def invoice_head_detail(invoice_head_id):
                 utils.send_sms(invoice_head.vehicle.owner.contact, msg)
 
             elif invoice_head_update_form.complete_invoice.data:
-                invoice_head.service_status = 5
+                invoice_head.service_status = 4
                 from utils.database import safe_insert_with_sequence_check
                 payment = safe_insert_with_sequence_check(
                     Payment,

@@ -6,7 +6,11 @@ import pytz
 
 from harithmapos import db, config
 from harithmapos.models import InvoiceHead, InvoiceDetail, Customer, Vehicle, WashBay, Employee, Item
-from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, InvoiceDetailCreateForm
+from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, InvoiceDetailCreateForm, ItemInvoiceHeadCreateForm
+from harithmapos.views.customer.forms import CustomerForm
+from harithmapos.views.vehicle.forms import VehicleForm
+from harithmapos.views.item.forms import ItemCreateForm
+from harithmapos.views.payment.forms import PaymentCreateForm
 
 from harithmapos.views.invoice.utils import get_id
 
@@ -15,20 +19,43 @@ dashboard_blueprint = Blueprint('dashboard_blueprint', __name__)
 @dashboard_blueprint.route('/app/dashboard')
 @login_required
 def dashboard():
+    # Initialize all forms needed for modals
     invoice_head_create_form = InvoiceHeadCreateForm()
+    item_invoice_create_form = ItemInvoiceHeadCreateForm()
+    customer_create_form = CustomerForm()
+    vehicle_create_form = VehicleForm()
+    item_create_form = ItemCreateForm()
+    payment_create_form = PaymentCreateForm()
+
+    # Get data for dropdowns
+    vehicles = Vehicle.query.all()
+    employees = Employee.query.all()
+    washbays = WashBay.query.all()
+    customers = Customer.query.all()
+    invoices = InvoiceHead.query.all()
 
     results = WashBay.query.all()
     waiting_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==0).all()
-    polishing_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==4).all()
-    done_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==5).filter(db.func.date(InvoiceHead.created_dttm) == datetime.now().date()).all()
+    polishing_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==3).all()
+    done_invoices = InvoiceHead.query.filter(InvoiceHead.service_status==4).filter(db.func.date(InvoiceHead.created_dttm) == datetime.now().date()).all()
 
     active_wash_bays = [washbay for washbay in results if washbay.active_invoice ]
     inactive_wash_bays = [washbay for washbay in results if not washbay.active_invoice ]
 
     return render_template(
         'dashboard/dashboard.html',
-        title='InvoiceHead',
+        title='Dashboard',
         invoice_head_create_form=invoice_head_create_form,
+        item_invoice_create_form=item_invoice_create_form,
+        customer_create_form=customer_create_form,
+        vehicle_create_form=vehicle_create_form,
+        item_create_form=item_create_form,
+        payment_create_form=payment_create_form,
+        vehicles=vehicles,
+        employees=employees,
+        washbays=washbays,
+        customers=customers,
+        invoices=invoices,
         results = results,
         active_wash_bays=active_wash_bays,
         inactive_wash_bays=inactive_wash_bays,
