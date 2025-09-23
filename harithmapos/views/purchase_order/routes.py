@@ -14,7 +14,7 @@ purchase_order_blueprint = Blueprint('purchase_order_blueprint', __name__)
 @purchase_order_blueprint.route("/app/purchase_order/search", methods=['GET', 'POST'])
 @login_required
 def purchase_order_head_search():
-    query = request.args.get(query)
+    query = request.args.get('query')
     print(query)
 
     if query:
@@ -162,8 +162,8 @@ def add_purchase_order_detail(purchase_order_head_id):
             )
 
             update_total_values(purchase_order_head)
-
             print(f"{purchase_order_head.total_cost=}")
+
         except Exception as e:
             flash(f"PurchaseOrder Item failed to add: {str(e)}", category='danger')
     else:
