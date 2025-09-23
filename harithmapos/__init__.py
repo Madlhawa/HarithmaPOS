@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_mail import Mail
 from harithmapos.config import Config
 
+
 db = SQLAlchemy()
 migrate = Migrate()
 bcrypt = Bcrypt()
@@ -28,7 +29,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.error.handlers import error_blueprint
     from harithmapos.views.user.routes import user_blueprint
     from harithmapos.views.customer.routes import customer_blueprint
-    from harithmapos.views.vehical.routes import vehical_blueprint
+    from harithmapos.views.vehicle.routes import vehicle_blueprint
     from harithmapos.views.supplier.routes import supplier_blueprint
     from harithmapos.views.main.routes import main_blueprint
     from harithmapos.views.item.routes import item_blueprint
@@ -43,7 +44,7 @@ def create_app(Config_class=Config):
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
     app.register_blueprint(customer_blueprint)
-    app.register_blueprint(vehical_blueprint)
+    app.register_blueprint(vehicle_blueprint)
     app.register_blueprint(supplier_blueprint)
     app.register_blueprint(main_blueprint)
     app.register_blueprint(item_blueprint)

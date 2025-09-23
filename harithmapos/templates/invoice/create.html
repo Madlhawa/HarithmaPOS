@@ -9,16 +9,16 @@
                 </header>
                 <article class="card-body">
                     <form method="POST" action="">
-                        {{ form.vehical_id(class="form-control", id="vehicalId") }}
+                        {{ form.vehicle_id(class="form-control", id="vehicleId") }}
                         {{ form.employee_id(class="form-control", id="employeeId") }}
                         {{ form.washbay_id(class="form-control", id="washbayId") }}
                         {{ form.hidden_tag() }}
                         <fieldset class="form-group">
                             <!-- Vehicle Search -->
                             <div class="form-group position-relative">
-                                {{ form.vehical.label(class="form-label mt-3", for="vehicalSearch") }}
-                                {{ form.vehical(class="form-control", id="vehicalSearch", placeholder="Search Vehical...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="vehicalDropdown"></ul>
+                                {{ form.vehicle.label(class="form-label mt-3", for="vehicleSearch") }}
+                                {{ form.vehicle(class="form-control", id="vehicleSearch", placeholder="Search Vehicle...", autocomplete="off") }}
+                                <ul class="dropdown-menu w-100" id="vehicleDropdown"></ul>
                             </div>
                             <!-- Employee Search -->
                             <div class="form-group position-relative">
@@ -48,7 +48,7 @@
 </div>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        setupDynamicDropdown("vehicalSearch", "vehicalDropdown", "/app/search/vehicals", "vehicalId");
+        setupDynamicDropdown("vehicleSearch", "vehicleDropdown", "/app/search/vehicles", "vehicleId");
         setupDynamicDropdown("employeeSearch", "employeeDropdown", "/app/search/employees", "employeeId", true);
         setupDynamicDropdown("washbaySearch", "washbayDropdown", "/app/search/washbays", "washbayId", true);
     });

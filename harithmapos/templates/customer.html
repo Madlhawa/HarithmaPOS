@@ -71,7 +71,7 @@
                     <th scope="col">Email</th>
                     <!-- <th scope="col">Created</th>
                     <th scope="col">Updated</th> -->
-                    <th scope="col">Vehicals</th>
+                    <th scope="col">Vehicles</th>
                     <th scope="col" style="text-align: right" >Actions</th>
                 </tr>
             </thead>
@@ -86,39 +86,39 @@
                         <!-- <td class="align-middle">{{customer.create_dttm}}</td>
                         <td class="align-middle">{{customer.update_dttm}}</td> -->
                         <td>
-                            {% for vehical in customer.vehicals %}
-                                <a href="{{ url_for('vehical_blueprint.update_vehical', vehical_id=vehical.id) }}" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#update_vehical{{vehical.id}}">{{vehical.number}}</a>
-                                <!-- Modal for updating a vehical -->
-                                <div id="update_vehical{{vehical.id}}" class="modal fade" role="dialog">
+                            {% for vehicle in customer.vehicles %}
+                                <a href="{{ url_for('vehicle_blueprint.update_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#update_vehicle{{vehicle.id}}">{{vehicle.number}}</a>
+                                <!-- Modal for updating a vehicle -->
+                                <div id="update_vehicle{{vehicle.id}}" class="modal fade" role="dialog">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h4 class="modal-title">Update Vehical</h4>
+                                                <h4 class="modal-title">Update Vehicle</h4>
                                             </div>
                                             <div class="modal-body">
-                                                <form action="{{url_for('vehical_blueprint.update_vehical')}}" method="POST">
-                                                    {{ vehical_form.hidden_tag() }}
+                                                <form action="{{url_for('vehicle_blueprint.update_vehicle')}}" method="POST">
+                                                    {{ vehicle_form.hidden_tag() }}
                                                     <div class="form-group">
-                                                        <input type="hidden" name="id" value="{{vehical.id}}">
-                                                        {{ vehical_form.number.label(class="form-control-label mt-1") }}
-                                                        {{ vehical_form.number(class="form-control form-control-lg", value=vehical.number) }}
+                                                        <input type="hidden" name="id" value="{{vehicle.id}}">
+                                                        {{ vehicle_form.number.label(class="form-control-label mt-1") }}
+                                                        {{ vehicle_form.number(class="form-control form-control-lg", value=vehicle.number) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        {{ vehical_form.make.label(class="form-control-label mt-1") }}
-                                                        {{ vehical_form.make(class="form-control form-control-lg", value=vehical.make) }}
+                                                        {{ vehicle_form.make.label(class="form-control-label mt-1") }}
+                                                        {{ vehicle_form.make(class="form-control form-control-lg", value=vehicle.make) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        {{ vehical_form.model.label(class="form-control-label mt-1") }}
-                                                        {{ vehical_form.model(class="form-control form-control-lg", value=vehical.model) }}
+                                                        {{ vehicle_form.model.label(class="form-control-label mt-1") }}
+                                                        {{ vehicle_form.model(class="form-control form-control-lg", value=vehicle.model) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        {{ vehical_form.year.label(class="form-control-label mt-1") }}
-                                                        {{ vehical_form.year(class="form-control form-control-lg", value=vehical.year) }}
-                                                        {{ vehical_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
+                                                        {{ vehicle_form.year.label(class="form-control-label mt-1") }}
+                                                        {{ vehicle_form.year(class="form-control form-control-lg", value=vehicle.year) }}
+                                                        {{ vehicle_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
                                                     </div>
                                                     <div class="form-group">
-                                                        <button class="btn btn-warning mt-4" type="submit">Update vehical</button>
-                                                        <a href="{{ url_for('vehical_blueprint.delete_vehical', vehical_id=vehical.id) }}" class="btn btn-danger mt-4" onclick="return confirm('Are you sure to delete?')">Delete</a>
+                                                        <button class="btn btn-warning mt-4" type="submit">Update vehicle</button>
+                                                        <a href="{{ url_for('vehicle_blueprint.delete_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-danger mt-4" onclick="return confirm('Are you sure to delete?')">Delete</a>
                                                     </div>
                                                 </form>
                                             </div>
@@ -131,7 +131,7 @@
                             {% endfor %}
                         </td>
                         <td class="text-end">
-                            <a href="{{ url_for('vehical_blueprint.insert_vehical') }}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehical" data-bs-toggle="modal" data-bs-target="#insert_vehical{{customer.id}}"><i class="fa fa-car"></i></a>
+                            <a href="{{ url_for('vehicle_blueprint.insert_vehicle') }}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehicle" data-bs-toggle="modal" data-bs-target="#insert_vehicle{{customer.id}}"><i class="fa fa-car"></i></a>
                             <a href="{{ url_for('customer_blueprint.update_customer', customer_id=customer.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update Customer" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}">Edit</a>
                             <a href="{{ url_for('customer_blueprint.delete_customer', customer_id=customer.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete Customer" onclick="return confirm('Are you sure to delete?')">Delete</a>
                         </td>
@@ -175,35 +175,35 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Modal for inserting a vehical -->
-                    <div id="insert_vehical{{customer.id}}" class="modal fade" role="dialog">
+                    <!-- Modal for inserting a vehicle -->
+                    <div id="insert_vehicle{{customer.id}}" class="modal fade" role="dialog">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h4 class="modal-title">Add a new vehical for {{customer.name}}</h4>
+                                    <h4 class="modal-title">Add a new vehicle for {{customer.name}}</h4>
                                 </div>
                                 <div class="modal-body">
-                                    <form action="{{url_for('vehical_blueprint.insert_vehical')}}" method="POST">
-                                        {{ vehical_form.hidden_tag() }}
+                                    <form action="{{url_for('vehicle_blueprint.insert_vehicle')}}" method="POST">
+                                        {{ vehicle_form.hidden_tag() }}
                                         <div class="form-group">
-                                            {{ vehical_form.number.label(class="form-control-label mt-1") }}
-                                            {{ vehical_form.number(class="form-control form-control-lg") }}
+                                            {{ vehicle_form.number.label(class="form-control-label mt-1") }}
+                                            {{ vehicle_form.number(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            {{ vehical_form.make.label(class="form-control-label mt-1") }}
-                                            {{ vehical_form.make(class="form-control form-control-lg") }}
+                                            {{ vehicle_form.make.label(class="form-control-label mt-1") }}
+                                            {{ vehicle_form.make(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            {{ vehical_form.model.label(class="form-control-label mt-1") }}
-                                            {{ vehical_form.model(class="form-control form-control-lg") }}
+                                            {{ vehicle_form.model.label(class="form-control-label mt-1") }}
+                                            {{ vehicle_form.model(class="form-control form-control-lg") }}
                                         </div>
                                         <div class="form-group">
-                                            {{ vehical_form.year.label(class="form-control-label mt-1") }}
-                                            {{ vehical_form.year(class="form-control form-control-lg") }}
-                                            {{ vehical_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
+                                            {{ vehicle_form.year.label(class="form-control-label mt-1") }}
+                                            {{ vehicle_form.year(class="form-control form-control-lg") }}
+                                            {{ vehicle_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
                                         </div>
                                         <div class="form-group">
-                                            <button class="btn btn-primary mt-4" type="submit">Add Vehical</button>
+                                            <button class="btn btn-primary mt-4" type="submit">Add Vehicle</button>
                                         </div>
                                     </form>
                                 </div>

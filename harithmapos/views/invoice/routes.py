@@ -6,7 +6,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
 from harithmapos import db, config
-from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehical, WashBay, Employee, Item, Payment, InvoiceStatusLog
+from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle, WashBay, Employee, Item, Payment, InvoiceStatusLog
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
 from harithmapos.views.invoice import utils 
@@ -19,7 +19,7 @@ def invoice_head():
     invoice_head_create_form = InvoiceHeadCreateForm()
     invoice_head_update_form = InvoiceHeadUpdateForm()
 
-    vehicals = Vehical.query.all()
+    vehicles = Vehicle.query.all()
     employees = Employee.query.all()
     washbays = WashBay.query.all()
 
@@ -28,7 +28,7 @@ def invoice_head():
     query = request.args.get("query",None)
 
     if query:
-        invoice_heads = InvoiceHead.query.join(Vehical).order_by(InvoiceHead.update_dttm.desc()).filter(Vehical.number.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        invoice_heads = InvoiceHead.query.join(Vehicle).order_by(InvoiceHead.update_dttm.desc()).filter(Vehicle.number.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
         # invoice_heads = InvoiceHead.query.order_by(InvoiceHead.update_dttm.desc()).filter(InvoiceHead.customer_id.icontains(query)).paginate(page=page, per_page=per_page)
     else:
         invoice_heads = InvoiceHead.query.order_by(InvoiceHead.update_dttm.desc()).paginate(page=page, per_page=per_page)
@@ -38,7 +38,7 @@ def invoice_head():
         invoice_head_create_form=invoice_head_create_form, 
         invoice_head_update_form=invoice_head_update_form,
         invoice_heads=invoice_heads,
-        vehicals=vehicals,
+        vehicles=vehicles,
         employees=employees,
         washbays=washbays,
         query=query
@@ -75,22 +75,22 @@ def item_invoice_head():
 def insert_invoice_head():
     form = InvoiceHeadCreateForm()
     if request.method == 'GET':
-        vehicals = Vehical.query.all()
+        vehicles = Vehicle.query.all()
         employees = Employee.query.all()
         washbays = WashBay.query.all()
         return render_template(
             'invoice/create.html', 
             title='Create Invoice',
             form=form,
-            vehicals=vehicals,
+            vehicles=vehicles,
             employees=employees,
             washbays=washbays,
         )
     elif form.validate_on_submit():
-        vehical = Vehical.query.get(form.vehical_id.data)
+        vehicle = Vehicle.query.get(form.vehicle_id.data)
         invoice = InvoiceHead(
-            customer_id=vehical.owner.id,
-            vehical_id=form.vehical_id.data,
+            customer_id=vehicle.owner.id,
+            vehicle_id=form.vehicle_id.data,
             washbay_id=form.washbay_id.data,
             employee_id=form.employee_id.data,
             current_milage=form.current_milage.data,
@@ -191,16 +191,16 @@ def invoice_head_detail(invoice_head_id):
                 db.session.commit()
 
                 token = invoice_head.get_customer_view_token()
-                msg = f"Hi {invoice_head.vehical.owner.name}, Your vehical {invoice_head.vehical.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
-                utils.send_sms(invoice_head.vehical.owner.contact, msg)
+                msg = f"Hi {invoice_head.vehicle.owner.name}, Your vehicle {invoice_head.vehicle.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
+                utils.send_sms(invoice_head.vehicle.owner.contact, msg)
 
             elif invoice_head_update_form.send_service_complete_msg.data:
                 invoice_head.service_complete_msg_sent_ind = True
                 db.session.commit()
                 
                 token = invoice_head.get_customer_view_token()
-                msg = f"Hi {invoice_head.vehical.owner.name}, Your vehical {invoice_head.vehical.number}'s service has been completed."
-                utils.send_sms(invoice_head.vehical.owner.contact, msg)
+                msg = f"Hi {invoice_head.vehicle.owner.name}, Your vehicle {invoice_head.vehicle.number}'s service has been completed."
+                utils.send_sms(invoice_head.vehicle.owner.contact, msg)
 
             elif invoice_head_update_form.complete_invoice.data:
                 invoice_head.service_status = 5
@@ -568,7 +568,7 @@ def convert_service_invoice_to_json(service_invoice):
         "invoice_type": 1,
         "customer_name": service_invoice.customer.name,
         "employee_name": service_invoice.employee.name,
-        "vehical_number": service_invoice.vehical.number,
+        "vehicle_number": service_invoice.vehicle.number,
         "wash_bay": service_invoice.washbay.name,
         "current_milage": service_invoice.current_milage,
         "next_milage": service_invoice.next_milage,

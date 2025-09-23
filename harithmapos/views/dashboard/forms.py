@@ -9,7 +9,7 @@ class InvoiceDetailCreateForm(FlaskForm):
     submit = SubmitField('Add Item')
 
 class InvoiceHeadUpdateForm(FlaskForm):
-    vehical = StringField("Vehical", validators=[DataRequired()])
+    vehicle = StringField("Vehicle", validators=[DataRequired()])
     employee = StringField("Employee", validators=[DataRequired()])
     washbay = StringField("Wash Bay", validators=[DataRequired()])
     current_milage = IntegerField("Current Milage", validators=[Optional()])
@@ -24,7 +24,7 @@ class InvoiceHeadUpdateForm(FlaskForm):
     submit = SubmitField('Update InvoiceHead')
 
 class InvoiceHeadCreateForm(FlaskForm):
-    vehical = StringField("Vehical", validators=[DataRequired()])
+    vehicle = StringField("Vehicle", validators=[DataRequired()])
     employee = StringField("Employee", validators=[DataRequired()])
     washbay = StringField("Wash Bay", validators=[DataRequired()])
     current_milage = IntegerField("Milage")

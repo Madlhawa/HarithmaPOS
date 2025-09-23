@@ -4,7 +4,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db
-from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Vehical, WashBay, Employee, Item
+from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Vehicle, WashBay, Employee, Item
 from harithmapos.views.purchase_order.forms import PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm
 
 from harithmapos.views.purchase_order.utils import get_id

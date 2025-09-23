@@ -22,7 +22,7 @@ INSERT INTO public.customer
 (id, "name", contact, address, email, create_dttm, update_dttm)
 VALUES(1, 'Mandora', '777777777', '', 'Mandora@gmail.com', '2025-01-04 14:32:26.063', '2025-01-04 14:32:26.063');
 
-INSERT INTO public.vehical
+INSERT INTO public.vehicle
 (id, "number", make, model, "year", create_dttm, update_dttm, owner_id)
 VALUES(1, 'BAN-5237', 'Nissan', 'Camry', '2020', '2025-01-04 14:32:48.542', '2025-01-04 14:32:48.542', 1);
 
@@ -36,7 +36,7 @@ VALUES(1, 'Derik', '777777777', 'Akaragama', 'Washer', '2025-01-01', 2200.00, '2
 
 INSERT INTO public.wash_bay
 (id, "name", remarks, capacity, create_dttm)
-VALUES(1, 'Heavy Jack', 'Jack for heavy vehicals', 10.00, '2025-01-04 14:35:20.113');
+VALUES(1, 'Heavy Jack', 'Jack for heavy vehicles', 10.00, '2025-01-04 14:35:20.113');
 
 INSERT INTO public."user"
 (id, email, "name", image, "password", ui_theme, create_dttm, update_dttm)
