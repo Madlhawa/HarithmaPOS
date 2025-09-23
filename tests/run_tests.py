@@ -28,7 +28,11 @@ def run_tests(test_path=None, verbose=False, coverage=False, parallel=False):
         cmd.extend(['-n', 'auto'])
     
     if test_path:
-        cmd.append(test_path)
+        # Split the test path string into individual paths
+        if isinstance(test_path, str) and ' ' in test_path:
+            cmd.extend(test_path.split())
+        else:
+            cmd.append(test_path)
     else:
         cmd.append('tests/')
     
