@@ -49,15 +49,18 @@ jobs:
     
     - name: Run unit tests
       run: |
-        python tests/run_tests.py --unit --coverage --verbose
+        cd tests
+        python run_tests.py --unit --coverage --verbose
     
     - name: Run integration tests
       run: |
-        python tests/run_tests.py --integration --coverage --verbose
+        cd tests
+        python run_tests.py --integration --coverage --verbose
     
     - name: Run all tests
       run: |
-        python tests/run_tests.py --coverage --verbose
+        cd tests
+        python run_tests.py --coverage --verbose
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
