@@ -37,6 +37,26 @@ def search_washbays():
         washbays = WashBay.query.filter(WashBay.name.ilike(f"%{query}%")).all()
     return jsonify([{"id": washbay.id, "name": washbay.name} for washbay in washbays])
 
+@search_blueprint.route("/app/search/customers", methods=["GET"])
+@login_required
+def search_customers():
+    query = request.args.get("q", "").strip().lower()
+    if query.isdigit():
+        customers = Customer.query.filter((Customer.id == int(query)) | (Customer.name.ilike(f"%{query}%"))).all()
+    else:
+        customers = Customer.query.filter(Customer.name.ilike(f"%{query}%")).all()
+    return jsonify([{"id": customer.id, "name": customer.name} for customer in customers])
+
+@search_blueprint.route("/app/search/invoices", methods=["GET"])
+@login_required
+def search_invoices():
+    query = request.args.get("q", "").strip().lower()
+    if query.isdigit():
+        invoices = InvoiceHead.query.filter((InvoiceHead.id == int(query)) | (InvoiceHead.customer.has(Customer.name.ilike(f"%{query}%")))).all()
+    else:
+        invoices = InvoiceHead.query.filter(InvoiceHead.customer.has(Customer.name.ilike(f"%{query}%"))).all()
+    return jsonify([{"id": invoice.id, "name": f"Invoice #{invoice.id} - {invoice.customer.name} ({invoice.vehicle.number})"} for invoice in invoices])
+
 @search_blueprint.route("/app/search/items", methods=["GET"])
 @login_required
 def search_Items():

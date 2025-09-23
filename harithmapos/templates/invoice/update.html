@@ -22,7 +22,7 @@
             {{ invoice_detail_create_form.hidden_tag() }}
             <div class="col-6">
               {{ invoice_detail_create_form.item(class="form-control", id="itemSearch", placeholder="Type to search item...", autocomplete="off") }}
-              <ul class="dropdown-menu w-100" id="itemDropdown" aria-labelledby="itemSearch" style="position: absolute; top: 100%; left: 0; z-index: 1050;"></ul>
+              <ul class="dropdown-menu w-100" id="itemDropdown" aria-labelledby="itemSearch"></ul>
             </div>
             <div class="col-2">
               {{ invoice_detail_create_form.quantity(class="form-control", placeholder="Qty.") }}

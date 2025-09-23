@@ -10,7 +10,7 @@
                 <div class="card-header d-flex">
                     <span><b>{{ invoice_head.washbay.name }}</b></span>
                     <span class="ms-auto"><b>{{ invoice_head.vehicle.number }}</b></span>
-                    {% if invoice_head.service_status > 0 and invoice_head.service_status < 5 %}
+                    {% if invoice_head.service_status > 0 and invoice_head.service_status < 4 %}
                         <span class="ms-auto text-success"><i class="bi bi-circle-fill"></i> In bay</span>
                     {% else %}
                         <span class="ms-auto text-secondary"><i class="bi bi-circle"></i> Outside</span>

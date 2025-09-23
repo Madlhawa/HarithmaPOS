@@ -1,0 +1,207 @@
+/* Modal dropdown width fixes */
+.modal .dropdown-menu {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal .form-group {
+    position: relative;
+}
+
+.modal .dropdown-menu.show {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Dashboard enhancements */
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.quick-actions .btn {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.quick-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.status-card {
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.washbay-card {
+    transition: all 0.3s ease;
+}
+
+.washbay-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Dark mode dashboard enhancements */
+[data-bs-theme="dark"] .quick-actions .btn:hover {
+    box-shadow: 0 4px 12px rgba(255,255,255,0.1);
+}
+
+[data-bs-theme="dark"] .status-card:hover {
+    box-shadow: 0 4px 12px rgba(255,255,255,0.05);
+}
+
+[data-bs-theme="dark"] .washbay-card:hover {
+    box-shadow: 0 6px 20px rgba(255,255,255,0.05);
+}
+
+/* Dark mode card improvements */
+[data-bs-theme="dark"] .card {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .card-header {
+    border-bottom-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .card-footer {
+    border-top-color: var(--bs-gray-700);
+    background-color: var(--bs-gray-800) !important;
+}
+
+/* Dark mode card footer with bg-light override */
+[data-bs-theme="dark"] .card-footer.bg-light {
+    background-color: var(--bs-gray-800) !important;
+}
+
+/* Dark mode table improvements */
+[data-bs-theme="dark"] .table {
+    --bs-table-bg: var(--bs-dark);
+    --bs-table-color: var(--bs-light);
+    --bs-table-border-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--bs-gray-800);
+}
+
+/* Dark mode badge improvements */
+[data-bs-theme="dark"] .badge.bg-light {
+    background-color: var(--bs-gray-600) !important;
+    color: var(--bs-light) !important;
+}
+
+/* Dark mode progress bar improvements */
+[data-bs-theme="dark"] .progress {
+    background-color: var(--bs-gray-700);
+}
+
+/* Dark mode text improvements */
+[data-bs-theme="dark"] .text-muted {
+    color: var(--bs-gray-400) !important;
+}
+
+/* Dark mode button improvements */
+[data-bs-theme="dark"] .btn-outline-primary {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+}
+
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+/* Dark mode modal improvements */
+[data-bs-theme="dark"] .modal-content {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .modal-header {
+    border-bottom-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .modal-footer {
+    border-top-color: var(--bs-gray-700);
+}
+
+/* Dark mode dropdown improvements */
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-gray-700);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: var(--bs-light);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: var(--bs-gray-700);
+    color: var(--bs-light);
+}
+
+/* Dark mode form improvements */
+[data-bs-theme="dark"] .form-control {
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-gray-600);
+    color: var(--bs-light);
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Dark mode container improvements */
+[data-bs-theme="dark"] .container {
+    background-color: transparent;
+}
+
+/* Dark mode body improvements */
+[data-bs-theme="dark"] body {
+    background-color: var(--bs-gray-900);
+    color: var(--bs-light);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .quick-actions .btn {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+    
+    .dashboard-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+}

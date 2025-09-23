@@ -24,7 +24,7 @@ SERVICE_STATUS_LIST = [
     'Waiting',
     'Vacumming',
     'Washing',
-    'Drying',
+    'Polishing',
     'Done'
 ]
 
@@ -32,7 +32,7 @@ SERVICE_STATUS_FORM_LIST = [
     (0, 'Waiting'), 
     (1, 'Vacumming'), 
     (2, 'Washing'), 
-    (3, 'Drying'), 
+    (3, 'Polishing'),
     (4, 'Done')
 ]
 
