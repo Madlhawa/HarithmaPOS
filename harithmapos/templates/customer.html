@@ -1,220 +1,339 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% block title %} Customers Management {% endblock %}
 {% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="post" autocomplete="off"> 
-                    <!-- Left side: Search bar and button -->
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="Search">
-                    <input type="submit" value="Search" class="btn btn-primary" name="">
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New Customer</button>
-            </div>
+<div class="container">
+    <!-- Search and Actions Section -->
+    <div class="row mb-4 mt-3">
+        <div class="col-lg-8 col-md-7">
+            <form action="" method="post" autocomplete="off">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="query" id="query" placeholder="{{ query if query else 'Search customers by name, contact, or email...'}}">
+                    <button type="submit" class="btn btn-primary" name="">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                    <a href="{{ url_for('customer_blueprint.customer') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="col-lg-4 col-md-5 text-end">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#insert_modal">
+                <i class="bi bi-plus-circle me-1"></i>Add New Customer
+            </button>
         </div>
     </div>
-    <!-- Modal for inserting the customer -->
+    <!-- Add Customer Modal -->
     <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Add Customer</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('customer_blueprint.insert_customer')}}" method="POST">
-                    {{ customer_form.hidden_tag() }}
-                    <div class="form-group">
-                        {{ customer_form.name.label(class="form-control-label mt-1") }}
-                        {{ customer_form.name(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ customer_form.contact.label(class="form-control-label mt-1") }}
-                        {{ customer_form.contact(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ customer_form.address.label(class="form-control-label mt-1") }}
-                        {{ customer_form.address(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ customer_form.email.label(class="form-control-label mt-1") }}
-                        {{ customer_form.email(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-primary mt-4" type="submit">Add Customer</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-        </div>
-    </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Contact</th>
-                    <th scope="col">Address</th>
-                    <th scope="col">Email</th>
-                    <!-- <th scope="col">Created</th>
-                    <th scope="col">Updated</th> -->
-                    <th scope="col">Vehicles</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for customer in customers %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{customer.id}}</td>
-                        <td class="align-middle">{{customer.name}}</td>
-                        <td class="align-middle">{{customer.contact}}</td>
-                        <td class="align-middle">{{customer.address}}</td>
-                        <td class="align-middle">{{customer.email}}</td>
-                        <!-- <td class="align-middle">{{customer.create_dttm}}</td>
-                        <td class="align-middle">{{customer.update_dttm}}</td> -->
-                        <td>
-                            {% for vehicle in customer.vehicles %}
-                                <a href="{{ url_for('vehicle_blueprint.update_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#update_vehicle{{vehicle.id}}">{{vehicle.number}}</a>
-                                <!-- Modal for updating a vehicle -->
-                                <div id="update_vehicle{{vehicle.id}}" class="modal fade" role="dialog">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h4 class="modal-title">Update Vehicle</h4>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form action="{{url_for('vehicle_blueprint.update_vehicle')}}" method="POST">
-                                                    {{ vehicle_form.hidden_tag() }}
-                                                    <div class="form-group">
-                                                        <input type="hidden" name="id" value="{{vehicle.id}}">
-                                                        {{ vehicle_form.number.label(class="form-control-label mt-1") }}
-                                                        {{ vehicle_form.number(class="form-control form-control-lg", value=vehicle.number) }}
-                                                    </div>
-                                                    <div class="form-group">
-                                                        {{ vehicle_form.make.label(class="form-control-label mt-1") }}
-                                                        {{ vehicle_form.make(class="form-control form-control-lg", value=vehicle.make) }}
-                                                    </div>
-                                                    <div class="form-group">
-                                                        {{ vehicle_form.model.label(class="form-control-label mt-1") }}
-                                                        {{ vehicle_form.model(class="form-control form-control-lg", value=vehicle.model) }}
-                                                    </div>
-                                                    <div class="form-group">
-                                                        {{ vehicle_form.year.label(class="form-control-label mt-1") }}
-                                                        {{ vehicle_form.year(class="form-control form-control-lg", value=vehicle.year) }}
-                                                        {{ vehicle_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <button class="btn btn-warning mt-4" type="submit">Update vehicle</button>
-                                                        <a href="{{ url_for('vehicle_blueprint.delete_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-danger mt-4" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            </div>
-                                        </div>
-                                    </div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Customer</h4>
+                </div>
+                <div class="modal-body">
+                    <form action="{{url_for('customer_blueprint.insert_customer')}}" method="POST">
+                        {{ customer_form.hidden_tag() }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.name.label(class="form-control-label") }}
+                                    {{ customer_form.name(class="form-control") }}
                                 </div>
-                            {% endfor %}
-                        </td>
-                        <td class="text-end">
-                            <a href="{{ url_for('vehicle_blueprint.insert_vehicle') }}" class="btn btn-success" data-toggle="tooltip" data-placement="top" title="Add Vehicle" data-bs-toggle="modal" data-bs-target="#insert_vehicle{{customer.id}}"><i class="fa fa-car"></i></a>
-                            <a href="{{ url_for('customer_blueprint.update_customer', customer_id=customer.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update Customer" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}">Edit</a>
-                            <a href="{{ url_for('customer_blueprint.delete_customer', customer_id=customer.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete Customer" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                
-                    <!-- Model for updating customer -->
-                    <div id="update_customer{{customer.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Update Customer</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('customer_blueprint.update_customer')}}" method="POST">
-                                        {{ customer_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            <input type="hidden"  name="id" value="{{customer.id}}">
-                                            {{ customer_form.name.label(class="form-control-label mt-1") }}
-                                            {{ customer_form.name(class="form-control form-control-lg", value=customer.name) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ customer_form.contact.label(class="form-control-label mt-1") }}
-                                            {{ customer_form.contact(class="form-control form-control-lg", value=customer.contact) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ customer_form.address.label(class="form-control-label mt-1") }}
-                                            {{ customer_form.address(class="form-control form-control-lg", value=customer.address) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ customer_form.email.label(class="form-control-label mt-1") }}
-                                            {{ customer_form.email(class="form-control form-control-lg", value=customer.email) }}
-                                        </div>
-                                        <div class="form-group">
-                                            <button class="btn btn-warning mt-4" type="submit">Update Customer</button>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.contact.label(class="form-control-label") }}
+                                    {{ customer_form.contact(class="form-control") }}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- Modal for inserting a vehicle -->
-                    <div id="insert_vehicle{{customer.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Add a new vehicle for {{customer.name}}</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.email.label(class="form-control-label") }}
+                                    {{ customer_form.email(class="form-control") }}
                                 </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('vehicle_blueprint.insert_vehicle')}}" method="POST">
-                                        {{ vehicle_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            {{ vehicle_form.number.label(class="form-control-label mt-1") }}
-                                            {{ vehicle_form.number(class="form-control form-control-lg") }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ vehicle_form.make.label(class="form-control-label mt-1") }}
-                                            {{ vehicle_form.make(class="form-control form-control-lg") }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ vehicle_form.model.label(class="form-control-label mt-1") }}
-                                            {{ vehicle_form.model(class="form-control form-control-lg") }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ vehicle_form.year.label(class="form-control-label mt-1") }}
-                                            {{ vehicle_form.year(class="form-control form-control-lg") }}
-                                            {{ vehicle_form.owner_id(class="form-control form-control-lg", type="hidden", value=customer.id) }}
-                                        </div>
-                                        <div class="form-group">
-                                            <button class="btn btn-primary mt-4" type="submit">Add Vehicle</button>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.address.label(class="form-control-label") }}
+                                    {{ customer_form.address(class="form-control") }}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <div class="form-group">
+                            <button class="btn btn-primary mt-3" type="submit">
+                                <i class="bi bi-plus-circle me-1"></i>Add Customer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Customers Table Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0"><i class="bi bi-people me-1"></i>Customers Directory</h6>
+                        <small>Total customers: {{ customers|length if customers else 0 }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-list-ul me-1"></i>{{ customers|length if customers else 0 }} customers shown
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if customers %}
+                        <div class="table-responsive">
+                            <table class="table table-modern table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="text-center">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Contact</th>
+                                        <th scope="col">Address</th>
+                                        <th scope="col">Email</th>
+                                        <th scope="col" class="text-center">Vehicles</th>
+                                        <th scope="col" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for customer in customers %}
+                                        <tr>
+                                            <td class="align-middle text-center fw-medium text-muted">{{ customer.id }}</td>
+                                            <td class="align-middle">
+                                                <div class="fw-medium">{{ customer.name }}</div>
+                                            </td>
+                                            <td class="align-middle">{{ customer.contact }}</td>
+                                            <td class="align-middle text-muted">{{ customer.address }}</td>
+                                            <td class="align-middle">
+                                                <span class="badge bg-light text-dark">{{ customer.email }}</span>
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                {% for vehicle in customer.vehicles %}
+                                                    <span class="badge bg-primary" data-bs-toggle="modal" data-bs-target="#update_vehicle{{vehicle.id}}" style="cursor: pointer;">{{ vehicle.number }}</span>
+                                                {% endfor %}
+                                                {% if customer.vehicles|length == 0 %}
+                                                    <span class="text-muted">No vehicles</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#insert_vehicle{{customer.id}}" data-bs-toggle="tooltip" title="Add Vehicle">
+                                                        <i class="bi bi-car-front"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#update_customer{{customer.id}}" data-bs-toggle="tooltip" title="Edit Customer">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('customer_blueprint.delete_customer', customer_id=customer.id) }}" class="btn btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Delete Customer" onclick="return confirm('Are you sure to delete this customer?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-people fa-3x mb-3"></i>
+                                <h5>No customers found</h5>
+                                <p>Start by adding your first customer.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals moved outside the table loop for better performance -->
+{% for customer in customers %}
+    <!-- Modal for updating customer -->
+    <div id="update_customer{{customer.id}}" class="modal fade" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-pencil me-2"></i>Update Customer</h4>
+                </div>
+                <div class="modal-body">
+                    <form action="{{url_for('customer_blueprint.update_customer')}}" method="POST">
+                        {{ customer_form.hidden_tag() }}
+                        <input type="hidden" name="id" value="{{customer.id}}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.name.label(class="form-control-label") }}
+                                    {{ customer_form.name(class="form-control", value=customer.name) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.contact.label(class="form-control-label") }}
+                                    {{ customer_form.contact(class="form-control", value=customer.contact) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.email.label(class="form-control-label") }}
+                                    {{ customer_form.email(class="form-control", value=customer.email) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ customer_form.address.label(class="form-control-label") }}
+                                    {{ customer_form.address(class="form-control", value=customer.address) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-warning mt-3" type="submit">
+                                <i class="bi bi-check-circle me-1"></i>Update Customer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for inserting a vehicle -->
+    <div id="insert_vehicle{{customer.id}}" class="modal fade" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-car-front me-2"></i>Add Vehicle for {{customer.name}}</h4>
+                </div>
+                <div class="modal-body">
+                    <form action="{{url_for('vehicle_blueprint.insert_vehicle')}}" method="POST">
+                        {{ vehicle_form.hidden_tag() }}
+                        {{ vehicle_form.owner_id(type="hidden", value=customer.id) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.number.label(class="form-control-label") }}
+                                    {{ vehicle_form.number(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.make.label(class="form-control-label") }}
+                                    {{ vehicle_form.make(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.model.label(class="form-control-label") }}
+                                    {{ vehicle_form.model(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.year.label(class="form-control-label") }}
+                                    {{ vehicle_form.year(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary mt-3" type="submit">
+                                <i class="bi bi-plus-circle me-1"></i>Add Vehicle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle update modals -->
+    {% for vehicle in customer.vehicles %}
+    <div id="update_vehicle{{vehicle.id}}" class="modal fade" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-car-front me-2"></i>Update Vehicle</h4>
+                </div>
+                <div class="modal-body">
+                    <form action="{{url_for('vehicle_blueprint.update_vehicle')}}" method="POST">
+                        {{ vehicle_form.hidden_tag() }}
+                        <input type="hidden" name="id" value="{{vehicle.id}}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.number.label(class="form-control-label") }}
+                                    {{ vehicle_form.number(class="form-control", value=vehicle.number) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.make.label(class="form-control-label") }}
+                                    {{ vehicle_form.make(class="form-control", value=vehicle.make) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.model.label(class="form-control-label") }}
+                                    {{ vehicle_form.model(class="form-control", value=vehicle.model) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ vehicle_form.year.label(class="form-control-label") }}
+                                    {{ vehicle_form.year(class="form-control", value=vehicle.year) }}
+                                    {{ vehicle_form.owner_id(type="hidden", value=customer.id) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <a href="{{ url_for('vehicle_blueprint.delete_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-danger" onclick="return confirm('Are you sure to delete this vehicle?')">
+                                <i class="bi bi-trash me-1"></i>Delete
+                            </a>
+                            <button class="btn btn-warning" type="submit">
+                                <i class="bi bi-check-circle me-1"></i>Update Vehicle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
 {% endblock %}

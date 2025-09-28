@@ -1,130 +1,227 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% block title %} Service Invoices {% endblock %}
 {% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Vehicle number...'}}">
-                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('invoice_blueprint.invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Create Invoice</button>
-            </div>
+<div class="container">
+    <!-- Search and Actions Section -->
+    <div class="row mb-4 mt-3">
+        <div class="col-lg-8 col-md-7">
+            <form action="" method="GET" autocomplete="off">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="query" id="query" placeholder="{{ query if query else 'Search invoices by vehicle number, customer, or employee...'}}">
+                    <button type="submit" class="btn btn-primary" name="">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                    <a href="{{ url_for('invoice_blueprint.invoice_head') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="col-lg-4 col-md-5 text-end">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#insert_modal">
+                <i class="bi bi-plus-circle me-1"></i>Create Invoice
+            </button>
         </div>
     </div>
-    <!-- Modal for inserting the invoice_head -->
+    <!-- Create Invoice Modal -->
     <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create Invoice</h4>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
-                    {{ invoice_head_create_form.vehicle_id(class="form-control", id="vehicleId") }}
-                    {{ invoice_head_create_form.employee_id(class="form-control", id="employeeId") }}
-                    {{ invoice_head_create_form.washbay_id(class="form-control", id="washbayId") }}
-                    {{ invoice_head_create_form.hidden_tag() }}
-                    <fieldset class="form-group">
-                        <!-- Vehicle Search -->
-                        <div class="form-group position-relative">
-                            {{ invoice_head_create_form.vehicle.label(class="form-label mt-3", for="vehicleSearch") }}
-                            {{ invoice_head_create_form.vehicle(class="form-control", id="vehicleSearch", placeholder="Search Vehicle...", autocomplete="off") }}
-                            <ul class="dropdown-menu w-100" id="vehicleDropdown"></ul>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Create Service Invoice</h4>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{url_for('invoice_blueprint.insert_invoice_head')}}">
+                        {{ invoice_head_create_form.vehicle_id(class="form-control", id="vehicleId") }}
+                        {{ invoice_head_create_form.employee_id(class="form-control", id="employeeId") }}
+                        {{ invoice_head_create_form.washbay_id(class="form-control", id="washbayId") }}
+                        {{ invoice_head_create_form.hidden_tag() }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3 position-relative">
+                                    {{ invoice_head_create_form.vehicle.label(class="form-control-label", for="vehicleSearch") }}
+                                    {{ invoice_head_create_form.vehicle(class="form-control", id="vehicleSearch", placeholder="Search Vehicle...", autocomplete="off") }}
+                                    <ul class="dropdown-menu w-100" id="vehicleDropdown"></ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3 position-relative">
+                                    {{ invoice_head_create_form.employee.label(class="form-control-label", for="employeeSearch") }}
+                                    {{ invoice_head_create_form.employee(class="form-control", id="employeeSearch", placeholder="Search Employee...", autocomplete="off") }}
+                                    <ul class="dropdown-menu w-100" id="employeeDropdown"></ul>
+                                </div>
+                            </div>
                         </div>
-                        <!-- Employee Search -->
-                        <div class="form-group position-relative">
-                            {{ invoice_head_create_form.employee.label(class="form-label mt-3", for="employeeSearch") }}
-                            {{ invoice_head_create_form.employee(class="form-control", id="employeeSearch", placeholder="Search Employee...", autocomplete="off") }}
-                            <ul class="dropdown-menu w-100" id="employeeDropdown"></ul>
-                        </div>
-                        <!-- Washbay Search -->
-                        <div class="form-group position-relative">
-                            {{ invoice_head_create_form.washbay.label(class="form-label mt-3", for="washbaySearch") }}
-                            {{ invoice_head_create_form.washbay(class="form-control", id="washbaySearch", placeholder="Search WashBay...", autocomplete="off") }}
-                            <ul class="dropdown-menu w-100" id="washbayDropdown"></ul>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3 position-relative">
+                                    {{ invoice_head_create_form.washbay.label(class="form-control-label", for="washbaySearch") }}
+                                    {{ invoice_head_create_form.washbay(class="form-control", id="washbaySearch", placeholder="Search WashBay...", autocomplete="off") }}
+                                    <ul class="dropdown-menu w-100" id="washbayDropdown"></ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    {{ invoice_head_create_form.current_milage.label(class="form-control-label") }}
+                                    {{ invoice_head_create_form.current_milage(class="form-control") }}
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
-                            {{ invoice_head_create_form.current_milage.label(class="form-control-label mt-3") }}
-                            {{ invoice_head_create_form.current_milage(class="form-control form-control-lg") }}
+                            {{ invoice_head_create_form.submit(class="btn btn-primary mt-3") }}
                         </div>
-                    </fieldset>
-                    <div class="form-group">
-                        {{ invoice_head_create_form.submit(class="btn btn-outline-info mt-3") }}
-                    </div>
-                </form>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
         </div>
     </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>{{message}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Service Invoices Table Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0"><i class="bi bi-receipt me-1"></i>Service Invoices</h6>
+                        <small>Total invoices: {{ invoice_heads.total if invoice_heads else 0 }}</small>
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Customer</th>
-                    <th scope="col">Vehicle</th>
-                    <th scope="col">Employee</th>
-                    <th scope="col">Wash Bay</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col">Rem. Amount</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for invoice_head in invoice_heads.items %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{invoice_head.id}}</td>
-                        <td class="align-middle">{{invoice_head.created_dttm.date()}}</td>
-                        <td class="align-middle">{{invoice_head.customer.name}}</td>
-                        <td class="align-middle">{{invoice_head.vehicle.number}}</td>
-                        <td class="align-middle">{{invoice_head.employee.name}}</td>
-                        <td class="align-middle">{{invoice_head.washbay.name}}</td>
-                        <td class="align-middle">{{invoice_head.service_status_str}}</td>
-                        <td class="align-middle">{{invoice_head.gross_price}}</td>
-                        <td class="align-middle">{{invoice_head.remaining_amount}}</td>
-                        <td class="text-end">
-                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-sm btn-warning" >Edit</a>
-                            <a href="{{ url_for('invoice_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.prev_num, query=query) }}">Previous</a></li>
-                {% for page_number in invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_number %}
-                        {% if invoice_heads.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('invoice_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% endif %}
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-list-ul me-1"></i>{{ invoice_heads.items|length if invoice_heads else 0 }} invoices shown
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if invoice_heads and invoice_heads.items %}
+                        <div class="table-responsive">
+                            <table class="table table-modern table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="text-center">ID</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Customer</th>
+                                        <th scope="col">Vehicle</th>
+                                        <th scope="col">Employee</th>
+                                        <th scope="col">Wash Bay</th>
+                                        <th scope="col" class="text-center">Status</th>
+                                        <th scope="col" class="text-end">Amount</th>
+                                        <th scope="col" class="text-end">Rem. Amount</th>
+                                        <th scope="col" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for invoice_head in invoice_heads.items %}
+                                        <tr>
+                                            <td class="align-middle text-center fw-medium text-muted">{{ invoice_head.id }}</td>
+                                            <td class="align-middle">{{ invoice_head.created_dttm.date() }}</td>
+                                            <td class="align-middle">
+                                                <div class="fw-medium">{{ invoice_head.customer.name }}</div>
+                                            </td>
+                                            <td class="align-middle">
+                                                <span class="badge bg-primary">{{ invoice_head.vehicle.number }}</span>
+                                            </td>
+                                            <td class="align-middle">{{ invoice_head.employee.name }}</td>
+                                            <td class="align-middle">
+                                                <span class="badge bg-info">{{ invoice_head.washbay.name }}</span>
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                {% if invoice_head.service_status_str == 'Completed' %}
+                                                    <span class="badge bg-success">{{ invoice_head.service_status_str }}</span>
+                                                {% elif invoice_head.service_status_str == 'In Progress' %}
+                                                    <span class="badge bg-warning text-dark">{{ invoice_head.service_status_str }}</span>
+                                                {% elif invoice_head.service_status_str == 'Pending' %}
+                                                    <span class="badge bg-secondary">{{ invoice_head.service_status_str }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">{{ invoice_head.service_status_str }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="align-middle text-end fw-medium text-success">{{ invoice_head.gross_price }}</td>
+                                            <td class="align-middle text-end fw-medium text-danger">{{ invoice_head.remaining_amount }}</td>
+                                            <td class="align-middle text-center">
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id) }}" class="btn btn-outline-warning btn-sm" data-bs-toggle="tooltip" title="Edit Invoice">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('invoice_blueprint.delete_invoice_head', invoice_head_id=invoice_head.id) }}" class="btn btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Delete Invoice" onclick="return confirm('Are you sure to delete this invoice?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
-                        <li class="page-item "><a class="page-link" href="#">...</a></li>
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-receipt fa-3x mb-3"></i>
+                                <h5>No service invoices found</h5>
+                                <p>Start by creating your first service invoice.</p>
+                            </div>
+                        </div>
                     {% endif %}
-                {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.next_num, query=query) }}">Next</a></li>
-            </ul>
-        </nav>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Pagination -->
+    {% if invoice_heads and invoice_heads.pages > 1 %}
+    <nav aria-label="Invoice pagination" class="mt-4">
+        <ul class="pagination pagination-modern justify-content-end">
+            {% if invoice_heads.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.prev_num, query=query) }}">
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for page_number in invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_number %}
+                    {% if invoice_heads.page == page_number %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_number }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=page_number, query=query) }}">{{ page_number }}</a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if invoice_heads.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('invoice_blueprint.invoice_head', page=invoice_heads.next_num, query=query) }}">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
