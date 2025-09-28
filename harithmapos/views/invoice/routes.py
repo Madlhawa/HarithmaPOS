@@ -291,27 +291,36 @@ def item_invoice_head_detail(item_invoice_head_id):
     item_invoice_details = ItemInvoiceDetail.query.filter(ItemInvoiceDetail.item_invoice_head_id==item_invoice_head_id)
 
     if item_invoice_head_update_form.validate_on_submit():
-        if item_invoice_head_update_form.update_item_invoice.data:
-            customer = Customer.query.get(int(utils.get_id(item_invoice_head_update_form.customer.data)))
+        # Use hidden field value if available, otherwise try to parse the display text
+        customer_id = request.form.get('customer_id')
+        
+        if customer_id:
+            item_invoice_head.customer_id = int(customer_id)
+        else:
+            try:
+                customer = Customer.query.get(int(utils.get_id(item_invoice_head_update_form.customer.data)))
+                item_invoice_head.customer_id = customer.id
+            except (ValueError, AttributeError):
+                # If parsing fails, keep the current customer
+                pass
+        item_invoice_head.payment_method=item_invoice_head_update_form.payment_method.data
+        item_invoice_head.paid_amount=item_invoice_head_update_form.paid_amount.data
+        item_invoice_head.discount_pct=item_invoice_head_update_form.discount_pct.data
+        item_invoice_head.update_dttm = datetime.now()
 
-            item_invoice_head.customer_id=customer.id
-            item_invoice_head.payment_method=item_invoice_head_update_form.payment_method.data
-            item_invoice_head.paid_amount=item_invoice_head_update_form.paid_amount.data
-            item_invoice_head.discount_pct=item_invoice_head_update_form.discount_pct.data
-            item_invoice_head.update_dttm = datetime.now()
+        if item_invoice_details:
+            update_total_values(item_invoice_head)
+        
+        if item_invoice_head.paid_amount:
+            item_invoice_head.last_payment_date = datetime.now()
+            item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
 
-            if item_invoice_details:
-                update_total_values(item_invoice_head)
-            
-            if item_invoice_head.paid_amount:
-                item_invoice_head.last_payment_date = datetime.now()
-                item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
+        db.session.commit()
 
-            db.session.commit()
-
-        elif item_invoice_head_update_form.complete_item_invoice.data:
+        if item_invoice_head_update_form.complete_item_invoice.data:
             item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
             utils.send_print_invoice(item_invoice_json,'harithmaq')
+            return redirect(url_for('dashboard_blueprint.dashboard'))
 
     elif request.method == 'POST':
         flash("Item Invoice update failed!", category='danger')
@@ -324,7 +333,8 @@ def item_invoice_head_detail(item_invoice_head_id):
             item_invoice_detail_create_form=item_invoice_detail_create_form,
             items=items,
             customers=customers,
-            item_invoice_details=item_invoice_details
+            item_invoice_details=item_invoice_details,
+            payment_method_form_list=config.PAYMENT_METHOD_FORM_LIST
         )
 
 @invoice_blueprint.route('/app/invoice/head/<int:invoice_head_id>/delete', methods = ['GET', 'POST'])
