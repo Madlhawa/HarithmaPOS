@@ -68,9 +68,9 @@ def update_item(item_id):
         item.unit_price = item_update_form.unit_price.data
         item.discount_pct = item_update_form.discount_pct.data
         db.session.commit()
-        flash("Suppler is updated!", category='success')
+        flash("Item is updated successfully!", category='success')
     else:
-        flash("Suppler failed to add!", category='danger')
+        flash("Item failed to update!", category='danger')
     return redirect(url_for('item_blueprint.item'))
 
 @item_blueprint.route('/app/item/<int:item_id>/delete', methods = ['GET', 'POST'])
