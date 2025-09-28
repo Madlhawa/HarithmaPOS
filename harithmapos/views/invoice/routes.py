@@ -162,8 +162,27 @@ def invoice_head_detail(invoice_head_id):
 
     if invoice_head_update_form.validate_on_submit():
         if not invoice_head_update_form.cancel_invoice.data:
-            invoice_head.washbay_id=utils.get_id(invoice_head_update_form.washbay.data)
-            invoice_head.employee_id=utils.get_id(invoice_head_update_form.employee.data)
+            # Use hidden field values if available, otherwise try to parse the display text
+            employee_id = request.form.get('employee_id')
+            washbay_id = request.form.get('washbay_id')
+            
+            if employee_id:
+                invoice_head.employee_id = int(employee_id)
+            else:
+                try:
+                    invoice_head.employee_id = utils.get_id(invoice_head_update_form.employee.data)
+                except (ValueError, AttributeError):
+                    # If parsing fails, keep the current employee
+                    pass
+            
+            if washbay_id:
+                invoice_head.washbay_id = int(washbay_id)
+            else:
+                try:
+                    invoice_head.washbay_id = utils.get_id(invoice_head_update_form.washbay.data)
+                except (ValueError, AttributeError):
+                    # If parsing fails, keep the current washbay
+                    pass
             invoice_head.current_milage=invoice_head_update_form.current_milage.data
             invoice_head.next_milage_in=invoice_head_update_form.next_milage_in.data
             invoice_head.service_status=invoice_head_update_form.service_status.data
@@ -175,7 +194,6 @@ def invoice_head_detail(invoice_head_id):
 
             if invoice_head_update_form.next_milage_in.data:
                 invoice_head.next_milage = invoice_head.next_milage_in + invoice_head.current_milage
-                db.session.commit()
 
             if str(previous_service_status_id).strip() != str(invoice_head.service_status).strip():
                 from utils.database import safe_insert_with_sequence_check
@@ -189,7 +207,9 @@ def invoice_head_detail(invoice_head_id):
             
             if invoice_head.paid_amount:
                 invoice_head.last_payment_date = datetime.now()
-                
+            
+            # Commit all changes after all updates are complete
+            db.session.commit()
 
             if invoice_head_update_form.send_service_start_msg.data:
                 invoice_head.service_start_msg_sent_ind = True
