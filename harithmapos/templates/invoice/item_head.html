@@ -1,102 +1,204 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% block title %} Item Invoices {% endblock %}
 {% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Invoice...'}}">
-                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('invoice_blueprint.item_invoice_head') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Create Invoice</button>
-            </div>
+<div class="container">
+    <!-- Search and Actions Section -->
+    <div class="row mb-4 mt-3">
+        <div class="col-lg-8 col-md-7">
+            <form action="" method="GET" autocomplete="off">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="query" id="query" placeholder="{{ query if query else 'Search invoices by customer name...'}}">
+                    <button type="submit" class="btn btn-primary" name="">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                    <a href="{{ url_for('invoice_blueprint.item_invoice_head') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="col-lg-4 col-md-5 text-end">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#insert_modal">
+                <i class="bi bi-plus-circle me-1"></i>Create Item Invoice
+            </button>
         </div>
     </div>
-    <!-- Modal for inserting the item_invoice_head -->
+    
+    <!-- Create Invoice Modal -->
     <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create Invoice</h4>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="{{url_for('invoice_blueprint.insert_item_invoice_head')}}">
-                    {{ item_invoice_head_create_form.hidden_tag() }}
-                    <fieldset class="form-group">
-                        <div class="form-group">
-                            {{ item_invoice_head_create_form.customer.label(class="form-label mt-3",for="customerDataList") }}
-                            {{ item_invoice_head_create_form.customer(class="form-control", list="datalistOptionsEmployee", id="customerDataList", placeholder="Search Customer...") }}
-                            <datalist id="datalistOptionsEmployee">
-                                {% for customer in customers %}
-                                    <option value="{{customer.id}}">{{customer.name}}</option> 
-                                {% endfor %}
-                            </datalist>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Create Item Invoice</h4>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{url_for('invoice_blueprint.insert_item_invoice_head')}}">
+                        {{ item_invoice_head_create_form.customer_id(class="form-control", id="customerId") }}
+                        {{ item_invoice_head_create_form.hidden_tag() }}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3 position-relative">
+                                    {{ item_invoice_head_create_form.customer.label(class="form-control-label", for="customerSearch") }}
+                                    {{ item_invoice_head_create_form.customer(class="form-control", id="customerSearch", placeholder="Search Customer...", autocomplete="off") }}
+                                    <ul class="dropdown-menu w-100" id="customerDropdown"></ul>
+                                </div>
+                            </div>
                         </div>
-                    </fieldset>
-                    <div class="form-group">
-                        {{ item_invoice_head_create_form.submit(class="btn btn-outline-info mt-3") }}
-                    </div>
-                </form>
+                        <div class="form-group">
+                            {{ item_invoice_head_create_form.submit(class="btn btn-primary mt-3") }}
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
         </div>
     </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>{{message}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Item Invoices Table Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0"><i class="bi bi-bag me-1"></i>Item Invoices</h6>
+                        <small>Total invoices: {{ item_invoice_heads.total if item_invoice_heads else 0 }}</small>
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Customer</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for item_invoice_head in item_invoice_heads.items %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{item_invoice_head.id}}</td>
-                        <td class="align-middle">{{item_invoice_head.created_dttm.date()}}</td>
-                        <td class="align-middle">{{item_invoice_head.customer.name}}</td>
-                        <td class="align-middle">{{item_invoice_head.gross_price}}</td>
-                        <td class="text-end">
-                            <a href="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id) }}" class="btn btn-sm btn-warning" >Edit</a>
-                            <a href="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=item_invoice_head.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=item_invoice_heads.prev_num, query=query) }}">Previous</a></li>
-                {% for page_number in item_invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_number %}
-                        {% if item_invoice_heads.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('invoice_blueprint.item_invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% endif %}
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-list-ul me-1"></i>{{ item_invoice_heads.items|length if item_invoice_heads else 0 }} invoices shown
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if item_invoice_heads and item_invoice_heads.items %}
+                        <div class="table-responsive">
+                            <table class="table table-modern table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="text-center">ID</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Customer</th>
+                                        <th scope="col" class="text-center">Items</th>
+                                        <th scope="col" class="text-end">Net Amount</th>
+                                        <th scope="col" class="text-end">Paid Amount</th>
+                                        <th scope="col" class="text-center">Status</th>
+                                        <th scope="col" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item_invoice_head in item_invoice_heads.items %}
+                                        <tr>
+                                            <td class="align-middle text-center fw-medium text-muted">{{ item_invoice_head.id }}</td>
+                                            <td class="align-middle">{{ item_invoice_head.created_dttm.date() }}</td>
+                                            <td class="align-middle">
+                                                <div class="fw-medium">{{ item_invoice_head.customer.name }}</div>
+                                                {% if item_invoice_head.customer.contact %}
+                                                    <small class="text-muted">{{ item_invoice_head.customer.contact }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                <span class="badge bg-primary">{{ item_invoice_head.invoice_details|length }}</span>
+                                            </td>
+                                            <td class="align-middle text-end fw-medium text-primary">{{ '{:,}'.format(item_invoice_head.gross_price or 0) }}</td>
+                                            <td class="align-middle text-end fw-medium text-success">{{ '{:,}'.format(item_invoice_head.paid_amount or 0) }}</td>
+                                            <td class="align-middle text-center">
+                                                {% if item_invoice_head.paid_amount and item_invoice_head.paid_amount >= item_invoice_head.gross_price %}
+                                                    <span class="badge bg-success">Paid</span>
+                                                {% elif item_invoice_head.paid_amount and item_invoice_head.paid_amount > 0 %}
+                                                    <span class="badge bg-warning text-dark">Partial</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id) }}" class="btn btn-outline-warning" data-bs-toggle="tooltip" title="Edit Invoice">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=item_invoice_head.id) }}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete Invoice" onclick="return confirm('Are you sure to delete this invoice?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
-                        <li class="page-item "><a class="page-link" href="#">...</a></li>
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-bag fa-3x mb-3"></i>
+                                <h5>No item invoices found</h5>
+                                <p>Start by creating your first item invoice.</p>
+                            </div>
+                        </div>
                     {% endif %}
-                {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=item_invoice_heads.next_num, query=query) }}">Next</a></li>
-            </ul>
-        </nav>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Pagination -->
+    {% if item_invoice_heads and item_invoice_heads.pages > 1 %}
+    <nav aria-label="Invoice pagination" class="mt-4">
+        <ul class="pagination pagination-modern justify-content-end">
+            {% if item_invoice_heads.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=item_invoice_heads.prev_num, query=query) }}">
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for page_number in item_invoice_heads.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_number %}
+                    {% if item_invoice_heads.page == page_number %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_number }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=page_number, query=query) }}">{{ page_number }}</a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if item_invoice_heads.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('invoice_blueprint.item_invoice_head', page=item_invoice_heads.next_num, query=query) }}">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        setupDynamicDropdown("customerSearch", "customerDropdown", "/app/search/customers", "customerId", true);
+    });
+</script>
 {% endblock %}

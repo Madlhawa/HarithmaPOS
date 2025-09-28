@@ -14,9 +14,9 @@
                             </button>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newItemInvoiceModal">
+                            <a href="{{ url_for('invoice_blueprint.create_quick_item_invoice') }}" class="btn btn-info btn-sm w-100">
                                 <i class="bi bi-bag me-1"></i>Item Invoice
-                            </button>
+                            </a>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
                             <button type="button" class="btn btn-success btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
@@ -353,32 +353,6 @@
     </div>
 </div>
 
-<!-- New Item Invoice Modal -->
-<div id="newItemInvoiceModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Item Invoice</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('invoice_blueprint.insert_item_invoice_head')}}" method="POST">
-                    {{ item_invoice_create_form.hidden_tag() }}
-                    <div class="form-group mb-3">
-                        {{ item_invoice_create_form.customer.label(class="form-control-label") }}
-                        {{ item_invoice_create_form.customer(class="form-control", id="customerSearch", placeholder="Search Customer...", autocomplete="off") }}
-                        <ul class="dropdown-menu w-100" id="customerDropdown"></ul>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-info" type="submit">Create Item Invoice</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- New Payment Modal -->
 <div id="newPaymentModal" class="modal fade" role="dialog">

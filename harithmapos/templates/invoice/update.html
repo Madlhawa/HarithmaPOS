@@ -188,8 +188,8 @@
                 <div class="card-body">
                     <form action="{{url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id)}}" method="POST">
                         {{ invoice_head_update_form.hidden_tag() }}
-                        <input type="hidden" id="employeeId" name="employee_id" value="{{ invoice_head.employee.id }}">
-                        <input type="hidden" id="washbayId" name="washbay_id" value="{{ invoice_head.washbay.id }}">
+                        {{ invoice_head_update_form.employee_id(class="form-control", id="employeeId", value=invoice_head.employee.id) }}
+                        {{ invoice_head_update_form.washbay_id(class="form-control", id="washbayId", value=invoice_head.washbay.id) }}
 
                         <!-- Staff & Bay Row -->
                         <div class="row g-2 mb-3">

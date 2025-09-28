@@ -132,7 +132,13 @@ def insert_item_invoice_head():
     elif form.validate_on_submit():
         try:
             from utils.database import safe_insert_with_sequence_check
-            customer = Customer.query.get(form.customer.data)
+            # Use customer_id if available, otherwise parse from customer field
+            customer_id = request.form.get('customer_id')
+            if customer_id:
+                customer = Customer.query.get(int(customer_id))
+            else:
+                customer = Customer.query.get(int(utils.get_id(form.customer.data)))
+            
             item_invoice = safe_insert_with_sequence_check(
                 ItemInvoiceHead,
                 customer_id=customer.id
@@ -143,6 +149,38 @@ def insert_item_invoice_head():
     else:
         flash("Error: Item Invoice create failed - form validation failed!", category='danger')
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
+
+@invoice_blueprint.route("/app/item_invoice/head/create/quick", methods=['GET'])
+@login_required
+def create_quick_item_invoice():
+    """Create a quick item invoice with General Customer and redirect to update page"""
+    try:
+        # Check if General Customer exists, if not create it
+        general_customer = Customer.query.filter_by(id=-1).first()
+        if not general_customer:
+            general_customer = Customer(
+                id=-1,
+                name="General Customer",
+                contact="0000000000",
+                address="Walk-in Customer",
+                email="general@harithma.com"
+            )
+            db.session.add(general_customer)
+            db.session.commit()
+        
+        # Create item invoice with General Customer
+        from utils.database import safe_insert_with_sequence_check
+        item_invoice = safe_insert_with_sequence_check(
+            ItemInvoiceHead,
+            customer_id=general_customer.id
+        )
+        
+        # Redirect directly to the update page
+        return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice.id))
+        
+    except Exception as e:
+        flash(f"Error: Quick Item Invoice create failed: {str(e)}", category='danger')
+        return redirect(url_for('dashboard_blueprint.dashboard'))
 
 @invoice_blueprint.route("/app/invoice/head/<int:invoice_head_id>", methods=['GET', 'POST'])
 @login_required
@@ -371,7 +409,7 @@ def add_invoice_detail(invoice_head_id):
         item_discount_amount = item.discount_pct*item.unit_price*quantity/100
         total_item_cost = item.unit_cost*quantity
         total_item_price = item.unit_price*quantity
-        total_item_discount = discount_amount+item_discount_amount
+        total_item_discount = (discount_amount or 0)+item_discount_amount
         total_gross_price = total_item_price-total_item_discount
 
         invoice_detail = InvoiceDetail(
@@ -419,7 +457,7 @@ def add_item_invoice_detail(item_invoice_head_id):
         item_discount_amount = item.discount_pct*item.unit_price*quantity/100
         total_item_cost = item.unit_cost*quantity
         total_item_price = item.unit_price*quantity
-        total_item_discount = discount_amount+item_discount_amount
+        total_item_discount = (discount_amount or 0)+item_discount_amount
         total_gross_price = total_item_price-total_item_discount
 
         try:
@@ -431,7 +469,7 @@ def add_item_invoice_detail(item_invoice_head_id):
                 quantity=quantity,
                 total_cost=total_item_cost,
                 total_price=total_item_price,
-                discount_amount=discount_amount+item_discount_amount,
+                discount_amount=(discount_amount or 0)+item_discount_amount,
                 gross_price=total_gross_price
             )
             update_total_values(item_invoice_head)

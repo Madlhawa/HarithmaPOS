@@ -14,7 +14,9 @@ class InvoiceDetailCreateForm(FlaskForm):
 
 class InvoiceHeadUpdateForm(FlaskForm):
     employee = StringField("Employee", validators=[DataRequired()])
+    employee_id = HiddenField("Employee ID", validators=[Optional()])
     washbay = StringField("Wash Bay", validators=[DataRequired()])
+    washbay_id = HiddenField("WashBay ID", validators=[Optional()])
     current_milage = IntegerField("Current Milage", validators=[Optional()])
     next_milage_in = IntegerField("Next Milage In", validators=[Optional()])
     service_status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST)
@@ -42,6 +44,7 @@ class InvoiceHeadCreateForm(FlaskForm):
 
 class ItemInvoiceHeadUpdateForm(FlaskForm):
     customer = StringField("Customer", validators=[DataRequired()])
+    customer_id = HiddenField("Customer ID", validators=[Optional()])
     total_cost = DecimalField("Total Cost", places=2, validators=[Optional()])
     total_price = DecimalField("Total Price", places=2, validators=[Optional()])
     discount_pct = DecimalField("Discount Percentage", places=2, validators=[Optional()])
@@ -53,4 +56,5 @@ class ItemInvoiceHeadUpdateForm(FlaskForm):
 
 class ItemInvoiceHeadCreateForm(FlaskForm):
     customer = StringField("Customer", validators=[DataRequired()])
+    customer_id = HiddenField("Customer ID", validators=[Optional()])
     submit = SubmitField('Create Invoice')
