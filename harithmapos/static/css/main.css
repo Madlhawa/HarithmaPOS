@@ -205,3 +205,8 @@
         text-align: center;
     }
 }
+
+/* Form margin fix - override browser default */
+form {
+    margin-bottom: 0 !important;
+}

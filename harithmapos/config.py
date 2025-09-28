@@ -59,3 +59,22 @@ UI_THEME_FORM_LIST = [
     ('light', 'Light'),
     ('dark', 'Dark')
 ]
+
+# Predefined Unit of Measure choices for car wash business
+UOM_FORM_LIST = [
+    ('', 'Select Unit of Measure'),
+    ('Piece', 'Piece'),
+    ('Liter', 'Liter'),
+    ('Gallon', 'Gallon'),
+    ('Quart', 'Quart'),
+    ('Kilogram', 'Kilogram'),
+    ('Gram', 'Gram'),
+    ('Pound', 'Pound'),
+    ('Foot', 'Foot'),
+    ('Yard', 'Yard'),
+    ('Meter', 'Meter'),
+    ('Square Foot', 'Square Foot'),
+    ('Square Meter', 'Square Meter'),
+    ('Cubic Foot', 'Cubic Foot'),
+    ('Cubic Meter', 'Cubic Meter')
+]
