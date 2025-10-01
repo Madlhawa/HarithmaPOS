@@ -25,3 +25,11 @@
     flask db init #only first time
     flask db migrate
     flask db upgrade
+
+# resetting db
+    flask db reset
+    flask db init
+    flask db migrate
+    flask db upgrade
+
+    # python -c "from harithmapos import create_app, db; app = create_app(); app.app_context().push(); db.drop_all(); db.create_all(); print('Database recreated')"
