@@ -34,6 +34,14 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
                             dropdownElement.innerHTML = ""; // Clear dropdown
                             dropdownElement.classList.remove("show"); // Hide dropdown after selection
                             isItemSelected = true; // Mark item as selected
+                            
+                            // Update UOM display if this is an item search
+                            if (inputId === "itemSearch") {
+                                const uomDisplay = document.getElementById("uomDisplay");
+                                if (uomDisplay) {
+                                    uomDisplay.textContent = item.unit_of_measure || "-";
+                                }
+                            }
                         });
 
                         // Set highlight for the selected item (based on the index)
@@ -59,6 +67,14 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
             // If the input is cleared after selection, reset the hidden input value
             hiddenElement.value = "";
             isItemSelected = false; // Mark item as not selected
+            
+            // Reset UOM display if this is an item search
+            if (inputId === "itemSearch") {
+                const uomDisplay = document.getElementById("uomDisplay");
+                if (uomDisplay) {
+                    uomDisplay.textContent = "-";
+                }
+            }
         }
 
         if (isItemSelected) {
@@ -110,6 +126,21 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
             dropdownElement.innerHTML = ""; // Clear the dropdown
             dropdownElement.classList.remove("show"); // Hide the dropdown
             isItemSelected = true; // Mark item as selected
+            
+            // Update UOM display if this is an item search
+            if (inputId === "itemSearch") {
+                const uomDisplay = document.getElementById("uomDisplay");
+                if (uomDisplay) {
+                    // Get the UOM from the selected item data
+                    fetch(`${searchUrl}?q=${encodeURIComponent(selectedItem.dataset.id)}`)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.length > 0) {
+                                uomDisplay.textContent = data[0].unit_of_measure || "-";
+                            }
+                        });
+                }
+            }
             event.preventDefault(); // Prevent form submission
         } else if (event.key === "Tab" && selectedIndex >= 0 && selectedIndex < listItems.length) {
             // Select the highlighted item when Tab is pressed
@@ -119,6 +150,21 @@ function setupDynamicDropdown(inputId, dropdownId, searchUrl, hiddenId, showAll 
             dropdownElement.innerHTML = ""; // Clear the dropdown
             dropdownElement.classList.remove("show"); // Hide the dropdown
             isItemSelected = true; // Mark item as selected
+            
+            // Update UOM display if this is an item search
+            if (inputId === "itemSearch") {
+                const uomDisplay = document.getElementById("uomDisplay");
+                if (uomDisplay) {
+                    // Get the UOM from the selected item data
+                    fetch(`${searchUrl}?q=${encodeURIComponent(selectedItem.dataset.id)}`)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.length > 0) {
+                                uomDisplay.textContent = data[0].unit_of_measure || "-";
+                            }
+                        });
+                }
+            }
         }
 
         // Highlight the selected item in the dropdown

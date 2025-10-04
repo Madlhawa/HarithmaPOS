@@ -158,15 +158,15 @@ def create_quick_item_invoice():
         # Check if General Customer exists, if not create it
         general_customer = Customer.query.filter_by(id=-1).first()
         if not general_customer:
-            general_customer = Customer(
+            from utils.database import safe_insert_with_sequence_check
+            general_customer = safe_insert_with_sequence_check(
+                Customer,
                 id=-1,
                 name="General Customer",
                 contact="0000000000",
                 address="Walk-in Customer",
                 email="general@harithma.com"
             )
-            db.session.add(general_customer)
-            db.session.commit()
         
         # Create item invoice with General Customer
         from utils.database import safe_insert_with_sequence_check
@@ -247,11 +247,12 @@ def invoice_head_detail(invoice_head_id):
                 invoice_head.last_payment_date = datetime.now()
             
             # Commit all changes after all updates are complete
-            db.session.commit()
+            from utils.database import safe_commit
+            safe_commit()
 
             if invoice_head_update_form.send_service_start_msg.data:
                 invoice_head.service_start_msg_sent_ind = True
-                db.session.commit()
+                safe_commit()
 
                 token = invoice_head.get_customer_view_token()
                 msg = f"Hi {invoice_head.vehicle.owner.name}, Your vehicle {invoice_head.vehicle.number}'s service has been started. For more details please view: {url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)}"
@@ -259,7 +260,7 @@ def invoice_head_detail(invoice_head_id):
 
             elif invoice_head_update_form.send_service_complete_msg.data:
                 invoice_head.service_complete_msg_sent_ind = True
-                db.session.commit()
+                safe_commit()
                 
                 token = invoice_head.get_customer_view_token()
                 msg = f"Hi {invoice_head.vehicle.owner.name}, Your vehicle {invoice_head.vehicle.number}'s service has been completed."
@@ -283,8 +284,8 @@ def invoice_head_detail(invoice_head_id):
                 return redirect(url_for('dashboard_blueprint.dashboard'))
 
         else:
-            db.session.delete(invoice_head)
-            db.session.commit()
+            from utils.database import safe_delete_record
+            safe_delete_record(invoice_head)
             flash("Invoice deleted.", category='warning')
             return redirect(url_for('invoice_blueprint.invoice_head'))
 
@@ -353,7 +354,8 @@ def item_invoice_head_detail(item_invoice_head_id):
             item_invoice_head.last_payment_date = datetime.now()
             item_invoice_head.remaining_amount = item_invoice_head.gross_price-item_invoice_head.paid_amount        
 
-        db.session.commit()
+        from utils.database import safe_commit
+        safe_commit()
 
         if item_invoice_head_update_form.complete_item_invoice.data:
             item_invoice_json = convert_item_invoice_to_json(item_invoice_head)
@@ -379,18 +381,26 @@ def item_invoice_head_detail(item_invoice_head_id):
 @login_required
 def delete_invoice_head(invoice_head_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-    db.session.delete(invoice_head)
-    db.session.commit()
-    flash("InvoiceHead is deleted!", category='success')
+    
+    try:
+        from utils.database import safe_delete_record
+        safe_delete_record(invoice_head)
+    except Exception as e:
+        flash(f"Failed to delete invoice: {str(e)}", category='danger')
+    
     return redirect(url_for('invoice_blueprint.invoice_head'))
 
 @invoice_blueprint.route('/app/item_invoice/head/<int:item_invoice_head_id>/delete', methods = ['GET', 'POST'])
 @login_required
 def delete_item_invoice_head(item_invoice_head_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
-    db.session.delete(item_invoice_head)
-    db.session.commit()
-    flash("Success: Invoice is deleted!", category='success')
+    
+    try:
+        from utils.database import safe_delete_record
+        safe_delete_record(item_invoice_head)
+    except Exception as e:
+        flash(f"Failed to delete item invoice: {str(e)}", category='danger')
+    
     return redirect(url_for('invoice_blueprint.item_invoice_head'))
 
 @invoice_blueprint.route("/app/invoice/detail/add/<int:invoice_head_id>", methods=['GET', 'POST'])
@@ -405,36 +415,51 @@ def add_invoice_detail(invoice_head_id):
         item = Item.query.get_or_404(item_id)
         invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
 
-        item.quantity -= quantity
-        item_discount_amount = item.discount_pct*item.unit_price*quantity/100
-        total_item_cost = item.unit_cost*quantity
-        total_item_price = item.unit_price*quantity
-        total_item_discount = (discount_amount or 0)+item_discount_amount
-        total_gross_price = total_item_price-total_item_discount
-
-        invoice_detail = InvoiceDetail(
-            invoice_head_id = invoice_head_id,
-            item_id = item_id,
-            quantity = quantity,
-            total_cost = total_item_cost,
-            total_price = total_item_price,
-            discount_amount = total_item_discount or 0,
-            gross_price = total_gross_price
-        )
+        # Validate quantity before proceeding
+        if item.quantity < quantity:
+            flash(f"Insufficient stock. Available: {item.quantity}, Requested: {quantity}", category='danger')
+            return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_head_id))
 
         try:
-            from utils.database import safe_insert_with_sequence_check
-            safe_insert_with_sequence_check(
-                InvoiceDetail,
-                invoice_head_id=invoice_head_id,
-                item_id=item_id,
-                quantity=quantity,
-                total_cost=total_item_cost,
-                total_price=total_item_price,
-                discount_amount=total_item_discount or 0,
-                gross_price=total_gross_price
-            )
-            update_total_values(invoice_head)
+            from utils.database import safe_bulk_operations
+            
+            # Calculate values
+            item_discount_amount = (item.discount_pct or 0) * (item.unit_price or 0) * quantity / 100
+            total_item_cost = (item.unit_cost or 0) * quantity
+            total_item_price = (item.unit_price or 0) * quantity
+            total_item_discount = (discount_amount or 0)+item_discount_amount
+            total_gross_price = total_item_price-total_item_discount
+
+            # Perform bulk operations atomically
+            operations = [
+                ('add', {
+                    'model_class': InvoiceDetail,
+                    'kwargs': {
+                        'invoice_head_id': invoice_head_id,
+                        'item_id': item_id,
+                        'quantity': quantity,
+                        'total_cost': total_item_cost,
+                        'total_price': total_item_price,
+                        'discount_amount': total_item_discount or 0,
+                        'additional_discount': discount_amount or 0,
+                        'gross_price': total_gross_price
+                    }
+                }),
+                ('update', item),  # Track item quantity update
+                ('commit', None)
+            ]
+            
+            # Update item quantity
+            item.quantity -= quantity
+            
+            # Execute operations
+            results = safe_bulk_operations(operations)
+            
+            if results['success']:
+                update_total_values(invoice_head)
+            else:
+                flash(f"Invoice Item failed to add: {results['errors'][0]}", category='danger')
+                
         except Exception as e:
             flash(f"Invoice Item failed to add: {str(e)}", category='danger')
     else:
@@ -453,30 +478,54 @@ def add_item_invoice_detail(item_invoice_head_id):
         item = Item.query.get_or_404(item_id)
         item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
 
-        item.quantity -= quantity
-        item_discount_amount = item.discount_pct*item.unit_price*quantity/100
-        total_item_cost = item.unit_cost*quantity
-        total_item_price = item.unit_price*quantity
-        total_item_discount = (discount_amount or 0)+item_discount_amount
-        total_gross_price = total_item_price-total_item_discount
+        # Validate quantity before proceeding
+        if item.quantity < quantity:
+            flash(f"Insufficient stock. Available: {item.quantity}, Requested: {quantity}", category='danger')
+            return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_head_id))
 
         try:
-            from utils.database import safe_insert_with_sequence_check
-            safe_insert_with_sequence_check(
-                ItemInvoiceDetail,
-                item_invoice_head_id=item_invoice_head_id,
-                item_id=item_id,
-                quantity=quantity,
-                total_cost=total_item_cost,
-                total_price=total_item_price,
-                discount_amount=(discount_amount or 0)+item_discount_amount,
-                gross_price=total_gross_price
-            )
-            update_total_values(item_invoice_head)
+            from utils.database import safe_bulk_operations
+            
+            # Calculate values
+            item_discount_amount = (item.discount_pct or 0) * (item.unit_price or 0) * quantity / 100
+            total_item_cost = (item.unit_cost or 0) * quantity
+            total_item_price = (item.unit_price or 0) * quantity
+            total_item_discount = (discount_amount or 0)+item_discount_amount
+            total_gross_price = total_item_price-total_item_discount
+
+            # Perform bulk operations atomically
+            operations = [
+                ('add', {
+                    'model_class': ItemInvoiceDetail,
+                    'kwargs': {
+                        'item_invoice_head_id': item_invoice_head_id,
+                        'item_id': item_id,
+                        'quantity': quantity,
+                        'total_cost': total_item_cost,
+                        'total_price': total_item_price,
+                        'discount_amount': total_item_discount,
+                        'additional_discount': discount_amount or 0,
+                        'gross_price': total_gross_price
+                    }
+                }),
+                ('update', item),  # Track item quantity update
+                ('commit', None)
+            ]
+            
+            # Update item quantity
+            item.quantity -= quantity
+            
+            # Execute operations
+            results = safe_bulk_operations(operations)
+            
+            if results['success']:
+                update_total_values(item_invoice_head)
+                print(f"{item_invoice_head.total_cost=}")
+            else:
+                flash(f"Item Invoice Item failed to add: {results['errors'][0]}", category='danger')
+
         except Exception as e:
             flash(f"Item Invoice Item failed to add: {str(e)}", category='danger')
-
-        print(f"{item_invoice_head.total_cost=}")
 
     else:
         flash("Item Invoice Item failed to add!", category='danger')
@@ -489,11 +538,29 @@ def delete_invoice_detail(invoice_detail_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
     item = Item.query.get_or_404(invoice_detail.item.id)
 
-    item.quantity += invoice_detail.quantity
-    db.session.delete(invoice_detail)
-    db.session.commit()
-
-    update_total_values(invoice_head)
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('delete', invoice_detail),
+            ('commit', None)
+        ]
+        
+        # Restore item quantity
+        item.quantity += invoice_detail.quantity
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_total_values(invoice_head)
+        else:
+            flash(f"Failed to delete invoice detail: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to delete invoice detail: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
@@ -504,11 +571,29 @@ def delete_item_invoice_detail(item_invoice_detail_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
     item = Item.query.get_or_404(item_invoice_detail.item.id)
 
-    item.quantity += item_invoice_detail.quantity
-    db.session.delete(item_invoice_detail)
-    db.session.commit()
-
-    update_total_values(item_invoice_head)
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('delete', item_invoice_detail),
+            ('commit', None)
+        ]
+        
+        # Restore item quantity
+        item.quantity += item_invoice_detail.quantity
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_total_values(item_invoice_head)
+        else:
+            flash(f"Failed to delete item invoice detail: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to delete item invoice detail: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
@@ -520,12 +605,36 @@ def increase_quantity_invoice_detail(invoice_detail_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
     item = Item.query.get_or_404(invoice_detail.item.id)
 
-    item.quantity -= 1
-    invoice_detail.quantity += 1
-    db.session.commit()
+    # Validate quantity before proceeding
+    if item.quantity < 1:
+        flash("Insufficient stock to increase quantity!", category='danger')
+        return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
-    update_invoice_detail_values(invoice_detail)
-    update_total_values(invoice_head)
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('update', invoice_detail),  # Track invoice detail update
+            ('commit', None)
+        ]
+        
+        # Update quantities
+        item.quantity -= 1
+        invoice_detail.quantity += 1
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_invoice_detail_values(invoice_detail)
+            update_total_values(invoice_head)
+        else:
+            flash(f"Failed to increase quantity: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to increase quantity: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
@@ -537,12 +646,36 @@ def increase_quantity_item_invoice_detail(item_invoice_detail_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
     item = Item.query.get_or_404(item_invoice_detail.item.id)
 
-    item.quantity -= 1
-    item_invoice_detail.quantity += 1
-    db.session.commit()
+    # Validate quantity before proceeding
+    if item.quantity < 1:
+        flash("Insufficient stock to increase quantity!", category='danger')
+        return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
-    update_invoice_detail_values(item_invoice_detail)
-    update_total_values(item_invoice_head)
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('update', item_invoice_detail),  # Track invoice detail update
+            ('commit', None)
+        ]
+        
+        # Update quantities
+        item.quantity -= 1
+        item_invoice_detail.quantity += 1
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_invoice_detail_values(item_invoice_detail)
+            update_total_values(item_invoice_head)
+        else:
+            flash(f"Failed to increase quantity: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to increase quantity: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
@@ -553,15 +686,35 @@ def decrease_quantity_invoice_detail(invoice_detail_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
     item = Item.query.get_or_404(invoice_detail.item.id)
 
-    if invoice_detail.quantity > 1:
+    if invoice_detail.quantity <= 1:
+        flash("Quantity should be at least one!", category='warning')
+        return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
+
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('update', invoice_detail),  # Track invoice detail update
+            ('commit', None)
+        ]
+        
+        # Update quantities
         item.quantity += 1
         invoice_detail.quantity -= 1
-        db.session.commit()
-    else:
-        flash("Quantity should be at leaset one!", category='warning')
-
-    update_invoice_detail_values(invoice_detail)
-    update_total_values(invoice_head)
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_invoice_detail_values(invoice_detail)
+            update_total_values(invoice_head)
+        else:
+            flash(f"Failed to decrease quantity: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to decrease quantity: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail',invoice_head_id=invoice_detail.invoice_head_id))
 
@@ -572,15 +725,35 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
     item = Item.query.get_or_404(item_invoice_detail.item.id)
 
-    if item_invoice_detail.quantity > 1:
+    if item_invoice_detail.quantity <= 1:
+        flash("Quantity should be at least one!", category='warning')
+        return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
+
+    try:
+        from utils.database import safe_bulk_operations
+        
+        # Perform bulk operations atomically
+        operations = [
+            ('update', item),  # Track item quantity update
+            ('update', item_invoice_detail),  # Track invoice detail update
+            ('commit', None)
+        ]
+        
+        # Update quantities
         item.quantity += 1
         item_invoice_detail.quantity -= 1
-        db.session.commit()
-    else:
-        flash("Quantity should be at leaset one!", category='warning')
-
-    update_invoice_detail_values(item_invoice_detail)
-    update_total_values(item_invoice_head)
+        
+        # Execute operations
+        results = safe_bulk_operations(operations)
+        
+        if results['success']:
+            update_invoice_detail_values(item_invoice_detail)
+            update_total_values(item_invoice_head)
+        else:
+            flash(f"Failed to decrease quantity: {results['errors'][0]}", category='danger')
+            
+    except Exception as e:
+        flash(f"Failed to decrease quantity: {str(e)}", category='danger')
 
     return redirect(url_for('invoice_blueprint.item_invoice_head_detail',item_invoice_head_id=item_invoice_detail.item_invoice_head_id))
 
@@ -613,16 +786,25 @@ def update_total_values(invoice_head):
     invoice_head.total_discount = total_discount
     invoice_head.gross_price = total_gross_price
 
-    db.session.commit()
+    from utils.database import safe_commit
+    safe_commit()
 
 def update_invoice_detail_values(invoice_detail):
-    total_discount = (invoice_detail.discount_amount or 0)+(invoice_detail.item.discount_pct*invoice_detail.item.unit_price*invoice_detail.quantity/100 or 0)
+    # Calculate the new total price based on current quantity
+    invoice_detail.total_cost = (invoice_detail.item.unit_cost or 0) * invoice_detail.quantity
+    invoice_detail.total_price = (invoice_detail.item.unit_price or 0) * invoice_detail.quantity
+    
+    # Calculate the item's automatic discount for the new quantity
+    auto_discount_amount = (invoice_detail.item.discount_pct or 0) * invoice_detail.total_price / 100
+    
+    # Preserve the additional discount (manual discount from user)
+    # and recalculate total discount as: auto_discount + additional_discount
+    total_discount = auto_discount_amount + (invoice_detail.additional_discount or 0)
+    invoice_detail.discount_amount = total_discount
+    invoice_detail.gross_price = invoice_detail.total_price - total_discount
 
-    invoice_detail.total_cost = invoice_detail.item.unit_cost*invoice_detail.quantity
-    invoice_detail.total_price = invoice_detail.item.unit_price*invoice_detail.quantity
-    invoice_detail.gross_price = invoice_detail.total_price-total_discount
-
-    db.session.commit()
+    from utils.database import safe_commit
+    safe_commit()
 
 def convert_item_invoice_to_json(item_invoice):
     invoice_dictionary = {
