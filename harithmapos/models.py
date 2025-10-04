@@ -97,7 +97,8 @@ class ItemInvoiceDetail(db.Model):
     quantity = db.Column(db.Numeric(10,4), nullable=False)
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
     total_price = db.Column(db.Numeric(10,2), nullable=False)
-    discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)
+    discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
+    additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -165,7 +166,8 @@ class InvoiceDetail(db.Model):
     quantity = db.Column(db.Numeric(10,4), nullable=False)
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
     total_price = db.Column(db.Numeric(10,2), nullable=False)
-    discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)
+    discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
+    additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

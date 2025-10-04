@@ -53,6 +53,95 @@ def safe_insert_with_sequence_check(model_class, **kwargs):
         else:
             raise e
 
+def safe_commit():
+    """
+    Safely commit database changes with error handling and rollback
+    
+    Returns:
+        bool: True if commit successful, False otherwise
+    """
+    try:
+        db.session.commit()
+        print("✅ Database changes committed successfully")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error committing database changes: {str(e)}")
+        raise e
+
+def safe_delete_record(record):
+    """
+    Safely delete a database record with error handling and rollback
+    
+    Args:
+        record: The SQLAlchemy model instance to delete
+    
+    Returns:
+        bool: True if deletion successful, False otherwise
+    """
+    try:
+        db.session.delete(record)
+        db.session.commit()
+        print(f"✅ Successfully deleted {record.__class__.__name__} with ID: {record.id}")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error deleting {record.__class__.__name__}: {str(e)}")
+        raise e
+
+def safe_bulk_operations(operations):
+    """
+    Safely perform multiple database operations in a single transaction
+    
+    Args:
+        operations: List of tuples (operation_type, data)
+                   operation_type can be: 'add', 'update', 'delete', 'commit'
+                   data can be model instance or dict with model_class and kwargs
+    
+    Returns:
+        dict: Results of operations
+    """
+    results = {'success': True, 'errors': [], 'created_records': []}
+    
+    try:
+        for operation_type, data in operations:
+            if operation_type == 'add':
+                if isinstance(data, dict):
+                    model_class = data['model_class']
+                    kwargs = data['kwargs']
+                    record = model_class(**kwargs)
+                    db.session.add(record)
+                    results['created_records'].append(record)
+                else:
+                    db.session.add(data)
+                    results['created_records'].append(data)
+                    
+            elif operation_type == 'update':
+                # Record is already modified, just track it
+                results['created_records'].append(data)
+                
+            elif operation_type == 'delete':
+                db.session.delete(data)
+                
+            elif operation_type == 'commit':
+                # Commit all pending changes
+                db.session.commit()
+                print("✅ Bulk operations committed successfully")
+                
+        # If no explicit commit operation, commit at the end
+        if not any(op[0] == 'commit' for op in operations):
+            db.session.commit()
+            print("✅ Bulk operations committed successfully")
+            
+    except Exception as e:
+        db.session.rollback()
+        results['success'] = False
+        results['errors'].append(str(e))
+        print(f"❌ Error in bulk operations: {str(e)}")
+        raise e
+    
+    return results
+
 def fix_sequence_for_table(table_name):
     """Fix sequence for a specific table"""
     try:
