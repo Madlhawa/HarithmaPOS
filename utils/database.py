@@ -145,13 +145,19 @@ def safe_bulk_operations(operations):
 def fix_sequence_for_table(table_name):
     """Fix sequence for a specific table"""
     try:
+        # Quote table name to handle reserved keywords like "user"
+        quoted_table_name = f'"{table_name}"'
+        
         # Get current max ID
-        result = db.session.execute(text(f"SELECT MAX(id) FROM {table_name}"))
+        result = db.session.execute(text(f"SELECT MAX(id) FROM {quoted_table_name}"))
         max_id = result.fetchone()[0]
         
         if max_id is not None:
             # Reset sequence
             sequence_name = f"{table_name}_id_seq"
+            # Note: sequence names are usually not quoted in the same way, but let's be safe
+            # Postgres sequences are usually lowercase.
+            
             db.session.execute(text(f"SELECT setval('{sequence_name}', {max_id});"))
             db.session.commit()
             print(f"✅ Fixed sequence for {table_name} (max_id: {max_id})")
@@ -170,6 +176,7 @@ def check_database_health():
     
     for table in tables:
         try:
+            quoted_table = f'"{table}"'
             # Check if sequence exists and is properly set
             result = db.session.execute(text(f"""
                 SELECT last_value FROM {table}_id_seq;
@@ -177,7 +184,7 @@ def check_database_health():
             last_value = result.fetchone()[0]
             
             # Get max ID from table
-            max_result = db.session.execute(text(f"SELECT MAX(id) FROM {table}"))
+            max_result = db.session.execute(text(f"SELECT MAX(id) FROM {quoted_table}"))
             max_id = max_result.fetchone()[0]
             
             if max_id and last_value < max_id:
@@ -216,8 +223,9 @@ def fix_database_sequences():
             
             for table in tables_to_fix:
                 try:
+                    quoted_table = f'"{table}"'
                     # Get the current max ID from the table
-                    result = db.session.execute(text(f"SELECT MAX(id) FROM {table}"))
+                    result = db.session.execute(text(f"SELECT MAX(id) FROM {quoted_table}"))
                     max_id = result.fetchone()[0]
                     
                     if max_id is not None:
