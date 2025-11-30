@@ -10,9 +10,8 @@ from harithmapos.views.user.forms import UserRegisterForm, UserLoginForm, UserUp
 user_blueprint = Blueprint('user_blueprint', __name__)
 
 @user_blueprint.route("/app/register", methods=['GET', 'POST'])
+@login_required
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard_blueprint.customer'))
     form = UserRegisterForm()
     if form.validate_on_submit():
         try:
