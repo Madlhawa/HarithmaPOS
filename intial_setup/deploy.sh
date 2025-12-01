@@ -53,19 +53,33 @@ GIT_BRANCH="main"
 APP_DIR="/opt/harithma-pos"
 echo -e "${YELLOW}📁 Creating application directory at $APP_DIR...${NC}"
 
-# Check if directory already exists
+# Check if directory already exists and remove it
 if [ -d "$APP_DIR" ]; then
     echo -e "${YELLOW}📁 Removing existing application directory at $APP_DIR...${NC}"
+    # Change to a safe directory before removing
+    cd /tmp
+    # Force remove with proper permissions
+    chown -R root:root $APP_DIR 2>/dev/null || true
     rm -rf $APP_DIR
-file
-
+    # Verify it's gone
+    if [ -d "$APP_DIR" ]; then
+        echo -e "${RED}❌ Failed to remove directory $APP_DIR. Please remove manually and try again.${NC}"
+        exit 1
+    fi
+fi
 
 echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
 
-mkdir -p $APP_DIR
-chown $APP_USER:$APP_USER $APP_DIR
+# Ensure we're in a safe directory
+cd /tmp
+
+# Create parent directory and set ownership
+mkdir -p $(dirname $APP_DIR)
+chown $APP_USER:$APP_USER $(dirname $APP_DIR) 2>/dev/null || true
+
 # Configure git safe directory for the application user
 su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
+
 # Clone as application user
 su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR" || {
     echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
@@ -74,6 +88,7 @@ su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $A
     echo "   - Branch: $GIT_BRANCH"
     exit 1
 }
+
 # Ensure ownership is correct
 chown -R $APP_USER:$APP_USER $APP_DIR
 cd $APP_DIR
