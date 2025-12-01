@@ -75,7 +75,8 @@ if [ -d "$APP_DIR" ]; then
                 rm -rf $APP_DIR
                 mkdir -p $APP_DIR
                 chown $APP_USER:$APP_USER $APP_DIR
-                git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
+                cd $APP_DIR
+                git clone -b $GIT_BRANCH $GIT_REPO . || {
                     echo -e "${RED}❌ Failed to clone repository.${NC}"
                     exit 1
                 }
