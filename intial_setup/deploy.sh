@@ -12,22 +12,33 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if running as root
-if [ "$EUID" -eq 0 ]; then 
-    echo -e "${RED}Please do not run as root. Use a regular user with sudo privileges.${NC}"
+if [ "$EUID" -ne 0 ]; then 
+    echo -e "${RED}This script must be run as root. Please use: sudo ./deploy.sh${NC}"
     exit 1
+fi
+
+# Create application user (if it doesn't exist)
+APP_USER="harithma"
+if ! id "$APP_USER" &>/dev/null; then
+    echo -e "${YELLOW}👤 Creating application user: $APP_USER...${NC}"
+    useradd -r -s /bin/bash -d /opt/harithma-pos -m $APP_USER || {
+        echo -e "${YELLOW}User $APP_USER might already exist, continuing...${NC}"
+    }
+else
+    echo -e "${GREEN}✅ User $APP_USER already exists${NC}"
 fi
 
 # Update system
 echo -e "${YELLOW}📦 Updating system packages...${NC}"
-sudo apt update
-sudo apt upgrade -y
+apt update
+apt upgrade -y
 
 # Install required system packages
 echo -e "${YELLOW}📦 Installing system dependencies...${NC}"
-sudo apt install -y python3 python3-pip python3-venv postgresql postgresql-contrib nginx git
+apt install -y python3 python3-pip python3-venv postgresql postgresql-contrib nginx git
 
 # Install PostgreSQL client libraries
-sudo apt install -y libpq-dev python3-dev
+apt install -y libpq-dev python3-dev
 
 # GitHub repository URL
 GIT_REPO="https://github.com/Madlhawa/HarithmaPOS.git"
@@ -56,9 +67,9 @@ if [ -d "$APP_DIR" ]; then
             read -p "Remove and clone fresh? (y/n) " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
-                sudo rm -rf $APP_DIR
-                sudo mkdir -p $APP_DIR
-                sudo chown $USER:$USER $APP_DIR
+                rm -rf $APP_DIR
+                mkdir -p $APP_DIR
+                chown $APP_USER:$APP_USER $APP_DIR
                 git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
                     echo -e "${RED}❌ Failed to clone repository.${NC}"
                     exit 1
@@ -74,8 +85,7 @@ if [ -d "$APP_DIR" ]; then
     fi
 else
     echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
-    sudo mkdir -p $APP_DIR
-    sudo chown $USER:$USER $APP_DIR
+    mkdir -p $APP_DIR
     git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
         echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
         echo "   - Internet connection"
@@ -83,20 +93,22 @@ else
         echo "   - Branch: $GIT_BRANCH"
         exit 1
     }
+    chown -R $APP_USER:$APP_USER $APP_DIR
     cd $APP_DIR
 fi
 
 echo -e "${GREEN}✅ Code downloaded successfully!${NC}"
 
-# Create virtual environment
-echo -e "${YELLOW}🐍 Creating Python virtual environment...${NC}"
-python3 -m venv venv
-source venv/bin/activate
+# Set ownership before creating virtual environment
+chown -R $APP_USER:$APP_USER $APP_DIR
 
-# Install Python dependencies
+# Create virtual environment as application user
+echo -e "${YELLOW}🐍 Creating Python virtual environment...${NC}"
+su -s /bin/bash - $APP_USER -c "cd $APP_DIR && python3 -m venv venv"
+
+# Install Python dependencies as application user
 echo -e "${YELLOW}📦 Installing Python dependencies...${NC}"
-pip install --upgrade pip
-pip install -r requirements.txt
+su -s /bin/bash - $APP_USER -c "cd $APP_DIR && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt"
 
 # Setup PostgreSQL database
 echo -e "${YELLOW}🗄️  Setting up PostgreSQL database...${NC}"
@@ -105,19 +117,17 @@ DB_USER="harithma_user"
 DB_PASSWORD=$(openssl rand -base64 32)
 
 # Create database and user
-sudo -u postgres psql << EOF
-CREATE DATABASE $DB_NAME;
-CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
-ALTER ROLE $DB_USER SET client_encoding TO 'utf8';
-ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';
-ALTER ROLE $DB_USER SET timezone TO 'UTC';
-GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
-\q
-EOF
+echo -e "${YELLOW}Creating PostgreSQL database and user...${NC}"
+su - postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\""
+su - postgres -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';\""
+su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET client_encoding TO 'utf8';\""
+su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';\""
+su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET timezone TO 'UTC';\""
+su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\""
 
 # Create .env file
 echo -e "${YELLOW}⚙️  Creating environment configuration...${NC}"
-cat > .env << EOF
+cat > $APP_DIR/.env << EOF
 # Database Configuration
 HARITHMA_DATABASE_URI=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
 
@@ -142,29 +152,28 @@ FLASK_APP=app.py
 FLASK_ENV=production
 EOF
 
+chown $APP_USER:$APP_USER $APP_DIR/.env
+chmod 600 $APP_DIR/.env
 echo -e "${GREEN}✅ Environment file created at $APP_DIR/.env${NC}"
 echo -e "${YELLOW}⚠️  Please edit .env file with your actual configuration values!${NC}"
 
-# Initialize database
+# Initialize database as application user
 echo -e "${YELLOW}🗄️  Initializing database...${NC}"
-export $(cat .env | xargs)
-flask db upgrade || {
+su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(cat .env | xargs) && source venv/bin/activate && flask db upgrade" || {
     echo -e "${YELLOW}Running initial migration...${NC}"
-    flask db init
-    flask db migrate -m "Initial migration"
-    flask db upgrade
+    su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(cat .env | xargs) && source venv/bin/activate && flask db init && flask db migrate -m 'Initial migration' && flask db upgrade"
 }
 
 # Create systemd service
 echo -e "${YELLOW}🔧 Creating systemd service...${NC}"
-sudo tee /etc/systemd/system/harithma-pos.service > /dev/null << EOF
+tee /etc/systemd/system/harithma-pos.service > /dev/null << EOF
 [Unit]
 Description=Harithma POS Gunicorn Application Server
 After=network.target postgresql.service
 
 [Service]
-User=$USER
-Group=$USER
+User=$APP_USER
+Group=$APP_USER
 WorkingDirectory=$APP_DIR
 Environment="PATH=$APP_DIR/venv/bin"
 EnvironmentFile=$APP_DIR/.env
@@ -177,16 +186,16 @@ WantedBy=multi-user.target
 EOF
 
 # Reload systemd and start service
-sudo systemctl daemon-reload
-sudo systemctl enable harithma-pos
-sudo systemctl start harithma-pos
+systemctl daemon-reload
+systemctl enable harithma-pos
+systemctl start harithma-pos
 
 # Check service status
 sleep 2
-if sudo systemctl is-active --quiet harithma-pos; then
+if systemctl is-active --quiet harithma-pos; then
     echo -e "${GREEN}✅ Service started successfully!${NC}"
 else
-    echo -e "${RED}❌ Service failed to start. Check logs with: sudo journalctl -u harithma-pos -f${NC}"
+    echo -e "${RED}❌ Service failed to start. Check logs with: journalctl -u harithma-pos -f${NC}"
 fi
 
 # Setup Nginx reverse proxy (optional)
@@ -200,7 +209,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         DOMAIN="_"
     fi
     
-    sudo tee /etc/nginx/sites-available/harithma-pos > /dev/null << EOF
+    tee /etc/nginx/sites-available/harithma-pos > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -223,9 +232,9 @@ server {
 }
 EOF
 
-    sudo ln -sf /etc/nginx/sites-available/harithma-pos /etc/nginx/sites-enabled/
-    sudo rm -f /etc/nginx/sites-enabled/default
-    sudo nginx -t && sudo systemctl reload nginx
+    ln -sf /etc/nginx/sites-available/harithma-pos /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t && systemctl reload nginx
     
     echo -e "${GREEN}✅ Nginx configured!${NC}"
 fi
@@ -235,10 +244,10 @@ echo -e "${GREEN}🎉 Deployment completed!${NC}"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit $APP_DIR/.env with your actual configuration"
-echo "2. Create an admin user: cd $APP_DIR && source venv/bin/activate && flask create-user"
-echo "3. Check service status: sudo systemctl status harithma-pos"
-echo "4. View logs: sudo journalctl -u harithma-pos -f"
-echo "5. Restart service: sudo systemctl restart harithma-pos"
+echo "2. Create an admin user: su -s /bin/bash - $APP_USER -c 'cd $APP_DIR && source venv/bin/activate && export \$(cat .env | xargs) && flask create-user'"
+echo "3. Check service status: systemctl status harithma-pos"
+echo "4. View logs: journalctl -u harithma-pos -f"
+echo "5. Restart service: systemctl restart harithma-pos"
 echo ""
 echo "🌐 Application should be running at:"
 if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
