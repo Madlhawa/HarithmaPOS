@@ -103,8 +103,24 @@ if [ -d "$APP_DIR" ]; then
     fi
 else
     echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
+    # Check if directory exists but is not a git repo
+    if [ -d "$APP_DIR" ] && [ ! -d "$APP_DIR/.git" ]; then
+        echo -e "${YELLOW}⚠️  Directory $APP_DIR exists but is not a git repository.${NC}"
+        read -p "Remove and clone fresh? (y/n) " REPLY
+        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+            cd /tmp
+            rm -rf $APP_DIR
+        else
+            echo -e "${RED}❌ Cannot proceed. Directory exists and is not a git repository.${NC}"
+            exit 1
+        fi
+    fi
     # Ensure we're in a safe directory before cloning
     cd /tmp
+    # Remove directory if it exists (shouldn't at this point, but just in case)
+    if [ -d "$APP_DIR" ]; then
+        rm -rf $APP_DIR
+    fi
     mkdir -p $APP_DIR
     chown $APP_USER:$APP_USER $APP_DIR
     # Configure git safe directory for the application user
