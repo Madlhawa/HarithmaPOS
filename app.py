@@ -1,3 +1,4 @@
+import os
 import click
 from harithmapos import create_app, db, bcrypt
 from harithmapos.models import User
@@ -24,4 +25,7 @@ def create_user(name, email, password):
         print(f"Error creating user: {e}")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Only run in debug mode if explicitly set via environment variable
+    # In production, use gunicorn: gunicorn --config gunicorn_config.py app:app
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='127.0.0.1', port=5000)
