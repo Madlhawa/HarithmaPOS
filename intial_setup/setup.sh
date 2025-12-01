@@ -1,6 +1,11 @@
 # installing rabbit MQ
     # https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith
 
+# deploying the application
+    curl -o deploy.sh https://raw.githubusercontent.com/Madlhawa/HarithmaPOS/main/intial_setup/deploy.sh
+    chmod +x deploy.sh
+    ./deploy.sh
+
 # installing postgresql server
     sudo apt update
     sudo apt install postgresql postgresql-contrib

@@ -29,22 +29,64 @@ sudo apt install -y python3 python3-pip python3-venv postgresql postgresql-contr
 # Install PostgreSQL client libraries
 sudo apt install -y libpq-dev python3-dev
 
+# GitHub repository URL
+GIT_REPO="https://github.com/Madlhawa/HarithmaPOS.git"
+GIT_BRANCH="main"
+
 # Create application directory
 APP_DIR="/opt/harithma-pos"
 echo -e "${YELLOW}📁 Creating application directory at $APP_DIR...${NC}"
-sudo mkdir -p $APP_DIR
-sudo chown $USER:$USER $APP_DIR
 
-# Clone or copy application files
-if [ -d ".git" ]; then
-    echo -e "${YELLOW}📥 Copying application files...${NC}"
-    cp -r . $APP_DIR/
+# Check if directory already exists
+if [ -d "$APP_DIR" ]; then
+    echo -e "${YELLOW}📁 Directory $APP_DIR already exists.${NC}"
+    read -p "Do you want to update from git? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}📥 Updating from git repository...${NC}"
+        cd $APP_DIR
+        # Check if it's a git repository
+        if [ -d ".git" ]; then
+            git pull origin $GIT_BRANCH || {
+                echo -e "${RED}❌ Failed to pull from git. Please check manually.${NC}"
+                exit 1
+            }
+        else
+            echo -e "${RED}❌ Directory exists but is not a git repository.${NC}"
+            read -p "Remove and clone fresh? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo rm -rf $APP_DIR
+                sudo mkdir -p $APP_DIR
+                sudo chown $USER:$USER $APP_DIR
+                git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
+                    echo -e "${RED}❌ Failed to clone repository.${NC}"
+                    exit 1
+                }
+            else
+                echo -e "${RED}❌ Cannot proceed. Exiting.${NC}"
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${YELLOW}📥 Using existing directory...${NC}"
+        cd $APP_DIR
+    fi
 else
-    echo -e "${YELLOW}📥 Please ensure application files are in the current directory${NC}"
-    cp -r . $APP_DIR/
+    echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
+    sudo mkdir -p $APP_DIR
+    sudo chown $USER:$USER $APP_DIR
+    git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
+        echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
+        echo "   - Internet connection"
+        echo "   - Repository URL: $GIT_REPO"
+        echo "   - Branch: $GIT_BRANCH"
+        exit 1
+    }
+    cd $APP_DIR
 fi
 
-cd $APP_DIR
+echo -e "${GREEN}✅ Code downloaded successfully!${NC}"
 
 # Create virtual environment
 echo -e "${YELLOW}🐍 Creating Python virtual environment...${NC}"
