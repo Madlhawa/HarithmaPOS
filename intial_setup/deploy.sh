@@ -1,6 +1,11 @@
 #!/bin/bash
 # Quick deployment script for Harithma POS on Ubuntu Server
 
+# Ensure we're running with bash
+if [ -z "$BASH_VERSION" ]; then
+    exec /bin/bash "$0" "$@"
+fi
+
 set -e  # Exit on any error
 
 echo "🚀 Starting Harithma POS Deployment..."
@@ -51,9 +56,8 @@ echo -e "${YELLOW}📁 Creating application directory at $APP_DIR...${NC}"
 # Check if directory already exists
 if [ -d "$APP_DIR" ]; then
     echo -e "${YELLOW}📁 Directory $APP_DIR already exists.${NC}"
-    read -p "Do you want to update from git? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read -p "Do you want to update from git? (y/n) " REPLY
+    if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
         echo -e "${YELLOW}📥 Updating from git repository...${NC}"
         cd $APP_DIR
         # Check if it's a git repository
@@ -64,9 +68,8 @@ if [ -d "$APP_DIR" ]; then
             }
         else
             echo -e "${RED}❌ Directory exists but is not a git repository.${NC}"
-            read -p "Remove and clone fresh? (y/n) " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
+            read -p "Remove and clone fresh? (y/n) " REPLY
+            if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
                 rm -rf $APP_DIR
                 mkdir -p $APP_DIR
                 chown $APP_USER:$APP_USER $APP_DIR
@@ -199,9 +202,8 @@ else
 fi
 
 # Setup Nginx reverse proxy (optional)
-read -p "Do you want to setup Nginx reverse proxy? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+read -p "Do you want to setup Nginx reverse proxy? (y/n) " REPLY
+if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
     echo -e "${YELLOW}🌐 Setting up Nginx...${NC}"
     
     read -p "Enter your domain name (or press Enter to use IP): " DOMAIN
