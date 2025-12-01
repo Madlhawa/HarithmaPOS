@@ -61,11 +61,18 @@ if [ -d "$APP_DIR" ]; then
         echo -e "${YELLOW}📥 Updating from git repository...${NC}"
         # Check if it's a git repository before changing directory
         if [ -d "$APP_DIR/.git" ]; then
+            # Fix ownership first
+            chown -R $APP_USER:$APP_USER $APP_DIR
+            # Configure git safe directory
+            su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
             cd $APP_DIR
-            git pull origin $GIT_BRANCH || {
+            # Pull as application user
+            su -s /bin/bash - $APP_USER -c "cd $APP_DIR && git pull origin $GIT_BRANCH" || {
                 echo -e "${RED}❌ Failed to pull from git. Please check manually.${NC}"
                 exit 1
             }
+            # Ensure ownership is correct after pull
+            chown -R $APP_USER:$APP_USER $APP_DIR
         else
             echo -e "${RED}❌ Directory exists but is not a git repository.${NC}"
             read -p "Remove and clone fresh? (y/n) " REPLY
@@ -75,11 +82,15 @@ if [ -d "$APP_DIR" ]; then
                 rm -rf $APP_DIR
                 mkdir -p $APP_DIR
                 chown $APP_USER:$APP_USER $APP_DIR
-                cd $APP_DIR
-                git clone -b $GIT_BRANCH $GIT_REPO . || {
+                # Configure git safe directory for the application user
+                su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
+                # Clone as application user
+                su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR" || {
                     echo -e "${RED}❌ Failed to clone repository.${NC}"
                     exit 1
                 }
+                # Ensure ownership is correct
+                chown -R $APP_USER:$APP_USER $APP_DIR
                 cd $APP_DIR
             else
                 echo -e "${RED}❌ Cannot proceed. Exiting.${NC}"
@@ -95,13 +106,18 @@ else
     # Ensure we're in a safe directory before cloning
     cd /tmp
     mkdir -p $APP_DIR
-    git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
+    chown $APP_USER:$APP_USER $APP_DIR
+    # Configure git safe directory for the application user
+    su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
+    # Clone as application user
+    su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR" || {
         echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
         echo "   - Internet connection"
         echo "   - Repository URL: $GIT_REPO"
         echo "   - Branch: $GIT_BRANCH"
         exit 1
     }
+    # Ensure ownership is correct
     chown -R $APP_USER:$APP_USER $APP_DIR
     cd $APP_DIR
 fi
