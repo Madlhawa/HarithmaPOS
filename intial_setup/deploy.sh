@@ -59,9 +59,9 @@ if [ -d "$APP_DIR" ]; then
     read -p "Do you want to update from git? (y/n) " REPLY
     if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
         echo -e "${YELLOW}📥 Updating from git repository...${NC}"
-        cd $APP_DIR
-        # Check if it's a git repository
-        if [ -d ".git" ]; then
+        # Check if it's a git repository before changing directory
+        if [ -d "$APP_DIR/.git" ]; then
+            cd $APP_DIR
             git pull origin $GIT_BRANCH || {
                 echo -e "${RED}❌ Failed to pull from git. Please check manually.${NC}"
                 exit 1
@@ -70,6 +70,8 @@ if [ -d "$APP_DIR" ]; then
             echo -e "${RED}❌ Directory exists but is not a git repository.${NC}"
             read -p "Remove and clone fresh? (y/n) " REPLY
             if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+                # Change to a safe directory before removing
+                cd /tmp
                 rm -rf $APP_DIR
                 mkdir -p $APP_DIR
                 chown $APP_USER:$APP_USER $APP_DIR
@@ -77,6 +79,7 @@ if [ -d "$APP_DIR" ]; then
                     echo -e "${RED}❌ Failed to clone repository.${NC}"
                     exit 1
                 }
+                cd $APP_DIR
             else
                 echo -e "${RED}❌ Cannot proceed. Exiting.${NC}"
                 exit 1
@@ -88,6 +91,8 @@ if [ -d "$APP_DIR" ]; then
     fi
 else
     echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
+    # Ensure we're in a safe directory before cloning
+    cd /tmp
     mkdir -p $APP_DIR
     git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR || {
         echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
@@ -97,6 +102,16 @@ else
         exit 1
     }
     chown -R $APP_USER:$APP_USER $APP_DIR
+    cd $APP_DIR
+fi
+
+# Ensure we're in the application directory for subsequent operations
+if [ ! -d "$APP_DIR" ]; then
+    echo -e "${RED}❌ Application directory $APP_DIR does not exist!${NC}"
+    exit 1
+fi
+
+if [ "$PWD" != "$APP_DIR" ]; then
     cd $APP_DIR
 fi
 
