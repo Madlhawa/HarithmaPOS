@@ -11,19 +11,25 @@
 
 ### Automated Deployment (Recommended)
 
-1. **Upload your code to server:**
-   ```bash
-   # From your local machine
-   scp -r . user@your-server:/tmp/harithma-pos
-   ```
-
-2. **SSH into server and run:**
+1. **SSH into your server:**
    ```bash
    ssh user@your-server
-   cd /tmp/harithma-pos
+   ```
+
+2. **Download and run the deployment script:**
+   ```bash
+   # Download the deployment script
+   curl -o deploy.sh https://raw.githubusercontent.com/Madlhawa/HarithmaPOS/main/intial_setup/deploy.sh
+   # Or clone the repo first
+   git clone https://github.com/Madlhawa/HarithmaPOS.git /tmp/harithma-pos
+   cd /tmp/harithma-pos/intial_setup
+   
+   # Make it executable and run
    chmod +x deploy.sh
    ./deploy.sh
    ```
+   
+   **Note:** The script will automatically clone the repository from GitHub to `/opt/harithma-pos`
 
 3. **Follow prompts** - script does everything automatically!
 
@@ -39,6 +45,7 @@
 
 ### What the Script Does
 
+✅ Clones code from GitHub repository (https://github.com/Madlhawa/HarithmaPOS.git)  
 ✅ Installs Python, PostgreSQL, Nginx  
 ✅ Creates database and user  
 ✅ Sets up virtual environment  
@@ -69,11 +76,12 @@ sudo chown $USER:$USER /opt/harithma-pos
 cd /opt/harithma-pos
 ```
 
-### Step 4: Copy Application Files
+### Step 4: Clone Application from GitHub
 ```bash
-# Copy your application files here
-# Or clone from git:
-git clone your-repo-url .
+# Clone the repository
+git clone https://github.com/Madlhawa/HarithmaPOS.git .
+# Or clone to a specific branch:
+# git clone -b main https://github.com/Madlhawa/HarithmaPOS.git .
 ```
 
 ### Step 5: Setup Python Environment
