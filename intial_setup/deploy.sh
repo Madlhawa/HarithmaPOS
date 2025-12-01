@@ -55,26 +55,29 @@ echo -e "${YELLOW}📁 Creating application directory at $APP_DIR...${NC}"
 
 # Check if directory already exists
 if [ -d "$APP_DIR" ]; then
+    echo -e "${YELLOW}📁 Removing existing application directory at $APP_DIR...${NC}"
     rm -rf $APP_DIR
-else
-    echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
+file
 
-    mkdir -p $APP_DIR
-    chown $APP_USER:$APP_USER $APP_DIR
-    # Configure git safe directory for the application user
-    su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
-    # Clone as application user
-    su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR" || {
-        echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
-        echo "   - Internet connection"
-        echo "   - Repository URL: $GIT_REPO"
-        echo "   - Branch: $GIT_BRANCH"
-        exit 1
-    }
-    # Ensure ownership is correct
-    chown -R $APP_USER:$APP_USER $APP_DIR
-    cd $APP_DIR
-fi
+
+echo -e "${YELLOW}📥 Cloning from GitHub repository...${NC}"
+
+mkdir -p $APP_DIR
+chown $APP_USER:$APP_USER $APP_DIR
+# Configure git safe directory for the application user
+su -s /bin/bash - $APP_USER -c "git config --global --add safe.directory $APP_DIR" || true
+# Clone as application user
+su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR" || {
+    echo -e "${RED}❌ Failed to clone repository. Please check:${NC}"
+    echo "   - Internet connection"
+    echo "   - Repository URL: $GIT_REPO"
+    echo "   - Branch: $GIT_BRANCH"
+    exit 1
+}
+# Ensure ownership is correct
+chown -R $APP_USER:$APP_USER $APP_DIR
+cd $APP_DIR
+
 
 # Ensure we're in the application directory for subsequent operations
 if [ ! -d "$APP_DIR" ]; then
