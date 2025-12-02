@@ -251,7 +251,34 @@ EOF
 fi
 
 echo ""
-echo -e "${GREEN}🎉 Deployment completed!${NC}"
+echo -e "${GREEN}🎉 Application deployment completed!${NC}"
+echo ""
+
+# Setup RabbitMQ (optional)
+echo -e "${YELLOW}🐰 Setting up RabbitMQ...${NC}"
+read -p "Do you want to setup RabbitMQ now? (y/n) " REPLY
+if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+    # Find RabbitMQ setup script
+    RABBITMQ_SCRIPT=""
+    if [ -f "$APP_DIR/deployment/setup_rabbitmq.sh" ]; then
+        RABBITMQ_SCRIPT="$APP_DIR/deployment/setup_rabbitmq.sh"
+    elif [ -f "deployment/setup_rabbitmq.sh" ]; then
+        RABBITMQ_SCRIPT="deployment/setup_rabbitmq.sh"
+    elif [ -f "/opt/harithma-pos/deployment/setup_rabbitmq.sh" ]; then
+        RABBITMQ_SCRIPT="/opt/harithma-pos/deployment/setup_rabbitmq.sh"
+    fi
+    
+    if [ -n "$RABBITMQ_SCRIPT" ] && [ -f "$RABBITMQ_SCRIPT" ]; then
+        echo -e "${YELLOW}Running RabbitMQ setup script...${NC}"
+        bash "$RABBITMQ_SCRIPT"
+    else
+        echo -e "${YELLOW}⚠️  RabbitMQ setup script not found. Skipping RabbitMQ setup.${NC}"
+        echo -e "${YELLOW}You can run it manually later: sudo $APP_DIR/deployment/setup_rabbitmq.sh${NC}"
+    fi
+else
+    echo -e "${YELLOW}RabbitMQ setup skipped. You can run it later with: sudo $APP_DIR/deployment/setup_rabbitmq.sh${NC}"
+fi
+
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit $APP_DIR/.env with your actual configuration"
