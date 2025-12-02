@@ -3,6 +3,11 @@
 # Run this script AFTER deploying the main application
 # Usage: sudo ./setup_rabbitmq.sh
 
+# Ensure we're running with bash
+if [ -z "$BASH_VERSION" ]; then
+    exec /bin/bash "$0" "$@"
+fi
+
 set -e  # Exit on any error
 
 echo "🐰 Starting RabbitMQ Setup for Harithma POS..."
@@ -13,15 +18,15 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then 
+# Check if running as root (works in both bash and sh)
+if [ "$(id -u)" -ne 0 ]; then 
     echo -e "${RED}This script must be run as root. Please use: sudo ./setup_rabbitmq.sh${NC}"
     exit 1
 fi
 
 # Check if RabbitMQ is already installed
-if command -v rabbitmq-server &> /dev/null; then
-    echo -e "${YELLOW}⚠️  RabbitMQ is already installed.${NC}"
+if command -v rabbitmq-server >/dev/null 2>&1 || [ -f /usr/sbin/rabbitmq-server ] || [ -f /usr/bin/rabbitmq-server ]; then
+    echo -e "${YELLOW}⚠️  RabbitMQ appears to be installed.${NC}"
     read -p "Do you want to reconfigure? (y/n) " REPLY
     if [ "$REPLY" != "y" ] && [ "$REPLY" != "Y" ]; then
         echo -e "${YELLOW}Exiting. RabbitMQ setup skipped.${NC}"
@@ -109,12 +114,32 @@ systemctl enable rabbitmq-server
 systemctl start rabbitmq-server
 
 # Wait for RabbitMQ to be ready
-echo -e "${YELLOW}⏳ Waiting for RabbitMQ to start...${NC}"
-sleep 5
+echo -e "${YELLOW}⏳ Waiting for RabbitMQ to be ready...${NC}"
+MAX_WAIT=60
+WAIT_COUNT=0
+while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+    if systemctl is-active --quiet rabbitmq-server && rabbitmqctl status >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ RabbitMQ is ready!${NC}"
+        break
+    fi
+    echo -n "."
+    sleep 2
+    WAIT_COUNT=$((WAIT_COUNT + 2))
+done
+
+if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+    echo -e "${RED}❌ RabbitMQ failed to start within $MAX_WAIT seconds.${NC}"
+    echo -e "${YELLOW}Checking service status...${NC}"
+    systemctl status rabbitmq-server
+    exit 1
+fi
 
 # Enable RabbitMQ Management Plugin (web UI)
 echo -e "${YELLOW}🌐 Enabling RabbitMQ Management Plugin...${NC}"
 rabbitmq-plugins enable rabbitmq_management
+
+# Wait a bit more for plugin to be enabled
+sleep 3
 
 # Get configuration from environment or use defaults
 APP_DIR="/opt/harithma-pos"
@@ -125,26 +150,55 @@ RABBITMQ_PASS="${RABBITMQ_PASSWORD:-$(openssl rand -base64 16)}"
 if [ -f "$APP_DIR/.env" ]; then
     echo -e "${YELLOW}📄 Reading RabbitMQ credentials from .env file...${NC}"
     if grep -q "RABBIT_MQ_USERNAME" "$APP_DIR/.env"; then
-        RABBITMQ_USER=$(grep "RABBIT_MQ_USERNAME" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ')
+        RABBITMQ_USER=$(grep "RABBIT_MQ_USERNAME" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ' | tr -d '"')
+        # Don't use 'guest' as username (it's the default and will be deleted)
+        if [ "$RABBITMQ_USER" = "guest" ] || [ -z "$RABBITMQ_USER" ]; then
+            echo -e "${YELLOW}⚠️  'guest' user detected in .env. Using default username instead.${NC}"
+            RABBITMQ_USER="harithma_rabbitmq"
+        fi
     fi
     if grep -q "RABBIT_MQ_PASSWORD" "$APP_DIR/.env"; then
-        RABBITMQ_PASS=$(grep "RABBIT_MQ_PASSWORD" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ')
+        RABBITMQ_PASS=$(grep "RABBIT_MQ_PASSWORD" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ' | tr -d '"')
     fi
 else
     echo -e "${YELLOW}⚠️  .env file not found. Using generated credentials.${NC}"
 fi
 
+# Ensure we don't use 'guest' as username
+if [ "$RABBITMQ_USER" = "guest" ] || [ -z "$RABBITMQ_USER" ]; then
+    RABBITMQ_USER="harithma_rabbitmq"
+fi
+
+# Verify RabbitMQ is still running before creating users
+if ! systemctl is-active --quiet rabbitmq-server; then
+    echo -e "${RED}❌ RabbitMQ service is not running. Starting it...${NC}"
+    systemctl start rabbitmq-server
+    sleep 5
+fi
+
 # Create RabbitMQ user
 echo -e "${YELLOW}👤 Creating RabbitMQ user: $RABBITMQ_USER...${NC}"
+# Wait for RabbitMQ to be fully ready
+sleep 2
+
 # Check if user exists
-if rabbitmqctl list_users | grep -q "^$RABBITMQ_USER"; then
+if rabbitmqctl list_users 2>/dev/null | grep -q "^$RABBITMQ_USER[[:space:]]"; then
     echo -e "${YELLOW}User $RABBITMQ_USER already exists. Updating password...${NC}"
-    rabbitmqctl change_password "$RABBITMQ_USER" "$RABBITMQ_PASS"
+    rabbitmqctl change_password "$RABBITMQ_USER" "$RABBITMQ_PASS" || {
+        echo -e "${RED}❌ Failed to change password. Trying to recreate user...${NC}"
+        rabbitmqctl delete_user "$RABBITMQ_USER" 2>/dev/null || true
+        rabbitmqctl add_user "$RABBITMQ_USER" "$RABBITMQ_PASS"
+    }
 else
-    rabbitmqctl add_user "$RABBITMQ_USER" "$RABBITMQ_PASS"
+    rabbitmqctl add_user "$RABBITMQ_USER" "$RABBITMQ_PASS" || {
+        echo -e "${RED}❌ Failed to create user. Retrying...${NC}"
+        sleep 3
+        rabbitmqctl add_user "$RABBITMQ_USER" "$RABBITMQ_PASS"
+    }
 fi
 
 # Set user tags (administrator for full access)
+echo -e "${YELLOW}Setting administrator tag...${NC}"
 rabbitmqctl set_user_tags "$RABBITMQ_USER" administrator
 
 # Grant permissions
