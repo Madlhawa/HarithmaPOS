@@ -131,6 +131,10 @@ su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET client_encoding TO 'utf8';\"
 su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';\""
 su - postgres -c "psql -c \"ALTER ROLE $DB_USER SET timezone TO 'UTC';\""
 su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\""
+# Grant schema permissions (required for PostgreSQL 15+)
+su - postgres -c "psql -d $DB_NAME -c \"GRANT ALL ON SCHEMA public TO $DB_USER;\""
+su - postgres -c "psql -d $DB_NAME -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;\""
+su - postgres -c "psql -d $DB_NAME -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;\""
 
 # Create .env file
 echo -e "${YELLOW}⚙️  Creating environment configuration...${NC}"
