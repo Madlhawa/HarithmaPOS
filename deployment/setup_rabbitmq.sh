@@ -172,8 +172,6 @@ else
     echo -e "${YELLOW}⚠️  .env file not found. Using generated credentials.${NC}"
 fi
 
-echo "RABBITMQ_USER: $RABBITMQ_USER"
-echo "RABBITMQ_PASS: $RABBITMQ_PASS"
 
 # Verify RabbitMQ is still running before creating users
 if ! systemctl is-active --quiet rabbitmq-server; then
@@ -283,7 +281,7 @@ echo "   Username: $RABBITMQ_USER"
 echo "   Password: $RABBITMQ_PASS"
 echo ""
 echo "📋 Next Steps:"
-echo "1. Access Management UI at: http://your-server-ip:15672"
+echo "1. Access Management UI at: http://$(hostname -I | awk '{print $1}'):15672"
 echo "2. Login with username: $RABBITMQ_USER"
 echo "3. Restart your application to use RabbitMQ:"
 echo "   sudo systemctl restart harithma-pos"
