@@ -6,6 +6,10 @@
     chmod +x deploy.sh
     ./deploy.sh
 
+# inserting sample items
+    cd /opt/harithma-pos
+    sudo -u postgres psql -d harithma_pos -f manual_setup/sample_items_insert.sql
+
 # installing postgresql server
     sudo apt update
     sudo apt install postgresql postgresql-contrib
