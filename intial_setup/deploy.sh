@@ -166,9 +166,10 @@ echo -e "${YELLOW}⚠️  Please edit .env file with your actual configuration v
 
 # Initialize database as application user
 echo -e "${YELLOW}🗄️  Initializing database...${NC}"
-su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(cat .env | xargs) && source venv/bin/activate && flask db upgrade" || {
+# Export environment variables from .env file (filter out comments and empty lines)
+su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(grep -v '^#' .env | grep -v '^$' | xargs) && source venv/bin/activate && flask db upgrade" || {
     echo -e "${YELLOW}Running initial migration...${NC}"
-    su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(cat .env | xargs) && source venv/bin/activate && flask db init && flask db migrate -m 'Initial migration' && flask db upgrade"
+    su -s /bin/bash - $APP_USER -c "cd $APP_DIR && export \$(grep -v '^#' .env | grep -v '^$' | xargs) && source venv/bin/activate && flask db init && flask db migrate -m 'Initial migration' && flask db upgrade"
 }
 
 # Create systemd service
@@ -250,7 +251,7 @@ echo -e "${GREEN}🎉 Deployment completed!${NC}"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit $APP_DIR/.env with your actual configuration"
-echo "2. Create an admin user: su -s /bin/bash - $APP_USER -c 'cd $APP_DIR && source venv/bin/activate && export \$(cat .env | xargs) && flask create-user'"
+echo "2. Create an admin user: su -s /bin/bash - $APP_USER -c 'cd $APP_DIR && source venv/bin/activate && export \$(grep -v \"^#\" .env | grep -v \"^$\" | xargs) && flask create-user'"
 echo "3. Check service status: systemctl status harithma-pos"
 echo "4. View logs: journalctl -u harithma-pos -f"
 echo "5. Restart service: systemctl restart harithma-pos"
