@@ -149,25 +149,31 @@ RABBITMQ_PASS="${RABBITMQ_PASSWORD:-$(openssl rand -base64 16)}"
 # Check if .env file exists to get existing credentials
 if [ -f "$APP_DIR/.env" ]; then
     echo -e "${YELLOW}📄 Reading RabbitMQ credentials from .env file...${NC}"
+    # Get username from .env if present
     if grep -q "RABBIT_MQ_USERNAME" "$APP_DIR/.env"; then
         RABBITMQ_USER=$(grep "RABBIT_MQ_USERNAME" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ' | tr -d '"')
-        # Don't use 'guest' as username (it's the default and will be deleted)
-        if [ "$RABBITMQ_USER" = "guest" ] || [ -z "$RABBITMQ_USER" ]; then
-            echo -e "${YELLOW}⚠️  'guest' user detected in .env. Using default username instead.${NC}"
-            RABBITMQ_USER="harithma_rabbitmq"
-        fi
     fi
+    # Get password from .env if present
     if grep -q "RABBIT_MQ_PASSWORD" "$APP_DIR/.env"; then
         RABBITMQ_PASS=$(grep "RABBIT_MQ_PASSWORD" "$APP_DIR/.env" | cut -d '=' -f2 | tr -d ' ' | tr -d '"')
+    fi
+
+    # Overwrite username if it's a default or unsafe value
+    if [ "$RABBITMQ_USER" = "guest" ] || [ "$RABBITMQ_USER" = "guest" ] || [ -z "$RABBITMQ_USER" ] || [ "$RABBITMQ_USER" = "harithma_rabbitmq" ]; then
+        echo -e "${YELLOW}⚠️  Detected default or empty RabbitMQ username in .env. Overwriting with secure default.${NC}"
+        RABBITMQ_USER="harithma_rabbitmq"
+    fi
+    # Overwrite password if it's a default or unsafe value
+    if [ "$RABBITMQ_PASS" = "guest" ] || [ -z "$RABBITMQ_PASS" ]; then
+        echo -e "${YELLOW}⚠️  Detected default or empty RabbitMQ password in .env. Generating new password.${NC}"
+        RABBITMQ_PASS=$(openssl rand -base64 16)
     fi
 else
     echo -e "${YELLOW}⚠️  .env file not found. Using generated credentials.${NC}"
 fi
 
-# Ensure we don't use 'guest' as username
-if [ "$RABBITMQ_USER" = "guest" ] || [ -z "$RABBITMQ_USER" ]; then
-    RABBITMQ_USER="harithma_rabbitmq"
-fi
+echo "RABBITMQ_USER: $RABBITMQ_USER"
+echo "RABBITMQ_PASS: $RABBITMQ_PASS"
 
 # Verify RabbitMQ is still running before creating users
 if ! systemctl is-active --quiet rabbitmq-server; then
