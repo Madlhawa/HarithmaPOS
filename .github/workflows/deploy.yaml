@@ -19,4 +19,4 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo /opt/harithma-pos/update.sh
+            sudo /opt/harithma-pos/deployment/update.sh
