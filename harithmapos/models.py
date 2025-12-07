@@ -130,15 +130,15 @@ class InvoiceHead(db.Model):
     payments = db.relationship('Payment', backref='invoice', lazy=True)
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='invoice', lazy=True)
 
-    def get_customer_view_token(self, expire_seconds = 1800):
+    def get_customer_view_token(self):
         serializer = Serializer(current_app.config['SECRET_KEY'])
         return serializer.dumps({'invoice_id': self.id})
     
     @staticmethod
-    def verify_customer_view_token(token):
+    def verify_customer_view_token(token, expire_seconds = 36000):
         serializer = Serializer(current_app.config['SECRET_KEY'])
         try:
-            invoice_id = serializer.loads(token)['invoice_id']
+            invoice_id = serializer.loads(token, max_age=expire_seconds)['invoice_id']
         except:
             return None
         return InvoiceHead.query.get(invoice_id)
