@@ -31,10 +31,6 @@ run_as_app_user() {
 echo -e "${YELLOW}🔙 Reverting git repository to previous state (HEAD@{1})...${NC}"
 run_as_app_user "git reset --hard HEAD@{1}"
 
-# Make update.sh and rollback.sh executable
-chmod +x $APP_DIR/deployment/update.sh
-chmod +x $APP_DIR/deployment/rollback.sh
-
 # Verify where we are now
 CURRENT_COMMIT=$(run_as_app_user "git rev-parse --short HEAD")
 echo -e "${GREEN}ℹ️  Now at commit: $CURRENT_COMMIT${NC}"

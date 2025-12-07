@@ -14,4 +14,5 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            sudo chmod +x /opt/harithma-pos/deployment/rollback.sh
             sudo /opt/harithma-pos/deployment/rollback.sh
