@@ -8,7 +8,16 @@
 
 # inserting sample items
     cd /opt/harithma-pos
-    sudo -u postgres psql -d harithma_pos -f manual_setup/sample_items_insert.sql
+    sudo -u postgres psql -d harithma_pos -f deployment/manual_setup/sample_items_insert.sql
+
+# setting up github actions
+    #run this in local to generate the ssh key
+    ssh-keygen -t ed25519 -C "github-actions"
+    #add the public key to the ubuntu server .ssh/authorized_keys
+    #add the private key to the github actions secret with following secrets
+        # SERVER_SSH_KEY: <private key>
+        # SERVER_USER: <ubuntu user>
+        # SERVER_IP: <ubuntu server ip>
 
 # installing postgresql server
     sudo apt update
