@@ -12,8 +12,6 @@ from harithmapos.views.vehicle.forms import VehicleForm
 from harithmapos.views.item.forms import ItemCreateForm
 from harithmapos.views.payment.forms import PaymentCreateForm
 
-from harithmapos.views.utils import get_id
-
 dashboard_blueprint = Blueprint('dashboard_blueprint', __name__)
 
 @dashboard_blueprint.route('/app/dashboard')
