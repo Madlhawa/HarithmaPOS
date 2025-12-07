@@ -210,17 +210,15 @@ else
     echo -e "${RED}❌ Service failed to start. Check logs with: journalctl -u harithma-pos -f${NC}"
 fi
 
-# Setup Nginx reverse proxy (optional)
-read -p "Do you want to setup Nginx reverse proxy? (y/n) " REPLY
-if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
-    echo -e "${YELLOW}🌐 Setting up Nginx...${NC}"
-    
-    read -p "Enter your domain name (or press Enter to use IP): " DOMAIN
-    if [ -z "$DOMAIN" ]; then
-        DOMAIN="_"
-    fi
-    
-    tee /etc/nginx/sites-available/harithma-pos > /dev/null << EOF
+# Setup Nginx reverse proxy
+echo -e "${YELLOW}🌐 Setting up Nginx reverse proxy...${NC}"
+
+read -p "Enter your domain name (or press Enter to use IP): " DOMAIN
+if [ -z "$DOMAIN" ]; then
+    DOMAIN="_"
+fi
+
+tee /etc/nginx/sites-available/harithma-pos > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -243,12 +241,11 @@ server {
 }
 EOF
 
-    ln -sf /etc/nginx/sites-available/harithma-pos /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-    nginx -t && systemctl reload nginx
-    
-    echo -e "${GREEN}✅ Nginx configured!${NC}"
-fi
+ln -sf /etc/nginx/sites-available/harithma-pos /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+
+echo -e "${GREEN}✅ Nginx configured!${NC}"
 
 echo ""
 echo -e "${GREEN}🎉 Application deployment completed!${NC}"
