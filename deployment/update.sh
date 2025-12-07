@@ -13,10 +13,6 @@ echo "🚀 Starting Update..."
 echo "📥 Pulling changes from Git..."
 su -s /bin/bash - $APP_USER -c "cd $APP_DIR && git fetch --all && git reset --hard origin/main"
 
-# Make update.sh and rollback.sh executable
-chmod +x $APP_DIR/deployment/update.sh
-chmod +x $APP_DIR/deployment/rollback.sh
-
 # 2. Update Python dependencies (run as app user)
 echo "📦 Updating dependencies..."
 su -s /bin/bash - $APP_USER -c "cd $APP_DIR && source venv/bin/activate && pip install -r requirements.txt"
