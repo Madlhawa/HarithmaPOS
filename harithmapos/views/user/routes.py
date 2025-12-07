@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db, bcrypt
 from harithmapos.models import User
-from harithmapos.views.user.utils import save_image, send_reset_email
+from harithmapos.views.utils import save_image, send_reset_email
 from harithmapos.views.user.forms import UserRegisterForm, UserLoginForm, UserUpdateForm, RequestPasswordResetFrom, ResetPasswordForm
 
 user_blueprint = Blueprint('user_blueprint', __name__)
