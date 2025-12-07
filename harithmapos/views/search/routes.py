@@ -1,7 +1,7 @@
 from flask_login import login_required
 from flask import Blueprint, request, jsonify
 
-from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead,Customer, Employee, Vehicle, WashBay, Item
+from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead,Customer, Employee, Vehicle, WashBay, Item, Supplier
 
 search_blueprint = Blueprint('search_blueprint', __name__)
 
@@ -66,3 +66,13 @@ def search_Items():
     else:
         Items = Item.query.filter(Item.name.ilike(f"%{query}%")).all()
     return jsonify([{"id": item.id, "name": item.name, "price":item.unit_price, "discount_pct":item.discount_pct, "unit_of_measure":item.unit_of_measure} for item in Items])
+
+@search_blueprint.route("/app/search/suppliers", methods=["GET"])
+@login_required
+def search_suppliers():
+    query = request.args.get("q", "").strip().lower()
+    if query.isdigit():
+        suppliers = Supplier.query.filter((Supplier.id == int(query)) | (Supplier.name.ilike(f"%{query}%"))).all()
+    else:
+        suppliers = Supplier.query.filter(Supplier.name.ilike(f"%{query}%")).all()
+    return jsonify([{"id": supplier.id, "name": supplier.name} for supplier in suppliers])

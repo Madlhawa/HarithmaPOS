@@ -1,17 +1,19 @@
 from flask_wtf import FlaskForm
 
-from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField
+from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField, HiddenField
 from wtforms.validators import DataRequired, Optional
 
 import harithmapos.config as config
 
 class PurchaseOrderDetailCreateForm(FlaskForm):
     item = StringField("Item", validators=[DataRequired()])
+    item_id = HiddenField("Item ID", validators=[DataRequired()])
     quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
 class PurchaseOrderHeadUpdateForm(FlaskForm):
     supplier = StringField("Supplier", validators=[DataRequired()])
+    supplier_id = HiddenField("Supplier ID", validators=[DataRequired()])
     supplier_invoice_id = StringField("Supplier Invoice ID", validators=[DataRequired()])
     total_price = DecimalField("Total Price", places=2, validators=[Optional()])
     discount_pct = DecimalField("Discount Percentage", places=2, validators=[Optional()])
@@ -23,5 +25,6 @@ class PurchaseOrderHeadUpdateForm(FlaskForm):
 
 class PurchaseOrderHeadCreateForm(FlaskForm):
     supplier = StringField("Supplier", validators=[DataRequired()])
+    supplier_id = HiddenField("Supplier ID", validators=[DataRequired()])
     supplier_invoice_id = StringField("Supplier Invoice ID", validators=[DataRequired()])
     submit = SubmitField('Create Purchase Order')

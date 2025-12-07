@@ -7,7 +7,7 @@ from harithmapos import db
 from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Vehicle, WashBay, Employee, Item
 from harithmapos.views.purchase_order.forms import PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm
 
-from harithmapos.views.purchase_order.utils import get_id
+from harithmapos.views.utils import get_id
 
 purchase_order_blueprint = Blueprint('purchase_order_blueprint', __name__)
 
@@ -60,12 +60,12 @@ def purchase_order_head():
 def insert_purchase_order_head():
     form = PurchaseOrderHeadCreateForm()
     if request.method == 'GET':
-        supplier = Supplier.query.all()
+        suppliers = Supplier.query.all()
         return render_template(
             'purchase_order/create.html', 
             title='Create PurchaseOrder',
             form=form,
-            supplier=supplier
+            suppliers=suppliers
         )
     elif form.validate_on_submit():
         try:
@@ -92,11 +92,21 @@ def purchase_order_head_detail(purchase_order_head_id):
 
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
     purchase_order_details = PurchaseOrderDetail.query.filter(PurchaseOrderDetail.purchase_order_head_id==purchase_order_head_id)
+    items = Item.query.all()
 
     if purchase_order_head_update_form.validate_on_submit():
         if purchase_order_head_update_form.update_purchase_order.data:
             
-            purchase_order_head.supplier_id=int(purchase_order_head_update_form.supplier.data.split('|')[0].strip())
+            supplier_id = request.form.get('supplier_id')
+            if supplier_id:
+                purchase_order_head.supplier_id = int(supplier_id)
+            else:
+                try:
+                    purchase_order_head.supplier_id = utils.get_id(purchase_order_head_update_form.supplier.data)
+                except (ValueError, AttributeError):
+                    # If parsing fails, keep the current supplier
+                    pass
+
             purchase_order_head.supplier_invoice_id=purchase_order_head_update_form.supplier_invoice_id.data
             purchase_order_head.payment_method=purchase_order_head_update_form.payment_method.data
             purchase_order_head.paid_amount=purchase_order_head_update_form.paid_amount.data
@@ -124,7 +134,8 @@ def purchase_order_head_detail(purchase_order_head_id):
             purchase_order_head_update_form=purchase_order_head_update_form,
             purchase_order_detail_create_form=purchase_order_detail_create_form,
             suppliers=suppliers,
-            purchase_order_details=purchase_order_details
+            purchase_order_details=purchase_order_details,
+            items=items
         )
 
 @purchase_order_blueprint.route('/app/purchase_order/head/<int:purchase_order_head_id>/delete', methods = ['GET', 'POST'])

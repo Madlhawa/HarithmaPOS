@@ -9,7 +9,7 @@ from harithmapos import db, config
 from harithmapos.models import InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle, WashBay, Employee, Item, Payment, InvoiceStatusLog
 from harithmapos.views.invoice.forms import InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm, ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm
 
-from harithmapos.views.invoice import utils 
+from harithmapos.views.utils import get_id
 
 invoice_blueprint = Blueprint('invoice_blueprint', __name__)
 
