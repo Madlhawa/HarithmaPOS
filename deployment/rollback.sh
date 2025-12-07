@@ -1,5 +1,5 @@
 #!/bin/bash
-# /opt/harithma-pos/rollback.sh - Designed to be run by root/sudo
+# /opt/harithma-pos/deployment/rollback.sh - Designed to be run by root/sudo
 
 set -e
 

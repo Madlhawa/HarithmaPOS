@@ -1,5 +1,5 @@
 #!/bin/bash
-# /opt/harithma-pos/update.sh
+# /opt/harithma-pos/deployment/update.sh
 
 set -e
 
