@@ -7,7 +7,7 @@ from harithmapos import db
 from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Vehicle, WashBay, Employee, Item
 from harithmapos.views.purchase_order.forms import PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm
 
-from harithmapos.views.utils import get_id
+import harithmapos.views.utils as utils
 
 purchase_order_blueprint = Blueprint('purchase_order_blueprint', __name__)
 
