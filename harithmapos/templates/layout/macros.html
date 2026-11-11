@@ -190,7 +190,12 @@
 {# The body of the payment form, shared by the dashboard and the Payments page. #}
 {% macro payment_fields(prefix='pay') %}
 <div class="row g-3">
+    {% if is_owner() %}
     <div class="col-sm-4">{{ select('payment_direction', 'Direction', PAYMENT_DIRECTIONS, prefix=prefix, wrap='') }}</div>
+    {% else %}
+    <input type="hidden" name="payment_direction" value="in">
+    <div class="col-sm-4"><label class="form-label">Direction</label><div class="form-control-plaintext">Money in</div></div>
+    {% endif %}
     <div class="col-sm-4">{{ field('payment_amount', 'Amount (' ~ CURRENCY ~ ')', prefix=prefix, kind='money', required=true, wrap='') }}</div>
     <div class="col-sm-4">{{ select('payment_method', 'Paid by', PAYMENT_METHODS, prefix=prefix, wrap='') }}</div>
     <div class="col-sm-4">{{ select('payment_type', 'Type', PAYMENT_TYPES, prefix=prefix, wrap='') }}</div>

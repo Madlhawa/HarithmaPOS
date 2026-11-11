@@ -2,8 +2,8 @@
 {% block content_class %}content-narrow{% endblock %}
 {% block body %}
 <div class="page-head">
-    <div><h1>Your account</h1><p>{{ current_user.email }}</p></div>
-    <div class="page-actions"><a class="btn btn-quiet" href="{{ url_for('user_blueprint.register') }}"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Add a user</a></div>
+    <div><h1>Your account</h1><p>{{ current_user.email }} &middot; {{ current_user.role_label }}</p></div>
+    {% if is_owner() %}<div class="page-actions"><a class="btn btn-quiet" href="{{ url_for('user_blueprint.users') }}"><i class="bi bi-person-lock me-1" aria-hidden="true"></i>Manage users</a></div>{% endif %}
 </div>
 <form class="panel" method="post" enctype="multipart/form-data" novalidate>
     {{ form.hidden_tag() }}

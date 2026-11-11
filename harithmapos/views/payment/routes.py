@@ -8,6 +8,7 @@ from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOr
 from harithmapos.timeutils import utcnow
 from harithmapos.views.ledger import apply_payment
 from harithmapos.views.payment.forms import PaymentCreateForm, PaymentUpdateForm
+from harithmapos.permissions import owner_required, user_is_owner
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -46,6 +47,9 @@ def payment():
     direction = request.args.get('direction', '')
 
     payments = Payment.query
+    if not user_is_owner():
+        # Counter staff see the money they took in, not wages, withdrawals or supplier payments.
+        direction = 'in'
     if direction in ('in', 'out'):
         payments = payments.filter(Payment.payment_direction == direction)
     payments = payments.order_by(Payment.created_dttm.desc(), Payment.id.desc()).paginate(page=page, per_page=PER_PAGE)
@@ -58,6 +62,10 @@ def insert_payment():
     form = PaymentCreateForm()
     if not form.validate_on_submit():
         utils.flash_form_errors(form)
+        return utils.redirect_back('payment_blueprint.payment')
+
+    if form.payment_direction.data != 'in' and not user_is_owner():
+        flash("Only an owner can record money going out.", category='warning')
         return utils.redirect_back('payment_blueprint.payment')
 
     links, error = _links_from_form(form)
@@ -87,7 +95,7 @@ def insert_payment():
 
 
 @payment_blueprint.route("/app/payment/<int:payment_id>/update", methods=['POST'])
-@login_required
+@owner_required
 def update_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     form = PaymentUpdateForm()
@@ -122,7 +130,7 @@ def update_payment(payment_id):
 
 
 @payment_blueprint.route('/app/payment/<int:payment_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     try:

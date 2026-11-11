@@ -9,9 +9,13 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        return db.session.get(User, int(user_id))
+        user = db.session.get(User, int(user_id))
     except (TypeError, ValueError):
         return None
+    # A switched-off account is signed out on its next page load.
+    if user is None or not user.is_active:
+        return None
+    return user
 
 
 def _balance(document):
@@ -254,8 +258,23 @@ class User(db.Model, UserMixin):
     image = db.Column(db.String(20), default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
     ui_theme = db.Column(db.String(5), default='light')
+    role = db.Column(db.String(10), nullable=False, default=config.ROLE_STAFF)
+    active = db.Column(db.Boolean, nullable=False, default=True)
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    @property
+    def is_owner(self):
+        return self.role == config.ROLE_OWNER
+
+    @property
+    def is_active(self):
+        # Flask-Login refuses to sign in a user whose is_active is False.
+        return bool(self.active)
+
+    @property
+    def role_label(self):
+        return dict(config.ROLE_FORM_LIST).get(self.role, self.role)
 
     RESET_TOKEN_SALT = 'password-reset'
     RESET_TOKEN_MAX_AGE_SECONDS = 1800

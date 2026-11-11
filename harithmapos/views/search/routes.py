@@ -11,6 +11,7 @@ from flask import Blueprint, request, jsonify
 from harithmapos.models import InvoiceHead, Customer, Employee, Vehicle, WashBay, Item, Supplier
 from harithmapos.template_helpers import money_filter, quantity_filter
 from harithmapos.textutils import format_phone, normalize_phone
+from harithmapos.permissions import user_is_owner
 
 search_blueprint = Blueprint('search_blueprint', __name__)
 
@@ -144,7 +145,7 @@ def search_Items():
         "sub": "Service, no stock" if not item.tracks_stock else f"{quantity_filter(item.quantity)} in stock",
         "meta": money_filter(item.unit_price),
         "price": item.unit_price,
-        "cost": item.unit_cost,
+        "cost": item.unit_cost if user_is_owner() else None,
         "discount_pct": item.discount_pct,
         "unit_of_measure": item.unit_of_measure,
         "stock": item.quantity,

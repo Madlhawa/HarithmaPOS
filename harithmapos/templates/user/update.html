@@ -1,0 +1,43 @@
+{% extends 'layout/base.html' %}
+{% block content_class %}content-narrow{% endblock %}
+{% block body %}
+<div class="page-head"><div><h1>{{ user.name }}</h1><p>Added {{ user.create_dttm|local_date }}</p></div></div>
+<form class="panel" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="panel-body">
+        <div class="row g-3">
+        {% for f in [form.name, form.email] %}
+            <div class="col-sm-6">
+                {{ f.label(class='form-label') }}
+                {{ f(class='form-control', autocomplete='off') }}
+                {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+            <div class="col-sm-6">
+                {{ form.role.label(class='form-label') }}
+                {{ form.role(class='form-select') }}
+            </div>
+            <div class="col-sm-6 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    {{ form.active(class='form-check-input') }}
+                    {{ form.active.label(class='form-check-label') }}
+                </div>
+            </div>
+        </div>
+        <p class="form-hint mt-3 mb-2">Leave the password empty to keep the current one. Switch an account off instead of sharing passwords when someone leaves.</p>
+        <div class="row g-3">
+        {% for f in [form.password, form.confirm_password] %}
+            <div class="col-sm-6">
+                {{ f.label(class='form-label') }}
+                {{ f(class='form-control', autocomplete='new-password') }}
+                {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    <div class="panel-body border-top d-flex justify-content-end gap-2">
+        <a class="btn btn-quiet" href="{{ url_for('user_blueprint.users') }}">Cancel</a>
+        <button class="btn btn-primary">Save user</button>
+    </div>
+</form>
+{% endblock %}

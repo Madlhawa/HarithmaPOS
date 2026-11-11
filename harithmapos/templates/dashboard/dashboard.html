@@ -30,12 +30,14 @@
 <div class="panel mb-4">
     <div class="panel-head"><h2>Finish setting up</h2></div>
     <div class="panel-body">
-        <p class="mb-2">A service invoice needs a wash bay, an employee and something to sell. Add these once and you are ready to go.</p>
+        <p class="mb-2">A service invoice needs a wash bay, an employee and something to sell. {% if is_owner() %}Add these once and you are ready to go.{% else %}Ask an owner to add these.{% endif %}</p>
+        {% if is_owner() %}
         <ol class="setup-list">
             <li class="{{ 'is-done' if setup.washbays }}"><a href="{{ url_for('washbay_blueprint.washbay') }}">Add your wash bays</a></li>
             <li class="{{ 'is-done' if setup.employees }}"><a href="{{ url_for('employee_blueprint.employee') }}">Add your employees</a></li>
             <li class="{{ 'is-done' if setup.items }}"><a href="{{ url_for('item_blueprint.item') }}">Add your services and stock items</a></li>
         </ol>
+        {% endif %}
     </div>
 </div>
 {% endif %}
@@ -53,10 +55,12 @@
         <dt>Collected today</dt>
         <dd>{{ rs(summary.collected_today) }}</dd>
     </div>
+    {% if is_owner() %}
     <div>
         <dt>Paid out today</dt>
         <dd>{{ rs(summary.paid_out_today) }}</dd>
     </div>
+    {% endif %}
     <div class="{{ 'is-alert' if summary.unpaid_total > 0 }}">
         <dt>Unpaid on finished jobs</dt>
         <dd><a href="{{ url_for('invoice_blueprint.invoice_head', status='unpaid') }}">{{ rs(summary.unpaid_total) }}</a></dd>

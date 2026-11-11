@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from harithmapos import config
 from harithmapos.billing import to_decimal
+from harithmapos.permissions import user_is_owner
 from harithmapos.textutils import format_phone
 from harithmapos.timeutils import to_local, elapsed_text, utcnow
 
@@ -115,8 +116,11 @@ def register_template_helpers(app):
         },
         LOW_STOCK_THRESHOLD=config.LOW_STOCK_THRESHOLD,
         SERVICE_STATUS_DONE=config.SERVICE_STATUS_DONE,
+        ROLES=config.ROLE_FORM_LIST,
+        # A function, so it also works inside imported macros.
+        is_owner=user_is_owner,
         # Change this when app.css / app.js change so browsers fetch the new files.
-        ASSET_VERSION='2',
+        ASSET_VERSION='3',
     )
 
     @app.context_processor

@@ -346,6 +346,7 @@ input.plate-input::placeholder { font-family: var(--h-font); font-weight: 400; f
 .side-user img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #fff; }
 .min-w-0 { min-width: 0; }
 .side-user-name { color: var(--h-side-ink-strong); font-weight: 600; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-user-role { color: var(--h-side-ink-faint); font-size: 0.75rem; line-height: 1.2; }
 .side-user a { color: var(--h-side-ink); font-size: 0.8125rem; }
 .side-user a:hover { color: var(--h-side-ink-strong); }
 

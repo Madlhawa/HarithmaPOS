@@ -1,0 +1,34 @@
+{% extends 'layout/base.html' %}
+{% block body %}
+<div class="page-head">
+    <div><h1>Users</h1><p>Who can sign in, and what they are allowed to do.</p></div>
+    <div class="page-actions"><a class="btn btn-primary" href="{{ url_for('user_blueprint.register') }}"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Add user</a></div>
+</div>
+<div class="panel">
+    <div class="table-responsive">
+    <table class="table table-list table-hover">
+        <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Added</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for u in users %}
+        <tr class="{{ 'text-muted' if not u.active }}">
+            <td><div class="cell-main">{{ u.name }}{% if u.id == current_user.id %} <span class="cell-sub">(you)</span>{% endif %}</div><div class="cell-sub">{{ u.email }}</div></td>
+            <td>{{ u.role_label }}</td>
+            <td>{% if u.active %}Can sign in{% else %}<span class="tag tag-warn">Switched off</span>{% endif %}</td>
+            <td class="nowrap">{{ u.create_dttm|local_date }}</td>
+            <td class="cell-actions">
+                <a class="btn btn-quiet btn-sm btn-icon" href="{{ url_for('user_blueprint.update_user', user_id=u.id) }}" title="Edit {{ u.name }}" aria-label="Edit {{ u.name }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+<div class="panel mt-4">
+    <div class="panel-head"><h2>What each role can do</h2></div>
+    <div class="panel-body">
+        <p class="mb-2"><strong>Counter staff</strong> can open and complete service invoices and item sales, move vehicles between stages, print receipts, send SMS updates, add and edit customers and vehicles, and record money coming in.</p>
+        <p class="mb-0"><strong>Owners</strong> can also delete or cancel invoices, customers and vehicles; see item costs and margins; add and change items, purchase orders and suppliers; manage employees, wash bays and users; and record, edit or delete money going out.</p>
+    </div>
+</div>
+{% endblock %}

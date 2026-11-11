@@ -91,7 +91,7 @@
                 <button type="submit" name="complete_invoice" value="1" class="btn btn-finish btn-lg">Complete and print receipt</button>
                 <div class="d-flex gap-2">
                     <button type="submit" name="update_invoice" value="1" class="btn btn-primary flex-fill">Save</button>
-                    <button type="submit" name="cancel_invoice" value="1" class="btn btn-danger-quiet" data-confirm="Cancel and delete invoice #{{ inv.id }}? Its items go back into stock.">Cancel invoice</button>
+                    {% if is_owner() %}<button type="submit" name="cancel_invoice" value="1" class="btn btn-danger-quiet" data-confirm="Cancel and delete invoice #{{ inv.id }}? Its items go back into stock.">Cancel invoice</button>{% endif %}
                 </div>
             </div>
         </div>

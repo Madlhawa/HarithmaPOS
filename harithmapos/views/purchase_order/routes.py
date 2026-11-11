@@ -1,7 +1,6 @@
 import logging
 
 from sqlalchemy import or_
-from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db, config
@@ -12,6 +11,7 @@ from harithmapos.views.ledger import sync_document_payment
 from harithmapos.views.purchase_order.forms import (
     PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm,
 )
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -24,7 +24,7 @@ PER_PAGE = 20
 
 
 @purchase_order_blueprint.route("/app/purchase_order/head", methods=['GET'])
-@login_required
+@owner_required
 def purchase_order_head():
     page = request.args.get('page', 1, type=int)
     query = (request.args.get('query') or '').strip()
@@ -50,7 +50,7 @@ def purchase_order_head():
 
 
 @purchase_order_blueprint.route("/app/purchase_order/head/create", methods=['GET', 'POST'])
-@login_required
+@owner_required
 def insert_purchase_order_head():
     form = PurchaseOrderHeadCreateForm()
     if request.method == 'GET':
@@ -82,7 +82,7 @@ def insert_purchase_order_head():
 
 
 @purchase_order_blueprint.route("/app/purchase_order/head/<int:purchase_order_head_id>", methods=['GET', 'POST'])
-@login_required
+@owner_required
 def purchase_order_head_detail(purchase_order_head_id):
     form = PurchaseOrderHeadUpdateForm()
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
@@ -140,7 +140,7 @@ def purchase_order_head_detail(purchase_order_head_id):
 
 
 @purchase_order_blueprint.route('/app/purchase_order/head/<int:purchase_order_head_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_purchase_order_head(purchase_order_head_id):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
     if Payment.query.filter(Payment.purchase_order_id == purchase_order_head.id).count():
@@ -167,7 +167,7 @@ def delete_purchase_order_head(purchase_order_head_id):
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/add/<int:purchase_order_head_id>", methods=['POST'])
-@login_required
+@owner_required
 def add_purchase_order_detail(purchase_order_head_id):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
     here = redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
@@ -214,7 +214,7 @@ def add_purchase_order_detail(purchase_order_head_id):
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/delete/<int:purchase_order_detail_id>", methods=['POST'])
-@login_required
+@owner_required
 def delete_purchase_order_detail(purchase_order_detail_id):
     purchase_order_detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_detail.purchase_order_head_id)
@@ -235,13 +235,13 @@ def delete_purchase_order_detail(purchase_order_detail_id):
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/quantity/add/<int:purchase_order_detail_id>", methods=['POST'])
-@login_required
+@owner_required
 def increase_quantity_purchase_order_detail(purchase_order_detail_id):
     return _change_line_quantity(purchase_order_detail_id, 1)
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/quantity/remove/<int:purchase_order_detail_id>", methods=['POST'])
-@login_required
+@owner_required
 def decrease_quantity_purchase_order_detail(purchase_order_detail_id):
     return _change_line_quantity(purchase_order_detail_id, -1)
 

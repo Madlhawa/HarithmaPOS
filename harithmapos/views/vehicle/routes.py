@@ -8,6 +8,7 @@ from harithmapos import db
 from harithmapos.models import Customer, InvoiceHead, Vehicle
 from harithmapos.timeutils import utcnow
 from harithmapos.views.vehicle.forms import VehicleForm
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -86,7 +87,7 @@ def update_vehicle(vehicle_id):
 
 
 @vehicle_blueprint.route('/app/delete_vehicle/<int:vehicle_id>', methods=['POST'])
-@login_required
+@owner_required
 def delete_vehicle(vehicle_id):
     vehicle = db.session.get(Vehicle, vehicle_id) or abort(404)
     utils.delete_record(vehicle, vehicle.number, blockers=[

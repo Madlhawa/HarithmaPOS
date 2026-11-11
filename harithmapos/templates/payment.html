@@ -3,9 +3,10 @@
 {% block body %}
 {% set here = request.full_path %}
 <div class="page-head">
-    <div><h1>Payments</h1><p>Every rupee in and out: invoice payments, supplier payments, wages and expenses.</p></div>
+    <div><h1>Payments</h1><p>{% if is_owner() %}Every rupee in and out: invoice payments, supplier payments, wages and expenses.{% else %}Money taken in at the counter.{% endif %}</p></div>
     <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#payNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Record payment</button></div>
 </div>
+{% if is_owner() %}
 <div class="toolbar">
     <div class="filter-tabs">
         <a href="{{ url_for('payment_blueprint.payment') }}" class="{{ 'active' if not direction }}">All</a>
@@ -13,6 +14,7 @@
         <a href="{{ url_for('payment_blueprint.payment', direction='out') }}" class="{{ 'active' if direction == 'out' }}">Money out</a>
     </div>
 </div>
+{% endif %}
 <div class="panel">
     {% if payments.items %}
     <div class="table-responsive">
@@ -38,6 +40,7 @@
             <td class="num text-success fw-semibold">{{ p.payment_amount|money if p.payment_direction == 'in' else '' }}</td>
             <td class="num fw-semibold">{{ p.payment_amount|money if p.payment_direction == 'out' else '' }}</td>
             <td class="cell-actions">
+                {% if is_owner() %}
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit payment" aria-label="Edit payment" data-edit-modal="#payModal"
                     data-action="{{ url_for('payment_blueprint.update_payment', payment_id=p.id) }}"
                     data-values='{{ {"payment_direction": p.payment_direction, "payment_amount": p.payment_amount|money, "payment_method": p.payment_method, "payment_type": p.payment_type, "remarks": p.remarks,
@@ -46,6 +49,7 @@
                         "customer": p.customer.name if p.customer else "", "customer_id": p.customer_id,
                         "employee": p.employee.name if p.employee else "", "employee_id": p.employee_id}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
                 {{ post_button(url_for('payment_blueprint.delete_payment', payment_id=p.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete payment', confirm='Delete this payment of ' ~ CURRENCY ~ ' ' ~ p.payment_amount|money ~ '? Any linked invoice goes back to owing it.', next=here) }}
+                {% endif %}
             </td>
         </tr>
         {% endfor %}

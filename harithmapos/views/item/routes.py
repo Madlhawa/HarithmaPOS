@@ -8,6 +8,7 @@ from harithmapos import db, config
 from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail
 from harithmapos.timeutils import utcnow
 from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -54,7 +55,7 @@ def _apply_form(item, form):
 
 
 @item_blueprint.route("/app/item/create", methods=['POST'])
-@login_required
+@owner_required
 def insert_item():
     form = ItemCreateForm()
     if form.validate_on_submit():
@@ -79,7 +80,7 @@ def insert_item():
 
 
 @item_blueprint.route("/app/item/<int:item_id>/update", methods=['POST'])
-@login_required
+@owner_required
 def update_item(item_id):
     item = Item.query.get_or_404(item_id)
     form = ItemUpdateForm()
@@ -99,7 +100,7 @@ def update_item(item_id):
 
 
 @item_blueprint.route('/app/item/<int:item_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
     utils.delete_record(item, item.name, blockers=[

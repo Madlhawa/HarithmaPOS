@@ -25,7 +25,7 @@
                 {% for v in c.vehicles %}
                     <button type="button" class="plate plate-sm" title="Edit {{ v.number }}" data-edit-modal="#vehicleModal"
                         data-action="{{ url_for('vehicle_blueprint.update_vehicle', vehicle_id=v.id) }}"
-                        data-delete="{{ url_for('vehicle_blueprint.delete_vehicle', vehicle_id=v.id) }}"
+                        {% if is_owner() %}data-delete="{{ url_for('vehicle_blueprint.delete_vehicle', vehicle_id=v.id) }}"{% endif %}
                         data-service="{{ url_for('dashboard_blueprint.dashboard', new_service_vehicle=v.id) }}"
                         data-values='{{ {"number": v.number, "make": v.make, "model": v.model, "year": v.year, "owner": c.name, "owner_id": c.id}|tojson|forceescape }}'>{{ v.number }}</button>
                 {% else %}<span class="text-muted">None yet</span>{% endfor %}
@@ -38,7 +38,7 @@
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ c.name }}" aria-label="Edit {{ c.name }}" data-edit-modal="#customerModal"
                     data-action="{{ url_for('customer_blueprint.update_customer', customer_id=c.id) }}"
                     data-values='{{ {"name": c.name, "contact": c.contact|phone, "address": c.address, "email": c.email}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                {% if c.id != -1 %}
+                {% if c.id != -1 and is_owner() %}
                 {{ post_button(url_for('customer_blueprint.delete_customer', customer_id=c.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ c.name, confirm='Delete ' ~ c.name ~ ' and their vehicles?', next=here) }}
                 {% endif %}
             </td>
@@ -100,7 +100,7 @@
 <form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
     <div class="modal-body">{{ vehicle_fields('ve') }}</div>
     <div class="modal-footer justify-content-between">
-        <button type="submit" class="btn btn-danger-quiet" form="vehicleDeleteForm">Delete vehicle</button>
+        {% if is_owner() %}<button type="submit" class="btn btn-danger-quiet" form="vehicleDeleteForm">Delete vehicle</button>{% endif %}
         <div class="d-flex gap-2"><a class="btn btn-quiet" href="#" data-service-link>Start a service</a><button class="btn btn-primary">Save vehicle</button></div>
     </div>
 </form>

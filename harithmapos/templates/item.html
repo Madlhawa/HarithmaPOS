@@ -4,9 +4,11 @@
 {% set here = request.full_path %}
 <div class="page-head">
     <div><h1>Items</h1><p>Services you charge for and the stock you sell.</p></div>
+    {% if is_owner() %}
     <div class="page-actions">
         <button type="button" class="btn btn-primary" data-edit-modal="#itemNewModal" data-values='{"quantity": "0"}'><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add item</button>
     </div>
+    {% endif %}
 </div>
 <div class="toolbar">
     {{ search_box('Search items', query, {'stock': stock}) }}
@@ -21,7 +23,7 @@
     {% if items.items %}
     <div class="table-responsive">
     <table class="table table-list table-hover">
-        <thead><tr><th>Item</th><th class="num">In stock</th><th class="num">Cost</th><th class="num">Price</th><th class="num">Margin</th><th class="num">Discount</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <thead><tr><th>Item</th><th class="num">In stock</th>{% if is_owner() %}<th class="num">Cost</th>{% endif %}<th class="num">Price</th>{% if is_owner() %}<th class="num">Margin</th>{% endif %}<th class="num">Discount</th>{% if is_owner() %}<th><span class="visually-hidden">Actions</span></th>{% endif %}</tr></thead>
         <tbody>
         {% for i in items.items %}
         {% set margin = (i.unit_price or 0) - (i.unit_cost or 0) %}
@@ -32,16 +34,18 @@
                 {% elif i.is_low_stock %}<span class="tag {{ 'tag-bad' if i.quantity <= 0 else 'tag-warn' }}">{{ i.quantity|qty }}</span>
                 {% else %}{{ i.quantity|qty }}{% endif %}
             </td>
-            <td class="num">{{ i.unit_cost|money }}</td>
+            {% if is_owner() %}<td class="num">{{ i.unit_cost|money }}</td>{% endif %}
             <td class="num fw-semibold">{{ i.unit_price|money }}</td>
-            <td class="num {{ 'text-danger' if margin < 0 }}">{{ margin|money }}</td>
+            {% if is_owner() %}<td class="num {{ 'text-danger' if margin < 0 }}">{{ margin|money }}</td>{% endif %}
             <td class="num">{% if i.discount_pct %}{{ i.discount_pct|qty }}%{% else %}<span class="text-muted">-</span>{% endif %}</td>
+            {% if is_owner() %}
             <td class="cell-actions">
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ i.name }}" aria-label="Edit {{ i.name }}" data-edit-modal="#itemModal"
                     data-action="{{ url_for('item_blueprint.update_item', item_id=i.id) }}"
                     data-values='{{ {"name": i.name, "description": i.description, "unit_of_measure": i.unit_of_measure, "quantity": i.quantity|qty if i.tracks_stock else none, "unit_cost": i.unit_cost|money, "unit_price": i.unit_price|money, "discount_pct": i.discount_pct|qty if i.discount_pct else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
                 {{ post_button(url_for('item_blueprint.delete_item', item_id=i.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ i.name, confirm='Delete ' ~ i.name ~ '?', next=here) }}
             </td>
+            {% endif %}
         </tr>
         {% endfor %}
         </tbody>

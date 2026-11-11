@@ -1,11 +1,11 @@
 import logging
 
-from flask_login import login_required
 from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db
 from harithmapos.models import InvoiceHead, WashBay
 from harithmapos.views.washbay.forms import WashBayCreateForm, WashBayUpdateForm
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -18,7 +18,7 @@ PER_PAGE = 25
 
 
 @washbay_blueprint.route("/app/washbay", methods=['GET'])
-@login_required
+@owner_required
 def washbay():
     page = request.args.get('page', 1, type=int)
     query = (request.args.get('query') or '').strip()
@@ -31,7 +31,7 @@ def washbay():
 
 
 @washbay_blueprint.route("/app/washbay/create", methods=['POST'])
-@login_required
+@owner_required
 def insert_washbay():
     form = WashBayCreateForm()
     if form.validate_on_submit():
@@ -52,7 +52,7 @@ def insert_washbay():
 
 
 @washbay_blueprint.route("/app/washbay/<int:washbay_id>/update", methods=['POST'])
-@login_required
+@owner_required
 def update_washbay(washbay_id):
     washbay = WashBay.query.get_or_404(washbay_id)
     form = WashBayUpdateForm()
@@ -73,7 +73,7 @@ def update_washbay(washbay_id):
 
 
 @washbay_blueprint.route('/app/washbay/<int:washbay_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_washbay(washbay_id):
     washbay = WashBay.query.get_or_404(washbay_id)
     utils.delete_record(washbay, washbay.name, blockers=[

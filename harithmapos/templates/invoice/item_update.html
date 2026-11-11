@@ -42,10 +42,12 @@
                 </div>
             </div>
         </form>
+        {% if is_owner() %}
         <form method="post" action="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=inv.id) }}" data-confirm="Delete item sale #{{ inv.id }}? Its items go back into stock." class="text-end">
             {{ csrf() }}
             <button type="submit" class="btn btn-danger-quiet btn-sm">Delete this sale</button>
         </form>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

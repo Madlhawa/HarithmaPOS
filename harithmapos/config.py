@@ -128,3 +128,15 @@ UOM_FORM_LIST = [
     ('Cubic Foot', 'Cubic Foot'),
     ('Cubic Meter', 'Cubic Meter')
 ]
+
+# Who can do what. Owners can do everything; staff run the counter (services,
+# item sales, customers, money in) but cannot delete records, see costs and
+# margins, change stock, suppliers, employees, wash bays or users, or record
+# money going out.
+ROLE_OWNER = 'owner'
+ROLE_STAFF = 'staff'
+
+ROLE_FORM_LIST = [
+    (ROLE_STAFF, 'Counter staff'),
+    (ROLE_OWNER, 'Owner'),
+]

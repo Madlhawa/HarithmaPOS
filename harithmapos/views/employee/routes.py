@@ -1,12 +1,12 @@
 import logging
 
-from flask_login import login_required
 from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db
 from harithmapos.models import Employee, InvoiceHead, Payment
 from harithmapos.timeutils import utcnow
 from harithmapos.views.employee.forms import EmployeeCreateForm, EmployeeUpdateForm
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -19,7 +19,7 @@ PER_PAGE = 25
 
 
 @employee_blueprint.route("/app/employee", methods=['GET'])
-@login_required
+@owner_required
 def employee():
     page = request.args.get('page', 1, type=int)
     query = (request.args.get('query') or '').strip()
@@ -32,7 +32,7 @@ def employee():
 
 
 @employee_blueprint.route("/app/employee/create", methods=['POST'])
-@login_required
+@owner_required
 def insert_employee():
     form = EmployeeCreateForm()
     if form.validate_on_submit():
@@ -56,7 +56,7 @@ def insert_employee():
 
 
 @employee_blueprint.route("/app/employee/<int:employee_id>/update", methods=['POST'])
-@login_required
+@owner_required
 def update_employee(employee_id):
     employee = Employee.query.get_or_404(employee_id)
     form = EmployeeUpdateForm()
@@ -81,7 +81,7 @@ def update_employee(employee_id):
 
 
 @employee_blueprint.route('/app/employee/<int:employee_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_employee(employee_id):
     employee = Employee.query.get_or_404(employee_id)
     utils.delete_record(employee, employee.name, blockers=[

@@ -17,6 +17,7 @@ from harithmapos.views.invoice.forms import (
     ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm, InvoiceStatusForm,
 )
 from harithmapos.views.ledger import sync_document_payment
+from harithmapos.permissions import owner_required, user_is_owner, OWNER_ONLY_MESSAGE
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -222,6 +223,9 @@ def invoice_head_detail(invoice_head_id):
             return redirect(here)
 
         if form.cancel_invoice.data:
+            if not user_is_owner():
+                flash(OWNER_ONLY_MESSAGE, category='warning')
+                return redirect(here)
             if _delete_service_invoice(invoice_head):
                 return redirect(url_for('invoice_blueprint.invoice_head'))
             return redirect(here)
@@ -379,7 +383,7 @@ def print_item_invoice_head(item_invoice_head_id):
 # ---------------------------------------------------------------------------
 
 @invoice_blueprint.route('/app/invoice/head/<int:invoice_head_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_invoice_head(invoice_head_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
     _delete_service_invoice(invoice_head)
@@ -387,7 +391,7 @@ def delete_invoice_head(invoice_head_id):
 
 
 @invoice_blueprint.route('/app/item_invoice/head/<int:item_invoice_head_id>/delete', methods=['POST'])
-@login_required
+@owner_required
 def delete_item_invoice_head(item_invoice_head_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
     if Payment.query.filter(Payment.item_invoice_id == item_invoice_head.id).count():

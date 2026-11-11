@@ -48,8 +48,8 @@ nosetests.xml
 coverage.xml
 *.coveralls.yml
 
-# Flask migrations folder
-migrations/
+# Flask migrations are tracked so schema changes deploy with the code.
+migrations/**/__pycache__/
 
 # Docker related
 .docker/

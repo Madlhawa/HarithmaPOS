@@ -13,10 +13,15 @@
                 {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             </div>
         {% endfor %}
+            <div class="col-sm-6">
+                {{ form.role.label(class='form-label') }}
+                {{ form.role(class='form-select') }}
+                <div class="form-hint">Counter staff run services and sales and take money in. Owners can also delete records, see costs, manage stock, staff and users, and record money going out.</div>
+            </div>
         </div>
     </div>
     <div class="panel-body border-top d-flex justify-content-end gap-2">
-        <a class="btn btn-quiet" href="{{ url_for('user_blueprint.account') }}">Cancel</a>
+        <a class="btn btn-quiet" href="{{ url_for('user_blueprint.users') }}">Cancel</a>
         <button class="btn btn-primary">Add user</button>
     </div>
 </form>

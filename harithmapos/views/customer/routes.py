@@ -10,6 +10,7 @@ from harithmapos.models import Customer, InvoiceHead, ItemInvoiceHead, Payment, 
 from harithmapos.textutils import normalize_phone
 from harithmapos.timeutils import utcnow
 from harithmapos.views.customer.forms import CustomerForm, QuickRegisterForm
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -136,7 +137,7 @@ def update_customer(customer_id):
 
 
 @customer_blueprint.route('/app/delete_customer/<int:customer_id>', methods=['POST'])
-@login_required
+@owner_required
 def delete_customer(customer_id):
     customer = db.session.get(Customer, customer_id) or abort(404)
     if customer.id == GENERAL_CUSTOMER_ID:
