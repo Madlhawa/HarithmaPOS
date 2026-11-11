@@ -93,10 +93,6 @@ su -s /bin/bash - $APP_USER -c "cd /tmp && git clone -b $GIT_BRANCH $GIT_REPO $A
 chown -R $APP_USER:$APP_USER $APP_DIR
 cd $APP_DIR
 
-# Make update.sh and rollback.sh executable
-chmod +x $APP_DIR/deployment/update.sh
-chmod +x $APP_DIR/deployment/rollback.sh
-
 # Ensure we're in the application directory for subsequent operations
 if [ ! -d "$APP_DIR" ]; then
     echo -e "${RED}❌ Application directory $APP_DIR does not exist!${NC}"
