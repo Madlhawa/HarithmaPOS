@@ -235,7 +235,7 @@
         @media (max-width: 760px) {
             body { font-size: 16px; }
             .menu-btn { display: inline-flex; }
-            .nav { display: none; position: absolute; left: 0; right: 0; top: 72px; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 20px 22px; background: rgba(7, 18, 38, 0.97); border-bottom: 1px solid var(--dark-line); }
+            .nav { display: none; position: absolute; left: 0; right: 0; top: 72px; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 20px 22px; background: var(--ink); border-bottom: 1px solid var(--dark-line); }
             .top.open .nav { display: flex; }
             .nav a.link { padding: 14px 0; border-bottom: 1px solid var(--dark-line); font-size: 1.050rem; }
             .nav a.link::after { display: none; }
@@ -248,6 +248,7 @@
             .services, .steps, .points { grid-template-columns: 1fr; }
             .service { aspect-ratio: 4 / 3; }
             .about-pics { padding: 0 36px 36px 0; }
+            .about-pics .big { aspect-ratio: 1; }
             .head { margin-bottom: 32px; }
         }
         @media (prefers-reduced-motion: reduce) {
