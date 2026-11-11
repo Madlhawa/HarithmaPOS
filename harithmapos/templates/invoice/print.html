@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+    /* Sized for an 80 mm receipt printer; also fine on A4. */
+    body { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; color: #000; margin: 0; }
+    .r { width: 72mm; margin: 0 auto; padding: 4mm 0; }
+    h1 { font-size: 15px; text-align: center; margin: 0; }
+    .c { text-align: center; }
+    .muted { color: #333; }
+    hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 2px 0; vertical-align: top; }
+    .n { text-align: right; white-space: nowrap; }
+    .tot td { font-size: 14px; font-weight: 700; border-top: 1px solid #000; border-bottom: 3px double #000; padding: 4px 0; }
+    .plate { display: inline-block; border: 1.5px solid #000; border-radius: 3px; padding: 0 5px; font-weight: 700; letter-spacing: .04em; }
+    .bar { text-align: center; margin: 12px 0; }
+    @media print { .bar { display: none; } @page { margin: 0; } }
+</style>
+</head>
+<body>
+<div class="bar"><button onclick="window.print()">Print</button> <button onclick="window.close()">Close</button></div>
+<div class="r">
+    <h1>{{ BUSINESS.name }}</h1>
+    <div class="c muted">{{ BUSINESS.address }}{% if BUSINESS.phone %}<br>{{ BUSINESS.phone }}{% endif %}</div>
+    <hr>
+    <table>
+        <tr><td>{{ 'Invoice' if kind == 'service' else 'Sale' }} #{{ head.id }}</td><td class="n">{{ head.created_dttm|local_dt('%d %b %Y %I:%M %p') }}</td></tr>
+        {% if head.customer %}<tr><td colspan="2">Customer: {{ head.customer.name }}</td></tr>{% endif %}
+        {% if kind == 'service' %}
+        <tr><td>Vehicle: <span class="plate">{{ head.vehicle.number }}</span></td><td class="n">{{ head.washbay.name }}</td></tr>
+        {% if head.current_milage %}<tr><td>Mileage</td><td class="n">{{ head.current_milage|km }} km</td></tr>{% endif %}
+        {% endif %}
+    </table>
+    <hr>
+    <table>
+        {% for d in details %}
+        <tr><td colspan="2">{{ d.item.name }}</td></tr>
+        <tr><td class="muted">&nbsp;&nbsp;{{ d.quantity|qty }} x {{ (d.total_price / d.quantity if d.quantity else 0)|money }}{% if (d.discount_amount or 0) > 0 %} (-{{ d.discount_amount|money }}){% endif %}</td><td class="n">{{ d.gross_price|money }}</td></tr>
+        {% endfor %}
+    </table>
+    <hr>
+    <table>
+        <tr><td>Subtotal</td><td class="n">{{ head.total_price|money }}</td></tr>
+        {% if (head.total_discount or 0) > 0 %}<tr><td>Discounts</td><td class="n">-{{ head.total_discount|money }}</td></tr>{% endif %}
+        <tr class="tot"><td>Total {{ CURRENCY }}</td><td class="n">{{ head.gross_price|money }}</td></tr>
+        <tr><td>Paid ({{ PAYMENT_METHOD_LABELS.get(head.payment_method, head.payment_method or 'Cash') }})</td><td class="n">{{ head.paid_amount|money }}</td></tr>
+        {% if head.balance > 0 %}<tr><td><b>Balance due</b></td><td class="n"><b>{{ head.balance|money }}</b></td></tr>
+        {% elif head.balance < 0 %}<tr><td>Change</td><td class="n">{{ (0 - head.balance)|money }}</td></tr>{% endif %}
+    </table>
+    {% if kind == 'service' and head.next_milage_in and head.next_milage %}
+    <hr><div class="c"><b>Next service at {{ head.next_milage|km }} km</b></div>
+    {% endif %}
+    <hr>
+    <div class="c">Thank you, come again!</div>
+</div>
+</body>
+</html>

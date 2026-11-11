@@ -1,168 +1,61 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
-{% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
-                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('employee_blueprint.employee') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New employee</button>
-            </div>
-        </div>
+{% from 'layout/macros.html' import csrf, field, modal, pager, search_box, post_button, rs %}
+{% block body %}
+{% set here = request.full_path %}
+<div class="page-head">
+    <div><h1>Employees</h1><p>The people who do the work. Each service invoice is assigned to one.</p></div>
+    <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#empNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add employee</button></div>
+</div>
+<div class="toolbar">{{ search_box('Search employees', query) }}</div>
+<div class="panel">
+    {% if employees.items %}
+    <div class="table-responsive">
+    <table class="table table-list table-hover">
+        <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th>Joined</th><th class="num">Wage</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for e in employees.items %}
+        <tr>
+            <td><div class="cell-main">{{ e.name }}</div>{% if e.address %}<div class="cell-sub">{{ e.address }}</div>{% endif %}</td>
+            <td>{{ e.designation or '-' }}</td>
+            <td class="nowrap">{{ e.contact|phone or '-' }}</td>
+            <td class="nowrap">{{ e.joined_date.strftime('%d %b %Y') if e.joined_date else '-' }}</td>
+            <td class="num">{{ e.wage|money if e.wage is not none else '-' }}</td>
+            <td class="cell-actions">
+                <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ e.name }}" aria-label="Edit {{ e.name }}" data-edit-modal="#empModal"
+                    data-action="{{ url_for('employee_blueprint.update_employee', employee_id=e.id) }}"
+                    data-values='{{ {"name": e.name, "contact": e.contact|phone, "address": e.address, "designation": e.designation, "joined_date": e.joined_date.isoformat() if e.joined_date else "", "wage": e.wage|money if e.wage is not none else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                {{ post_button(url_for('employee_blueprint.delete_employee', employee_id=e.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ e.name, confirm='Delete ' ~ e.name ~ '?', next=here) }}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
     </div>
-    <!-- Modal for inserting the employee -->
-    <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Add Employee</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('employee_blueprint.insert_employee')}}" method="POST">
-                    {{ employee_create_form.hidden_tag() }}
-                    <div class="form-group">
-                        {{ employee_create_form.name.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.name(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.contact.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.contact(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.address.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.address(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.designation.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.designation(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.joined_date.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.joined_date(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.wage.label(class="form-control-label mt-1") }}
-                        {{ employee_create_form.wage(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ employee_create_form.submit(class="btn btn-primary mt-4") }}
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-        </div>
+    {{ pager(employees, 'employee_blueprint.employee', 'employees', query=query or none) }}
+    {% else %}
+    <div class="empty"><i class="bi bi-person-badge" aria-hidden="true"></i><h3>{{ 'No employee matches "' ~ query ~ '"' if query else 'No employees yet' }}</h3><p>{{ 'Check the spelling.' if query else 'Add the people who work at the station.' }}</p></div>
+    {% endif %}
+</div>
+{% macro emp_fields(p) %}
+    {{ field('name', 'Name', prefix=p, required=true, attrs={'data-autofocus': '', 'maxlength': 100}) }}
+    <div class="row g-3">
+        <div class="col-sm-6">{{ field('designation', 'Designation', prefix=p, placeholder='Washer, mechanic', wrap='', attrs={'maxlength': 40}) }}</div>
+        <div class="col-sm-6">{{ field('contact', 'Phone', prefix=p, kind='phone', wrap='') }}</div>
+        <div class="col-sm-6">{{ field('joined_date', 'Joined date', prefix=p, kind='date', wrap='') }}</div>
+        <div class="col-sm-6">{{ field('wage', 'Wage (' ~ CURRENCY ~ ')', prefix=p, kind='money', wrap='') }}</div>
     </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Contact</th>
-                    <th scope="col">Address</th>
-                    <th scope="col">Designation</th>
-                    <th scope="col">Join Date</th>
-                    <th scope="col">Day Wage</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for employee in employees.items %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{employee.id}}</td>
-                        <td class="align-middle">{{employee.name}}</td>
-                        <td class="align-middle">{{employee.contact}}</td>
-                        <td class="align-middle">{{employee.address}}</td>
-                        <td class="align-middle">{{employee.designation}}</td>
-                        <td class="align-middle">{{employee.joined_date}}</td>
-                        <td class="align-middle">{{employee.wage}}</td>
-                        <td class="text-end">
-                            <a href="{{ url_for('employee_blueprint.update_employee', employee_id=employee.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update employee" data-bs-toggle="modal" data-bs-target="#update_employee{{employee.id}}">Edit</a>
-                            <a href="{{ url_for('employee_blueprint.delete_employee', employee_id=employee.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete employee" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                
-                    <!-- Model for updating employee -->
-                    <div id="update_employee{{employee.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Update employee</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('employee_blueprint.update_employee', employee_id=employee.id)}}" method="POST">
-                                        {{ employee_update_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            <input type="hidden"  name="id" value="{{employee.id}}">
-                                            {{ employee_update_form.name.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.name(class="form-control form-control-lg", value=employee.name) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.contact.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.contact(class="form-control form-control-lg", value=employee.contact) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.address.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.address(class="form-control form-control-lg", value=employee.address) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.designation.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.designation(class="form-control form-control-lg", value=employee.designation) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.joined_date.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.joined_date(class="form-control form-control-lg", value=employee.joined_date) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.wage.label(class="form-control-label mt-1") }}
-                                            {{ employee_update_form.wage(class="form-control form-control-lg", value=employee.wage) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ employee_update_form.submit(class="btn btn-warning mt-4") }}
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('employee_blueprint.employee', page=employees.prev_num, query=query) }}">Previous</a></li>
-                {% for page_number in employees.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_number %}
-                        {% if employees.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('employee_blueprint.employee', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('employee_blueprint.employee', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li class="page-item "><a class="page-link" href="#">...</a></li>
-                    {% endif %}
-                {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('employee_blueprint.employee', page=employees.next_num, query=query) }}">Next</a></li>
-            </ul>
-        </nav>
-    </div>
+    {{ field('address', 'Address', prefix=p, wrap='mt-3', attrs={'maxlength': 255}) }}
+{% endmacro %}
+{% call modal('empNewModal', 'Add employee') %}
+<form method="post" action="{{ url_for('employee_blueprint.insert_employee') }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ emp_fields('en') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Add employee</button></div>
+</form>
+{% endcall %}
+{% call modal('empModal', 'Edit employee') %}
+<form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ emp_fields('ee') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save employee</button></div>
+</form>
+{% endcall %}
 {% endblock %}

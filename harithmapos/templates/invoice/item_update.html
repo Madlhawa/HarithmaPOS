@@ -1,341 +1,51 @@
 {% extends 'layout/base.html' %}
-{% block title %} Item Invoice - POS {% endblock %}
+{% from 'layout/macros.html' import csrf, rs, autocomplete, field, payment_choice, totals %}
 {% block body %}
-
-<div class="container-fluid">
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>{{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <div class="row g-4">
-        <!-- Left Side: POS Item Entry & Items List -->
-        <div class="col-lg-8">
-        <!-- Quick Item Entry -->
-        <div class="card shadow-sm mb-3">
-                <div class="card-body py-3">
-                    <form action="{{url_for('invoice_blueprint.add_item_invoice_detail', item_invoice_head_id=item_invoice_head.id)}}" method="POST">
-                        {{ item_invoice_detail_create_form.item_id(class="form-control", id="itemId") }}
-                        {{ item_invoice_detail_create_form.hidden_tag() }}
-                        <div class="row g-2">
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <span class="input-group-text">Item</span>
-                                    {{ item_invoice_detail_create_form.item(class="form-control", id="itemSearch", placeholder="Type to search item...", autocomplete="off") }}
-                                </div>
-                                <ul class="dropdown-menu w-100" id="itemDropdown" aria-labelledby="itemSearch"></ul>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="input-group">
-                                    <span class="input-group-text">Qty</span>
-                                    {{ item_invoice_detail_create_form.quantity(class="form-control", placeholder="1", value="1") }}
-                                    <span class="input-group-text" id="uomDisplay">-</span>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                {{ item_invoice_detail_create_form.submit(class="btn btn-success btn-sm w-100 h-100") }}
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Items List -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Invoice Items</h6>
-                        <small>{{ item_invoice_details.count() }} items added</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge bg-light text-dark">
-                            Total: {{ '{:,}'.format(item_invoice_head.gross_price) }}
-                        </span>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% if item_invoice_details.count() > 0 %}
-                        <div class="table-responsive">
-                            <table class="table table-modern table-hover mb-0">
-                                <thead class="bg-secondary bg-opacity-10">
-                                    <tr>
-                                        <th scope="col" class="text-center" style="width: 5%;">ID</th>
-                                        <th scope="col" style="width: 54%;">Item Name</th>
-                                        <th scope="col" class="text-center" style="width: 12%;">Quantity</th>
-                                        <th scope="col" class="text-end" style="width: 8%;">U Price</th>
-                                        <th scope="col" class="text-end" style="width: 10%;">Gross</th>
-                                        <th scope="col" class="text-end" style="width: 11%;">Net</th>
-                                        <th scope="col" class="text-center" style="width: 5%;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for item_invoice_detail in item_invoice_details.all() %}
-                                    <tr>
-                                        <td class="text-center fw-medium text-muted align-middle">{{ item_invoice_detail.id }}</td>
-                                        <td>
-                                            <div class="fw-medium">{{ item_invoice_detail.item.name }}</div>
-                                            <small class="text-muted">{{ item_invoice_detail.item.description }}</small>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="d-flex align-items-center justify-content-center gap-2">
-                                                <span class="badge bg-primary fs-6 px-2 py-1">{{ '{:.3f}'.format(item_invoice_detail.quantity) }}</span>
-                                                <div class="btn-group-vertical btn-group-sm">
-                                                    <a href="{{ url_for('invoice_blueprint.increase_quantity_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id) }}" 
-                                                       class="btn btn-outline-success btn-sm">
-                                                        <i class="bi bi-plus"></i>
-                                                    </a>
-                                                    <a href="{{ url_for('invoice_blueprint.decrease_quantity_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id) }}" 
-                                                       class="btn btn-outline-warning btn-sm">
-                                                        <i class="bi bi-dash"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-end fw-medium align-middle">{{ '{:,}'.format(item_invoice_detail.item.unit_price) }}</td>
-                                        <td class="text-end fw-bold text-primary align-middle">
-                                            <div class="position-relative d-inline-block">
-                                                {% if item_invoice_detail.discount_amount > 0 %}
-                                                <span class="badge bg-danger text-white position-absolute" 
-                                                      style="top: -13px; right: -20px; font-size: 0.7rem; z-index: 10;"
-                                                      data-bs-toggle="tooltip" 
-                                                      title="Discount: {{ '{:,}'.format(item_invoice_detail.discount_amount) }}">
-                                                    {{ '{:.1f}'.format((item_invoice_detail.discount_amount / item_invoice_detail.total_price) * 100) }}%
-                                                </span>
-                                                {% endif %}
-                                                <span>{{ '{:,}'.format(item_invoice_detail.total_price) }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="text-end fw-medium text-success align-middle">{{ '{:,}'.format(item_invoice_detail.total_price - item_invoice_detail.discount_amount) }}</td>
-                                        <td class="text-center align-middle">
-                                            <a href="{{url_for('invoice_blueprint.delete_item_invoice_detail', item_invoice_detail_id=item_invoice_detail.id)}}" 
-                                               class="btn btn-outline-danger" 
-                                               data-bs-toggle="tooltip" title="Remove Item"
-                                               onclick="return confirm('Remove this item from invoice?')">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="bi bi-list-ul fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No items added yet</h5>
-                            <p class="text-muted">Start by adding items using the search above</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Right Side: Invoice Details & Controls -->
-        <div class="col-lg-4">
-            <div class="sticky-top" style="top: 20px; z-index: 10;">
-            <!-- Header Section -->
-            <div class="card bg-primary text-white mb-4">
-                <div class="card-body py-3">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h4 class="mb-1 text-white">
-                                <i class="bi bi-receipt me-2"></i>Item Invoice #{{ item_invoice_head.id }}
-                            </h4>
-                            <div class="d-flex align-items-center gap-3 mt-2">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-person me-2 text-white"></i>
-                                    <span class="fw-medium text-white">{{ item_invoice_head.customer.name }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <div class="d-flex flex-column align-items-end gap-2">
-                                <span class="badge bg-light text-dark fs-6 px-3 py-2">
-                                    <i class="bi bi-calendar me-1"></i>{{ item_invoice_head.created_dttm.strftime('%m/%d/%Y %I:%M %p') }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Invoice Configuration</h6>
-                </div>
-                <div class="card-body">
-                    <form action="{{url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id)}}" method="POST">
-                        {{ item_invoice_head_update_form.hidden_tag() }}
-                        {{ item_invoice_head_update_form.customer_id(class="form-control", id="customerId", value=item_invoice_head.customer.id) }}
-
-                        <!-- Customer Row -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-12">
-                                <div class="input-group position-relative">
-                                    <span class="input-group-text"><i class="bi bi-person"></i> Customer</span>
-                                    {{ item_invoice_head_update_form.customer(class="form-control", id="customerSearch", placeholder="Search customer...", autocomplete="off", value=item_invoice_head.customer.name) }}
-                                    <ul class="dropdown-menu position-absolute w-100" id="customerDropdown" aria-labelledby="customerSearch" style="top: 100%; left: 0; z-index: 1000;"></ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <!-- Payment Method -->
-                        <div class="mb-4">
-                            <label class="form-label fw-medium">Payment Method</label>
-                            <div class="btn-group w-100" role="group">
-                                {% for payment_method_number, payment_method in payment_method_form_list %}
-                                <input type="radio" class="btn-check" name="payment_method" id="paymentMethodRadio{{ payment_method_number }}" value="{{ payment_method_number }}" autocomplete="off" {{ "checked" if item_invoice_head.payment_method == payment_method_number or (not item_invoice_head.payment_method and payment_method_number == 'cash') }}>
-                                <label class="btn btn-outline-secondary" for="paymentMethodRadio{{ payment_method_number }}">{{ payment_method }}</label>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <!-- Financial Information Row -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-6">
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-percent"></i> Discount</span>
-                                    {{ item_invoice_head_update_form.discount_pct(class="form-control", value=item_invoice_head.discount_pct) }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="input-group">
-                                    <span class="input-group-text">Payment</span>
-                                    {{ item_invoice_head_update_form.paid_amount(class="form-control", value=item_invoice_head.paid_amount) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <!-- Action Buttons -->
-                        <div class="row g-1 mb-2">
-                            <div class="col-4">
-                                {{ item_invoice_head_update_form.update_item_invoice(class="btn btn-primary w-100") }}
-                            </div>
-                            <div class="col-4">
-                                {{ item_invoice_head_update_form.complete_item_invoice(class="btn btn-success w-100") }}
-                            </div>
-                            <div class="col-4">
-                                <a href="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=item_invoice_head.id) }}" 
-                                   class="btn btn-danger w-100" 
-                                   onclick="return confirm('Are you sure you want to delete this invoice? This action cannot be undone.')">
-                                    <i class="bi bi-trash me-1"></i>Delete
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Error Messages -->
-                        {% if item_invoice_head_update_form.errors %}
-                        <div class="mt-3">
-                            {% for field, errors in item_invoice_head_update_form.errors.items() %}
-                                {% for error in errors %}
-                                    <div class="alert alert-danger alert-sm">{{ error }}</div>
-                                {% endfor %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Invoice Summary -->
-            {% if item_invoice_details.count() > 0 %}
-            <div class="card shadow-sm mt-3">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Invoice Summary</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <div class="text-center p-2 bg-secondary bg-opacity-10 rounded">
-                                <h6 class="text-muted mb-1 small">Gross Total</h6>
-                                <h5 class="mb-0">{{ '{:,}'.format(item_invoice_head.total_price) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-center p-2 bg-warning bg-opacity-10 rounded">
-                                <h6 class="text-muted mb-1 small">Discount</h6>
-                                <h5 class="mb-0 text-warning">{{ '{:,}'.format(item_invoice_head.total_discount) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-center p-2 bg-success text-white rounded">
-                                <h6 class="mb-1 small">Net Total</h6>
-                                <h4 class="mb-0">{{ '{:,}'.format(item_invoice_head.gross_price) }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            </div> <!-- End sticky wrapper -->
-        </div>
+{% set inv = item_invoice_head %}
+<div class="page-head">
+    <div>
+        <h1>Item sale #{{ inv.id }}</h1>
+        <p>{{ inv.customer.name if inv.customer else 'Walk-in' }}, started {{ inv.created_dttm|local_dt }}</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-quiet" href="{{ url_for('invoice_blueprint.print_item_invoice_head', item_invoice_head_id=inv.id) }}" target="_blank" rel="noopener"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</a>
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        // Initialize dynamic dropdowns
-        setupDynamicDropdown("itemSearch", "itemDropdown", "/app/search/items", "itemId");
-        setupDynamicDropdown("customerSearch", "customerDropdown", "/app/search/customers", "customerId", true);
-        
-        // Fix dropdown positioning for customer
-        const customerDropdown = document.getElementById('customerDropdown');
-        
-        // Position dropdown below the input field
-        if (customerDropdown) {
-            customerDropdown.style.position = 'absolute';
-            customerDropdown.style.top = '100%';
-            customerDropdown.style.left = '0';
-            customerDropdown.style.zIndex = '1000';
-            customerDropdown.style.width = '100%';
-            customerDropdown.style.maxHeight = '200px';
-            customerDropdown.style.overflowY = 'auto';
-        }
-        
-        // Handle form submission to ensure proper ID values
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            // Clean any empty hidden fields if search fields have text but no ID
-            const customerSearch = document.getElementById('customerSearch');
-            const customerIdField = document.getElementById('customerId');
-            
-            if (customerSearch.value && !customerIdField.value) {
-                customerIdField.value = '';
-            }
-        });
-        
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-        
-        // Auto-focus on item search
-        document.getElementById('itemSearch').focus();
-        
-        // Quick quantity adjustment with keyboard
-        document.addEventListener('keydown', function(e) {
-            if (e.target.id === 'itemSearch' && e.key === 'Enter') {
-                e.preventDefault();
-                document.querySelector('input[name="quantity"]').focus();
-            }
-        });
-        
-    });
-</script>
+<div class="job">
+    <div>
+        {% with add_url=url_for('invoice_blueprint.add_item_invoice_detail', item_invoice_head_id=inv.id), lines=item_invoice_details,
+                inc_endpoint='invoice_blueprint.increase_quantity_item_invoice_detail', dec_endpoint='invoice_blueprint.decrease_quantity_item_invoice_detail',
+                del_endpoint='invoice_blueprint.delete_item_invoice_detail', line_arg='item_invoice_detail_id' %}
+        {% include 'invoice/_lines.html' %}
+        {% endwith %}
+    </div>
 
+    <div class="job-side">
+        <form method="post" action="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=inv.id) }}">
+            {{ csrf() }}
+            <div class="panel">
+                <div class="panel-head"><h2>Bill</h2></div>
+                <div class="panel-body">
+                    {{ autocomplete('customer', 'Customer', url_for('search_blueprint.search_customers'), prefix='bill', value=inv.customer.name if inv.customer else '', id_value=inv.customer_id, optional=true, placeholder='Name or phone') }}
+                    {{ totals(inv) }}
+                    <div class="row g-3 mt-1">
+                        <div class="col-6">{{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='') }}</div>
+                        <div class="col-6">{{ field('paid_amount', 'Amount paid', prefix='bill', kind='money', value=inv.paid_amount|money if inv.paid_amount else '', placeholder='0.00', wrap='') }}</div>
+                    </div>
+                    <label class="form-label mt-3">Paid by</label>
+                    {{ payment_choice(inv.payment_method) }}
+                </div>
+                <div class="panel-body border-top d-grid gap-2">
+                    <button type="submit" name="complete_item_invoice" value="1" class="btn btn-finish btn-lg">Complete and print receipt</button>
+                    <button type="submit" name="update_item_invoice" value="1" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </form>
+        <form method="post" action="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=inv.id) }}" data-confirm="Delete item sale #{{ inv.id }}? Its items go back into stock." class="text-end">
+            {{ csrf() }}
+            <button type="submit" class="btn btn-danger-quiet btn-sm">Delete this sale</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

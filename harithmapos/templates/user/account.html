@@ -1,73 +1,32 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% block content_class %}content-narrow{% endblock %}
 {% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body d-flex flex-column align-items-center text-center">
-                    <img class="rounded-circle mb-3" width="150px" src="{{ user_image_file }}">
-                    <h4 class="font-weight-bold mb-2">{{ current_user.name }}</h4>
-                    <span class="text-muted">{{ current_user.email }}</span>
-                </div>
+<div class="page-head">
+    <div><h1>Your account</h1><p>{{ current_user.email }}</p></div>
+    <div class="page-actions"><a class="btn btn-quiet" href="{{ url_for('user_blueprint.register') }}"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Add a user</a></div>
+</div>
+<form class="panel" method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="panel-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <img src="{{ user_image_file }}" alt="" width="64" height="64" style="border-radius:50%;object-fit:cover;background:#fff">
+            <div class="flex-grow-1">
+                {{ form.image.label(class='form-label') }}
+                {{ form.image(class='form-control', accept='image/png,image/jpeg') }}
+                {% for e in form.image.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             </div>
         </div>
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}" role="alert">
-                                {{message}}
-                            </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-                <div class="row mt-3">
-                    <form method="POST" action="" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-                        <fieldset class="form-group">
-                            <div class="form-group">
-                                {{ form.name.label(class="form-control-label") }}
-                                {{ form.name(class="form-control form-control-lg") }}
-                            </div>
-                            <div class="form-group">
-                                {{ form.email.label(class="form-control-label mt-1") }}
-                                {% if form.email.errors %}
-                                    {{ form.email(class="form-control form-control-lg is-invalid") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.email.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.email(class="form-control form-control-lg") }}
-                                {% endif %}
-                            </div>
-                            <div class="form-group">
-                                {{ form.image.label(for="formFile", class="form-label mt-4 mb-2") }}<br>
-                                {{ form.image(class="form-control", type="file", id="formFile") }}<br>
-                                {% if form.image.errors %}
-                                    {% for error in form.image.errors %}
-                                        <small class="text-danger mt-2">{{ error }}</small><br>
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                            <div class="form-group">
-                                {{ form.ui_theme.label(class="form-control-label") }}
-                                {{ form.ui_theme(class="form-control form-control-lg") }}
-                            </div>
-                        </fieldset>
-                        <div class="form-group">
-                            <div class="text-center">
-                                {{ form.submit(class="btn btn-warning profile-button mt-3") }}
-                            </div>
-                        </div>
-                    </form>
-                </div>
+        <div class="row g-3">
+            {% for f in [form.name, form.email] %}
+            <div class="col-sm-6">
+                {{ f.label(class='form-label') }}
+                {{ f(class='form-control') }}
+                {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             </div>
+            {% endfor %}
+            <div class="col-sm-6">{{ form.ui_theme.label(class='form-label') }}{{ form.ui_theme(class='form-select') }}</div>
         </div>
     </div>
-</div>
-{% endblock body %}
+    <div class="panel-body border-top d-flex justify-content-end"><button class="btn btn-primary">Save account</button></div>
+</form>
+{% endblock %}

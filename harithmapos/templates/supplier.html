@@ -1,138 +1,55 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
-{% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
-                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('supplier_blueprint.supplier') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New supplier</button>
-            </div>
-        </div>
+{% from 'layout/macros.html' import csrf, field, modal, pager, search_box, post_button %}
+{% block body %}
+{% set here = request.full_path %}
+<div class="page-head">
+    <div><h1>Suppliers</h1><p>Where you buy oil, filters and other stock.</p></div>
+    <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add supplier</button></div>
+</div>
+<div class="toolbar">{{ search_box('Search suppliers', query) }}</div>
+<div class="panel">
+    {% if suppliers.items %}
+    <div class="table-responsive">
+    <table class="table table-list table-hover">
+        <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th class="num">Orders</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for s in suppliers.items %}
+        <tr>
+            <td class="cell-main">{{ s.name }}</td>
+            <td class="nowrap">{{ s.contact|phone or '-' }}</td>
+            <td class="cell-sub">{{ s.address or '' }}</td>
+            <td class="num"><a href="{{ url_for('purchase_order_blueprint.purchase_order_head', query=s.name) }}">{{ s.purchse_orders|length }}</a></td>
+            <td class="cell-actions">
+                <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ s.name }}" aria-label="Edit {{ s.name }}" data-edit-modal="#supModal"
+                    data-action="{{ url_for('supplier_blueprint.update_supplier', supplier_id=s.id) }}"
+                    data-values='{{ {"name": s.name, "contact": s.contact|phone, "address": s.address}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                {{ post_button(url_for('supplier_blueprint.delete_supplier', supplier_id=s.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ s.name, confirm='Delete ' ~ s.name ~ '?', next=here) }}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
     </div>
-    <!-- Modal for inserting the supplier -->
-    <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Add supplier</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('supplier_blueprint.insert_supplier')}}" method="POST">
-                    {{ supplier_create_form.hidden_tag() }}
-                    <div class="form-group">
-                        {{ supplier_create_form.name.label(class="form-control-label mt-1") }}
-                        {{ supplier_create_form.name(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ supplier_create_form.contact.label(class="form-control-label mt-1") }}
-                        {{ supplier_create_form.contact(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ supplier_create_form.address.label(class="form-control-label mt-1") }}
-                        {{ supplier_create_form.address(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-primary mt-4" type="submit">Add supplier</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-        </div>
-    </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Contact</th>
-                    <th scope="col">Address</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for supplier in suppliers.items %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{supplier.id}}</td>
-                        <td class="align-middle">{{supplier.name}}</td>
-                        <td class="align-middle">{{supplier.contact}}</td>
-                        <td class="align-middle">{{supplier.address}}</td>
-                        <td class="text-end">
-                            <a href="{{ url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update supplier" data-bs-toggle="modal" data-bs-target="#update_supplier{{supplier.id}}">Edit</a>
-                            <a href="{{ url_for('supplier_blueprint.delete_supplier', supplier_id=supplier.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete supplier" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                
-                    <!-- Model for updating supplier -->
-                    <div id="update_supplier{{supplier.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Update supplier</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('supplier_blueprint.update_supplier', supplier_id=supplier.id)}}" method="POST">
-                                        {{ supplier_update_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            <input type="hidden"  name="id" value="{{supplier.id}}">
-                                            {{ supplier_update_form.name.label(class="form-control-label mt-1") }}
-                                            {{ supplier_update_form.name(class="form-control form-control-lg", value=supplier.name) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ supplier_update_form.contact.label(class="form-control-label mt-1") }}
-                                            {{ supplier_update_form.contact(class="form-control form-control-lg", value=supplier.contact) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ supplier_update_form.address.label(class="form-control-label mt-1") }}
-                                            {{ supplier_update_form.address(class="form-control form-control-lg", value=supplier.address) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ supplier_update_form.submit(class="btn btn-warning mt-4") }}
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=suppliers.prev_num, query=query) }}">Previous</a></li>
-                {% for page_number in suppliers.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_number %}
-                        {% if suppliers.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('supplier_blueprint.supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li class="page-item "><a class="page-link" href="#">...</a></li>
-                    {% endif %}
-                {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('supplier_blueprint.supplier', page=suppliers.next_num, query=query) }}">Next</a></li>
-            </ul>
-        </nav>
-    </div>
+    {{ pager(suppliers, 'supplier_blueprint.supplier', 'suppliers', query=query or none) }}
+    {% else %}
+    <div class="empty"><i class="bi bi-building" aria-hidden="true"></i><h3>{{ 'No supplier matches "' ~ query ~ '"' if query else 'No suppliers yet' }}</h3><p>{{ 'Check the spelling.' if query else 'Add a supplier before recording a purchase order.' }}</p></div>
+    {% endif %}
+</div>
+{% macro sup_fields(p) %}
+    {{ field('name', 'Name', prefix=p, required=true, attrs={'data-autofocus': '', 'maxlength': 100}) }}
+    {{ field('contact', 'Phone', prefix=p, kind='phone') }}
+    {{ field('address', 'Address', prefix=p, wrap='', attrs={'maxlength': 255}) }}
+{% endmacro %}
+{% call modal('supNewModal', 'Add supplier') %}
+<form method="post" action="{{ url_for('supplier_blueprint.insert_supplier') }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ sup_fields('sn') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Add supplier</button></div>
+</form>
+{% endcall %}
+{% call modal('supModal', 'Edit supplier') %}
+<form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ sup_fields('se') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save supplier</button></div>
+</form>
+{% endcall %}
 {% endblock %}

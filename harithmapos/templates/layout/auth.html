@@ -1,0 +1,19 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import flashes %}
+{% block shell %}
+<div class="auth">
+    <div class="auth-brand">
+        <div class="auth-brand-logo"><img src="{{ url_for('static', filename='images/Harithma-logo.png') }}" alt="Harithma Service Center"></div>
+        <div>
+            <h1>Harithma Service Center</h1>
+            <p>Services, stock and payments for the station, in one place.</p>
+        </div>
+    </div>
+    <main class="auth-form" id="main">
+        <div class="auth-card">
+            {{ flashes() }}
+            {% block auth %}{% endblock %}
+        </div>
+    </main>
+</div>
+{% endblock %}

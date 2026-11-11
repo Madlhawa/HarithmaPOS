@@ -1,16 +1,17 @@
 from flask_wtf import FlaskForm
 
-from wtforms import StringField, SubmitField, DecimalField
-from wtforms.validators import DataRequired, Length
+from wtforms import SubmitField
+from wtforms.validators import NumberRange, Optional
 
-class WashBayUpdateForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
-    remarks = StringField("Remarks")
-    capacity = DecimalField("Capacity (Tons)", places=2)
-    submit = SubmitField('Update Wash Bay')
+from harithmapos.formfields import NumberBox, text_field
+
 
 class WashBayCreateForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
-    remarks = StringField("Remarks")
-    capacity = DecimalField("Capacity (Tons)", places=2)
-    submit = SubmitField('Insert Wash Bay')
+    name = text_field("Name", max_length=50, required=True, min_length=2)
+    remarks = text_field("Remarks", max_length=255)
+    capacity = NumberBox("Capacity (tons)", places=2, validators=[Optional(), NumberRange(min=0, max=9999)])
+    submit = SubmitField('Add wash bay')
+
+
+class WashBayUpdateForm(WashBayCreateForm):
+    submit = SubmitField('Save wash bay')

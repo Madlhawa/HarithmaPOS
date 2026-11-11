@@ -1,60 +1,66 @@
 from flask_wtf import FlaskForm
 
-from wtforms import SubmitField, IntegerField, StringField, DecimalField, SelectField, RadioField, HiddenField
-from wtforms.validators import DataRequired, Optional
+from wtforms import SubmitField, StringField, SelectField, RadioField
+from wtforms.validators import Optional
 
 import harithmapos.config as config
+from harithmapos.formfields import id_field, mileage_field, money_field, quantity_field
+
 
 class InvoiceDetailCreateForm(FlaskForm):
-    item = StringField("Item", validators=[DataRequired()])
-    item_id = HiddenField("Item ID", validators=[DataRequired()])
-    quantity = DecimalField("Qty", places=4, validators=[DataRequired()])
-    discount_amount = DecimalField("Discount", places=4, validators=[Optional()])
-    submit = SubmitField('Add Item')
+    """One line on a service invoice or an item invoice."""
+    item = StringField("Item", validators=[Optional()])
+    item_id = id_field("Item")
+    quantity = quantity_field("Quantity")
+    discount_amount = money_field("Discount")
+    submit = SubmitField('Add item')
+
 
 class InvoiceHeadUpdateForm(FlaskForm):
-    employee = StringField("Employee", validators=[DataRequired()])
-    employee_id = HiddenField("Employee ID", validators=[Optional()])
-    washbay = StringField("Wash Bay", validators=[DataRequired()])
-    washbay_id = HiddenField("WashBay ID", validators=[Optional()])
-    current_milage = IntegerField("Current Milage", validators=[Optional()])
-    next_milage_in = IntegerField("Next Milage In", validators=[Optional()])
-    service_status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST)
-    total_cost = DecimalField("Total Cost", places=2, validators=[Optional()])
-    total_price = DecimalField("Total Price", places=2, validators=[Optional()])
-    discount_amount = DecimalField("Discount Amount", places=2, validators=[Optional()])
-    gross_price = DecimalField("Gross Price", places=2, validators=[Optional()])
-    payment_method = SelectField("Payment Method", choices=config.PAYMENT_METHOD_FORM_LIST)
-    paid_amount = DecimalField("Paid Amount", places=2, validators=[Optional()])
-    update_invoice = SubmitField('Update')
+    employee = StringField("Employee", validators=[Optional()])
+    employee_id = id_field("Employee", required=False)
+    washbay = StringField("Wash bay", validators=[Optional()])
+    washbay_id = id_field("Wash bay", required=False)
+    current_milage = mileage_field("Current mileage")
+    next_milage_in = mileage_field("Next service in")
+    service_status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST, coerce=int)
+    discount_amount = money_field("Bill discount")
+    payment_method = SelectField("Payment method", choices=config.PAYMENT_METHOD_FORM_LIST)
+    paid_amount = money_field("Paid amount")
+    update_invoice = SubmitField('Save')
     complete_invoice = SubmitField('Complete')
-    cancel_invoice = SubmitField('Cancel')
-    send_service_start_msg = SubmitField('Notify Started')
-    send_service_complete_msg = SubmitField('Notify Completed')
+    cancel_invoice = SubmitField('Cancel invoice')
+    send_service_start_msg = SubmitField('Notify started')
+    send_service_complete_msg = SubmitField('Notify completed')
+
 
 class InvoiceHeadCreateForm(FlaskForm):
-    vehicle = StringField("Vehicle", validators=[DataRequired()])
-    vehicle_id = HiddenField("Vehicle ID", validators=[DataRequired()])
-    employee = StringField("Employee", validators=[DataRequired()])
-    employee_id = HiddenField("Employee ID", validators=[DataRequired()])
-    washbay = StringField("Wash Bay", validators=[DataRequired()])
-    washbay_id = HiddenField("WashBay ID", validators=[DataRequired()])
-    current_milage = IntegerField("Milage")
-    submit = SubmitField('Create Invoice')
+    vehicle = StringField("Vehicle", validators=[Optional()])
+    vehicle_id = id_field("Vehicle")
+    employee = StringField("Employee", validators=[Optional()])
+    employee_id = id_field("Employee")
+    washbay = StringField("Wash bay", validators=[Optional()])
+    washbay_id = id_field("Wash bay")
+    current_milage = mileage_field("Mileage")
+    submit = SubmitField('Create invoice')
+
+
+class InvoiceStatusForm(FlaskForm):
+    """The one-tap status buttons on the dashboard."""
+    status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST, coerce=int)
+
 
 class ItemInvoiceHeadUpdateForm(FlaskForm):
-    customer = StringField("Customer", validators=[DataRequired()])
-    customer_id = HiddenField("Customer ID", validators=[Optional()])
-    total_cost = DecimalField("Total Cost", places=2, validators=[Optional()])
-    total_price = DecimalField("Total Price", places=2, validators=[Optional()])
-    discount_pct = DecimalField("Discount Percentage", places=2, validators=[Optional()])
-    gross_price = DecimalField("Gross Price", places=2, validators=[Optional()])
-    payment_method = SelectField("Payment Method", choices=config.PAYMENT_METHOD_FORM_LIST)
-    paid_amount = DecimalField("Paid Amount", places=2, validators=[Optional()])
-    update_item_invoice = SubmitField('Update Invoice')
-    complete_item_invoice = SubmitField('Complete Invoice')
+    customer = StringField("Customer", validators=[Optional()])
+    customer_id = id_field("Customer", required=False)
+    discount_amount = money_field("Bill discount")
+    payment_method = SelectField("Payment method", choices=config.PAYMENT_METHOD_FORM_LIST)
+    paid_amount = money_field("Paid amount")
+    update_item_invoice = SubmitField('Save')
+    complete_item_invoice = SubmitField('Complete')
+
 
 class ItemInvoiceHeadCreateForm(FlaskForm):
-    customer = StringField("Customer", validators=[DataRequired()])
-    customer_id = HiddenField("Customer ID", validators=[Optional()])
-    submit = SubmitField('Create Invoice')
+    customer = StringField("Customer", validators=[Optional()])
+    customer_id = id_field("Customer")
+    submit = SubmitField('Create invoice')

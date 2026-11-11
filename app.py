@@ -1,6 +1,6 @@
 import os
 import click
-from harithmapos import create_app, db, bcrypt
+from harithmapos import create_app, bcrypt
 from harithmapos.models import User
 
 app = create_app()

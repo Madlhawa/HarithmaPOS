@@ -1,51 +1,16 @@
-{% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
-{% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            <div class="card">
-                <header class="card-header">
-                    <h4 class="card-title mt-2">Reset Password Form</h4>
-                </header>
-                <article class="card-body">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
-                        <fieldset class="form-group">
-                            <div class="form-group">
-                                {{ form.password.label(class="form-control-label mt-1") }}
-                                {{ form.password(class="form-control form-control-lg") }}
-                            </div>
-                            <div class="form-group">
-                                {{ form.confirm_password.label(class="form-control-label mt-1") }}
-                                {% if form.confirm_password.errors %}
-                                    {{ form.confirm_password(class="form-control form-control-lg is-invalid") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.confirm_password.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.confirm_password(class="form-control form-control-lg") }}
-                                {% endif %}
-                            </div>
-                        </fieldset>
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-outline-info mt-3 mb-3") }}
-                        </div>
-                    </form>
-                </article>
-            </div>
-        </div>
+{% extends 'layout/auth.html' %}
+{% block auth %}
+<h2>Set a new password</h2>
+<p>Use at least 8 characters.</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {% for f in [form.password, form.confirm_password] %}
+    <div class="mb-3">
+        {{ f.label(class='form-label') }}
+        {{ f(class='form-control', autocomplete='new-password') }}
+        {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
     </div>
-</div>
-{% endblock body %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary w-100">Set new password</button>
+</form>
+{% endblock %}

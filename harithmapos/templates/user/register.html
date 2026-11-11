@@ -1,64 +1,23 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% block content_class %}content-narrow{% endblock %}
 {% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <header class="card-header">
-                    <h4 class="card-title mt-2 mb-0">Register</h4>
-                </header>
-                <article class="card-body">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
-                        <fieldset class="form-group">
-                            <div class="form-group">
-                                {{ form.name.label(class="form-control-label") }}
-                                {{ form.name(class="form-control form-control-lg") }}
-                            </div>
-                            <div class="form-group">
-                                {{ form.email.label(class="form-control-label mt-1") }}
-                                {% if form.email.errors %}
-                                    {{ form.email(class="form-control form-control-lg is-invalid") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.email.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.email(class="form-control form-control-lg") }}
-                                {% endif %}
-                            </div>
-                            <div class="form-group">
-                                {{ form.password.label(class="form-control-label mt-1") }}
-                                {{ form.password(class="form-control form-control-lg") }}
-                            </div>
-                            <div class="form-group">
-                                {{ form.confirm_password.label(class="form-control-label mt-1") }}
-                                {% if form.confirm_password.errors %}
-                                    {{ form.confirm_password(class="form-control form-control-lg is-invalid") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.confirm_password.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.confirm_password(class="form-control form-control-lg") }}
-                                {% endif %}
-                            </div>
-                        </fieldset>
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-outline-info mt-3") }}
-                        </div>
-                    </form>
-                </article>
-                <div class="border-top card-body text-center">
-                    <small class="text-muted">
-                        Have an account? <a href="{{ url_for('user_blueprint.login') }}">Log In</a>
-                    </small>
-                </div>
+<div class="page-head"><div><h1>Add a user</h1><p>Give someone at the station their own sign-in.</p></div></div>
+<form class="panel" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="panel-body">
+        <div class="row g-3">
+        {% for f in [form.name, form.email, form.password, form.confirm_password] %}
+            <div class="col-sm-6">
+                {{ f.label(class='form-label') }}
+                {{ f(class='form-control', autocomplete='new-password' if 'password' in f.name else 'off') }}
+                {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
             </div>
+        {% endfor %}
         </div>
     </div>
-</div>
-{% endblock body %}
+    <div class="panel-body border-top d-flex justify-content-end gap-2">
+        <a class="btn btn-quiet" href="{{ url_for('user_blueprint.account') }}">Cancel</a>
+        <button class="btn btn-primary">Add user</button>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,207 @@
+{# Shared building blocks. Import what a page needs:
+     {% from 'layout/macros.html' import plate, rs, field, autocomplete %}
+#}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{# Money with the currency prefix: Rs. 12,500.00 #}
+{% macro rs(value) -%}
+<span class="money-unit">{{ CURRENCY }}</span>{{ value|money }}
+{%- endmacro %}
+
+{# A vehicle number drawn as its number plate. #}
+{% macro plate(number, size='', href=none) -%}
+{% if href %}<a class="plate {{ 'plate-' ~ size if size }}" href="{{ href }}">{{ number }}</a>
+{%- else %}<span class="plate {{ 'plate-' ~ size if size }}">{{ number }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro status_pill(status) -%}
+{% set meta = status_meta(status) %}<span class="status" data-status="{{ meta.key }}">{{ meta.label }}</span>
+{%- endmacro %}
+
+{% macro flashes() %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-stack" role="status" aria-live="polite">
+    {% for category, message in messages %}
+    {% set kind = category if category in ['success', 'danger', 'warning', 'info'] else 'info' %}
+    <div class="flash flash-{{ kind }} alert fade show">
+        <i class="bi bi-{{ {'success': 'check-circle-fill', 'danger': 'x-octagon-fill', 'warning': 'exclamation-triangle-fill', 'info': 'info-circle-fill'}[kind] }}" aria-hidden="true"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
+{# A labelled text box. kind: text | money | qty | whole | phone | email | date | password #}
+{% macro field(name, label, prefix='f', kind='text', value=none, required=false, hint=none, placeholder='', cls='', wrap='mb-3', attrs={}) %}
+{% set id = prefix ~ '-' ~ name %}
+{% set types = {'text': 'text', 'money': 'text', 'qty': 'text', 'whole': 'text', 'phone': 'tel', 'email': 'email', 'date': 'date', 'password': 'password'} %}
+{% set modes = {'money': 'decimal', 'qty': 'decimal', 'whole': 'numeric', 'phone': 'tel'} %}
+<div class="{{ wrap }}">
+    <label class="form-label" for="{{ id }}">{{ label }}</label>
+    <input class="form-control {{ 'num' if kind in ['money', 'qty', 'whole'] }} {{ cls }}" type="{{ types[kind] }}" id="{{ id }}" name="{{ name }}"
+           value="{{ value if value is not none else '' }}"
+           {%- if kind in modes %} inputmode="{{ modes[kind] }}"{% endif %}
+           {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+           {%- if required %} required{% endif %}
+           {%- if kind not in ['password', 'email'] %} autocomplete="off"{% endif %}
+           {{ attrs|xmlattr }}>
+    {% if hint %}<div class="form-hint">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro select(name, label, choices, prefix='f', value=none, required=false, wrap='mb-3') %}
+{% set id = prefix ~ '-' ~ name %}
+<div class="{{ wrap }}">
+    <label class="form-label" for="{{ id }}">{{ label }}</label>
+    <select class="form-select" id="{{ id }}" name="{{ name }}" {% if required %}required{% endif %}>
+        {% for choice_value, choice_label in choices %}
+        <option value="{{ choice_value }}" {% if value is not none and choice_value|string == value|string %}selected{% endif %}>{{ choice_label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{# A search-as-you-type box. Sends <name>_id (the picked row) to the server.
+   show_all: list everything on focus (for short lists such as employees and bays). #}
+{% macro autocomplete(name, label, url, prefix='f', value='', id_value='', show_all=false, optional=false, placeholder='', autofocus=false, hint=none, wrap='mb-3', cls='') %}
+{% set id = prefix ~ '-' ~ name %}
+<div class="{{ wrap }}">
+    {% if label %}<label class="form-label" for="{{ id }}">{{ label }}</label>{% endif %}
+    <div class="ac" data-ac-url="{{ url }}" data-ac-name="{{ name }}"
+         {%- if show_all %} data-ac-show-all{% endif %}
+         {%- if optional %} data-ac-optional{% endif %}>
+        <input type="text" class="form-control {{ cls }}" id="{{ id }}" name="{{ name }}" value="{{ value or '' }}"
+               placeholder="{{ placeholder }}" {% if autofocus %}data-autofocus{% endif %}>
+        <input type="hidden" name="{{ name }}_id" value="{{ id_value if id_value is not none else '' }}">
+        <ul class="ac-menu" hidden></ul>
+    </div>
+    {% if hint %}<div class="form-hint">{{ hint }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{# A button that POSTs (with the CSRF token). Used for anything that changes data. #}
+{% macro post_button(url, label='', icon=none, cls='btn btn-quiet btn-sm', confirm=none, title=none, next=none, fields={}) -%}
+<form method="post" action="{{ url }}" class="d-inline" {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
+    {{ csrf() }}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% for field_name, field_value in fields.items() %}<input type="hidden" name="{{ field_name }}" value="{{ field_value }}">{% endfor %}
+    <button type="submit" class="{{ cls }}" {% if title %}title="{{ title }}" aria-label="{{ title }}"{% endif %}>
+        {%- if icon %}<i class="bi bi-{{ icon }}{{ ' me-1' if label }}" aria-hidden="true"></i>{% endif %}{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{# Modal frame. Use with {% call modal('id', 'Title') %} … {% endcall %} #}
+{% macro modal(id, title, size='', attrs={}) %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}-title" aria-hidden="true" {{ attrs|xmlattr }}>
+    <div class="modal-dialog {{ size }}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="{{ id }}-title">{{ title }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            {{ caller() }}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Footer of a list: row count and page links. Extra keyword arguments are kept in the page links. #}
+{% macro pager(page_obj, endpoint, noun='rows') %}
+<div class="list-foot">
+    <span>{{ page_obj.total }} {{ noun }}{% if page_obj.pages > 1 %}, page {{ page_obj.page }} of {{ page_obj.pages }}{% endif %}</span>
+    {% if page_obj.pages > 1 %}
+    <nav aria-label="Pages">
+        <ul class="pagination">
+            <li class="page-item {{ 'disabled' if not page_obj.has_prev }}">
+                <a class="page-link" href="{{ url_for(endpoint, page=page_obj.prev_num, **kwargs) if page_obj.has_prev else '#' }}">Previous</a>
+            </li>
+            {% for number in page_obj.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if number %}
+            <li class="page-item {{ 'active' if number == page_obj.page }}">
+                <a class="page-link" href="{{ url_for(endpoint, page=number, **kwargs) }}" {% if number == page_obj.page %}aria-current="page"{% endif %}>{{ number }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% endfor %}
+            <li class="page-item {{ 'disabled' if not page_obj.has_next }}">
+                <a class="page-link" href="{{ url_for(endpoint, page=page_obj.next_num, **kwargs) if page_obj.has_next else '#' }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# The search box above a list. #}
+{% macro search_box(placeholder, query, hidden={}) %}
+<form class="toolbar-search" method="get" role="search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input type="search" class="form-control" name="query" value="{{ query or '' }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}">
+    {% for name, value in hidden.items() %}{% if value %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}{% endfor %}
+</form>
+{% endmacro %}
+
+{# Status radio buttons drawn as one segmented bar. #}
+{% macro status_steps(current, prefix='st') %}
+<div class="steps" role="radiogroup" aria-label="Service status">
+    {% for meta in SERVICE_STATUSES %}
+    <input type="radio" name="service_status" id="{{ prefix }}-{{ meta.id }}" value="{{ meta.id }}" {% if (current or 0) == meta.id %}checked{% endif %}>
+    <label for="{{ prefix }}-{{ meta.id }}">{{ meta.label }}</label>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro payment_choice(current, prefix='pm') %}
+<div class="choice" role="radiogroup" aria-label="Payment method">
+    {% for method_key, method_label in PAYMENT_METHODS %}
+    <input type="radio" name="payment_method" id="{{ prefix }}-{{ method_key }}" value="{{ method_key }}" {% if (current or 'cash') == method_key %}checked{% endif %}>
+    <label for="{{ prefix }}-{{ method_key }}">{{ method_label }}</label>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# The totals block on invoices, ruled like a cash book. #}
+{% macro totals(head) %}
+<dl class="totals">
+    <div><dt>Subtotal</dt><dd>{{ head.total_price|money }}</dd></div>
+    {% if (head.total_discount or 0) > 0 %}
+    <div><dt>Discounts</dt><dd>&minus; {{ head.total_discount|money }}</dd></div>
+    {% endif %}
+    <div class="is-total"><dt>Total</dt><dd>{{ rs(head.gross_price) }}</dd></div>
+    <div><dt>Paid</dt><dd>{{ head.paid_amount|money }}</dd></div>
+    {% if head.balance > 0 %}
+    <div class="is-due"><dt>Balance to collect</dt><dd>{{ head.balance|money }}</dd></div>
+    {% elif head.balance < 0 %}
+    <div><dt>Change to give back</dt><dd>{{ (0 - head.balance)|money }}</dd></div>
+    {% else %}
+    <div class="is-clear"><dt>Balance</dt><dd>Settled</dd></div>
+    {% endif %}
+</dl>
+{% endmacro %}
+
+{# The body of the payment form, shared by the dashboard and the Payments page. #}
+{% macro payment_fields(prefix='pay') %}
+<div class="row g-3">
+    <div class="col-sm-4">{{ select('payment_direction', 'Direction', PAYMENT_DIRECTIONS, prefix=prefix, wrap='') }}</div>
+    <div class="col-sm-4">{{ field('payment_amount', 'Amount (' ~ CURRENCY ~ ')', prefix=prefix, kind='money', required=true, wrap='') }}</div>
+    <div class="col-sm-4">{{ select('payment_method', 'Paid by', PAYMENT_METHODS, prefix=prefix, wrap='') }}</div>
+    <div class="col-sm-4">{{ select('payment_type', 'Type', PAYMENT_TYPES, prefix=prefix, wrap='') }}</div>
+    <div class="col-sm-8">{{ field('remarks', 'What was it for?', prefix=prefix, wrap='', placeholder='For example: electricity bill, advance for Kasun') }}</div>
+</div>
+<p class="form-hint mt-3 mb-2">Link the payment to a record if there is one. Linked invoices and purchase orders update their balance automatically.</p>
+<div class="row g-3">
+    <div class="col-sm-6">{{ autocomplete('invoice', 'Service invoice', url_for('search_blueprint.search_invoices'), prefix=prefix, optional=true, placeholder='Vehicle number, customer or invoice no.', wrap='') }}</div>
+    <div class="col-sm-3">{{ field('item_invoice_id', 'Item invoice no.', prefix=prefix, kind='whole', wrap='') }}</div>
+    <div class="col-sm-3">{{ field('purchase_order_id', 'Purchase order no.', prefix=prefix, kind='whole', wrap='') }}</div>
+    <div class="col-sm-6">{{ autocomplete('customer', 'Customer', url_for('search_blueprint.search_customers'), prefix=prefix, optional=true, placeholder='Name or phone', wrap='') }}</div>
+    <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix=prefix, optional=true, show_all=true, placeholder='For wages and advances', wrap='') }}</div>
+</div>
+{% endmacro %}

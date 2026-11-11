@@ -1,47 +1,15 @@
-{% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
-{% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            <div class="card">
-                <header class="card-header">
-                    <h4 class="card-title mt-2">Reset Password Form</h4>
-                </header>
-                <article class="card-body">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
-                        <fieldset class="form-group">
-                            <div class="form-group">
-                                {{ form.email.label(class="form-control-label mt-1") }}
-                                {% if form.email.errors %}
-                                    {{ form.email(class="form-control form-control-lg is-invalid") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.email.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.email(class="form-control form-control-lg") }}
-                                {% endif %}
-                            </div>
-                        </fieldset>
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-outline-info mt-3 mb-3") }}
-                        </div>
-                    </form>
-                </article>
-            </div>
-        </div>
+{% extends 'layout/auth.html' %}
+{% block auth %}
+<h2>Reset your password</h2>
+<p>Enter your email and we will send a link to set a new password.</p>
+<form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.email.label(class='form-label') }}
+        {{ form.email(class='form-control', autocomplete='username', autofocus=true) }}
+        {% for e in form.email.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
     </div>
-</div>
-{% endblock body %}
+    <button type="submit" class="btn btn-primary w-100 mb-3">Send reset link</button>
+    <a href="{{ url_for('user_blueprint.login') }}">Back to sign in</a>
+</form>
+{% endblock %}

@@ -1,26 +1,25 @@
 from flask_wtf import FlaskForm
 
-from wtforms import StringField, SubmitField, IntegerField, DecimalField, SelectField
+from wtforms import SubmitField, SelectField
 from wtforms.validators import DataRequired, Length
-from harithmapos.config import UOM_FORM_LIST
 
-class ItemUpdateForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=100)])
-    description = StringField("Description")
-    unit_of_measure = SelectField("Unit Of Measure", choices=UOM_FORM_LIST, validators=[DataRequired()])
-    quantity = DecimalField("Quantity", places=4)
-    unit_cost = DecimalField("Unit Cost", places=2, validators=[DataRequired()])
-    unit_price = DecimalField("Unit Price", places=2, validators=[DataRequired()])
-    discount_pct = DecimalField("Discount Pct", places=2)
-    submit = SubmitField('Update Item')
+from harithmapos.config import UOM_FORM_LIST
+from harithmapos.formfields import money_field, percent_field, quantity_field, text_field
 
 
 class ItemCreateForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=100)])
-    description = StringField("Description")
-    unit_of_measure = SelectField("Unit Of Measure", choices=UOM_FORM_LIST, validators=[DataRequired()])
-    quantity = DecimalField("Quantity", places=4)
-    unit_cost = DecimalField("Unit Cost", places=2, validators=[DataRequired()])
-    unit_price = DecimalField("Unit Price", places=2, validators=[DataRequired()])
-    discount_pct = DecimalField("Discount Pct", places=2)
-    submit = SubmitField('Insert Item')
+    name = text_field("Name", max_length=100, required=True, min_length=2)
+    description = text_field("Description", max_length=255)
+    # validate_choice=False so items saved with an older unit can still be edited.
+    unit_of_measure = SelectField("Unit", choices=UOM_FORM_LIST, validate_choice=False,
+                                  validators=[DataRequired(message='Choose a unit.'), Length(max=20)])
+    # Leave the quantity empty for services and labour: they are sold without stock.
+    quantity = quantity_field("Quantity in stock", required=False, allow_zero=True)
+    unit_cost = money_field("Unit cost", required=True)
+    unit_price = money_field("Unit price", required=True)
+    discount_pct = percent_field("Discount %")
+    submit = SubmitField('Add item')
+
+
+class ItemUpdateForm(ItemCreateForm):
+    submit = SubmitField('Save item')

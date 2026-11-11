@@ -4,6 +4,7 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
+from flask_wtf.csrf import CSRFProtect
 from harithmapos.config import Config
 
 
@@ -12,19 +13,33 @@ migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 mail = Mail()
+# Checks the CSRF token on every POST, including the small delete / quantity
+# buttons that are not WTForms forms.
+csrf = CSRFProtect()
 
 login_manager.login_view = 'user_blueprint.login'
+login_manager.login_message = 'Please sign in to continue.'
 login_manager.login_message_category = 'info'
 
 def create_app(Config_class=Config):
     app = Flask(__name__)
     app.config.from_object(Config_class)
 
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError(
+            "HARITHMA_SECRET_KEY is not set. Add it to the environment (.env) before starting the app; "
+            "generate one with: openssl rand -hex 32"
+        )
+
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
+
+    from harithmapos.template_helpers import register_template_helpers
+    register_template_helpers(app)
 
     from harithmapos.views.error.handlers import error_blueprint
     from harithmapos.views.user.routes import user_blueprint

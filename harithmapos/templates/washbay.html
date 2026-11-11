@@ -1,138 +1,53 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
-{% block body %} 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col d-flex justify-content-between align-items-center">
-                <form class="mb-0 d-flex" action="" method="GET" autocomplete="off">
-                    <input type="text" class="form-control me-2" name="query" id="query" placeholder="{{ query if query else 'Search'}}">
-                    <input type="submit" value="Search" class="btn btn-primary me-2" name="">
-                    <a href="{{ url_for('washbay_blueprint.washbay') }}"><input type="submit" value="Reset" class="btn btn-secondary" ></a>
-                </form> 
-                <!-- Right side: Button -->
-                <button type="button" class="btn btn-success align-right" data-bs-toggle="modal" data-bs-target="#insert_modal">Add New washbay</button>
-            </div>
-        </div>
+{% from 'layout/macros.html' import csrf, field, modal, pager, search_box, post_button %}
+{% block body %}
+{% set here = request.full_path %}
+<div class="page-head">
+    <div><h1>Wash bays</h1><p>The bays and lifts a vehicle can be serviced in.</p></div>
+    <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bayNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add wash bay</button></div>
+</div>
+<div class="panel">
+    {% if washbays.items %}
+    <div class="table-responsive">
+    <table class="table table-list table-hover">
+        <thead><tr><th>Name</th><th>Remarks</th><th class="num">Capacity (tons)</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for w in washbays.items %}
+        <tr>
+            <td class="cell-main">{{ w.name }}</td>
+            <td class="cell-sub">{{ w.remarks or '' }}</td>
+            <td class="num">{{ w.capacity|qty if w.capacity is not none else '-' }}</td>
+            <td class="cell-actions">
+                <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ w.name }}" aria-label="Edit {{ w.name }}" data-edit-modal="#bayModal"
+                    data-action="{{ url_for('washbay_blueprint.update_washbay', washbay_id=w.id) }}"
+                    data-values='{{ {"name": w.name, "remarks": w.remarks, "capacity": w.capacity|qty if w.capacity is not none else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                {{ post_button(url_for('washbay_blueprint.delete_washbay', washbay_id=w.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ w.name, confirm='Delete ' ~ w.name ~ '?', next=here) }}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
     </div>
-    <!-- Modal for inserting the washbay -->
-    <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Add Wash bay</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('washbay_blueprint.insert_washbay')}}" method="POST">
-                    {{ washbay_create_form.hidden_tag() }}
-                    <div class="form-group">
-                        {{ washbay_create_form.name.label(class="form-control-label mt-1") }}
-                        {{ washbay_create_form.name(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ washbay_create_form.remarks.label(class="form-control-label mt-1") }}
-                        {{ washbay_create_form.remarks(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ washbay_create_form.capacity.label(class="form-control-label mt-1") }}
-                        {{ washbay_create_form.capacity(class="form-control form-control-lg") }}
-                    </div>
-                    <div class="form-group">
-                        {{ washbay_create_form.submit(class="btn btn-primary mt-4") }}
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-        </div>
-    </div>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{message}}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <table class="table table-success table-striped table-hover" border="1">
-            <thead class="thread-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Remarks</th>
-                    <th scope="col">Capacity (Tons)</th>
-                    <th scope="col" style="text-align: right" >Actions</th>
-                </tr>
-            </thead>
-            <tbody id="results">
-                {% for washbay in washbays.items %}
-                    <tr>
-                        <td class="align-middle"  scope="row">{{washbay.id}}</td>
-                        <td class="align-middle">{{washbay.name}}</td>
-                        <td class="align-middle">{{washbay.remarks}}</td>
-                        <td class="align-middle">{{washbay.capacity}}</td>
-                        <td class="text-end">
-                            <a href="{{ url_for('washbay_blueprint.update_washbay', washbay_id=washbay.id) }}" class="btn btn-sm btn-warning" data-toggle="tooltip" data-placement="top" title="Update washbay" data-bs-toggle="modal" data-bs-target="#update_washbay{{washbay.id}}">Edit</a>
-                            <a href="{{ url_for('washbay_blueprint.delete_washbay', washbay_id=washbay.id) }}" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="top" title="Delete washbay" onclick="return confirm('Are you sure to delete?')">Delete</a>
-                        </td>
-                    </tr>
-                
-                    <!-- Model for updating washbay -->
-                    <div id="update_washbay{{washbay.id}}" class="modal fade" role="dialog">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">Update washbay</h4>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="{{url_for('washbay_blueprint.update_washbay', washbay_id=washbay.id)}}" method="POST">
-                                        {{ washbay_update_form.hidden_tag() }}
-                                        <div class="form-group">
-                                            <input type="hidden"  name="id" value="{{washbay.id}}">
-                                            {{ washbay_update_form.name.label(class="form-control-label mt-1") }}
-                                            {{ washbay_update_form.name(class="form-control form-control-lg", value=washbay.name) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ washbay_update_form.remarks.label(class="form-control-label mt-1") }}
-                                            {{ washbay_update_form.remarks(class="form-control form-control-lg", value=washbay.remarks) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ washbay_update_form.capacity.label(class="form-control-label mt-1") }}
-                                            {{ washbay_update_form.capacity(class="form-control form-control-lg", value=washbay.capacity) }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ washbay_update_form.submit(class="btn btn-warning mt-4") }}
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </tbody>
-        </table>
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-end">
-                <li class="page-item"><a class="page-link" href="{{ url_for('washbay_blueprint.washbay', page=washbays.prev_num, query=query) }}">Previous</a></li>
-                {% for page_number in washbays.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_number %}
-                        {% if washbays.page == page_number %}
-                            <li class="page-item "><a class="page-link active" href="{{ url_for('washbay_blueprint.washbay', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% else %}
-                            <li class="page-item "><a class="page-link" href="{{ url_for('washbay_blueprint.washbay', page=page_number, query=query) }}">{{ page_number }}</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li class="page-item "><a class="page-link" href="#">...</a></li>
-                    {% endif %}
-                {% endfor %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('washbay_blueprint.washbay', page=washbays.next_num, query=query) }}">Next</a></li>
-            </ul>
-        </nav>
-    </div>
+    {{ pager(washbays, 'washbay_blueprint.washbay', 'wash bays') }}
+    {% else %}
+    <div class="empty"><i class="bi bi-droplet" aria-hidden="true"></i><h3>No wash bays yet</h3><p>Add each bay or lift, for example Bay 1, Bay 2 and Lift.</p></div>
+    {% endif %}
+</div>
+{% macro bay_fields(p) %}
+    {{ field('name', 'Name', prefix=p, required=true, placeholder='Bay 1', attrs={'data-autofocus': '', 'maxlength': 50}) }}
+    {{ field('capacity', 'Capacity (tons)', prefix=p, kind='qty') }}
+    {{ field('remarks', 'Remarks', prefix=p, wrap='', attrs={'maxlength': 255}) }}
+{% endmacro %}
+{% call modal('bayNewModal', 'Add wash bay') %}
+<form method="post" action="{{ url_for('washbay_blueprint.insert_washbay') }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ bay_fields('bn') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Add wash bay</button></div>
+</form>
+{% endcall %}
+{% call modal('bayModal', 'Edit wash bay') %}
+<form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ bay_fields('be') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save wash bay</button></div>
+</form>
+{% endcall %}
 {% endblock %}

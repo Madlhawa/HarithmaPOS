@@ -1,75 +1,82 @@
+import logging
+
 from flask_login import login_required
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db
-from harithmapos.models import WashBay
+from harithmapos.models import InvoiceHead, WashBay
 from harithmapos.views.washbay.forms import WashBayCreateForm, WashBayUpdateForm
+
+import harithmapos.views.utils as utils
+from utils.database import safe_insert_with_sequence_check
+
+logger = logging.getLogger(__name__)
 
 washbay_blueprint = Blueprint('washbay_blueprint', __name__)
 
-@washbay_blueprint.route("/app/washbay", methods=['GET', 'POST'])
+PER_PAGE = 25
+
+
+@washbay_blueprint.route("/app/washbay", methods=['GET'])
 @login_required
 def washbay():
-    washbay_create_form = WashBayCreateForm()
-    washbay_update_form = WashBayUpdateForm()
+    page = request.args.get('page', 1, type=int)
+    query = (request.args.get('query') or '').strip()
 
-    per_page = 10
-    page = request.args.get('page',1,type=int)
-    query = request.args.get("query",None)
-
+    washbays = WashBay.query
     if query:
-        washbays = WashBay.query.order_by(WashBay.create_dttm.desc()).filter(WashBay.name.icontains(query)).paginate(page=page, per_page=per_page)
-    else:
-        washbays = WashBay.query.order_by(WashBay.create_dttm.desc()).paginate(page=page, per_page=per_page)
-    return render_template(
-        'washbay.html', 
-        title='WashBay', 
-        washbay_create_form=washbay_create_form, 
-        washbay_update_form=washbay_update_form,
-        washbays=washbays,
-        query=query
-    )
+        washbays = washbays.filter(WashBay.name.ilike(f"%{query}%"))
+    washbays = washbays.order_by(WashBay.name).paginate(page=page, per_page=PER_PAGE)
+    return render_template('washbay.html', title='Wash bays', washbays=washbays, query=query)
 
-@washbay_blueprint.route("/app/washbay/create", methods=['GET', 'POST'])
+
+@washbay_blueprint.route("/app/washbay/create", methods=['POST'])
 @login_required
 def insert_washbay():
-    washbay_create_form = WashBayCreateForm()
-    if washbay_create_form.validate_on_submit():
+    form = WashBayCreateForm()
+    if form.validate_on_submit():
         try:
-            from utils.database import safe_insert_with_sequence_check
-            washbay = safe_insert_with_sequence_check(
+            safe_insert_with_sequence_check(
                 WashBay,
-                name=washbay_create_form.name.data,
-                remarks=washbay_create_form.remarks.data,
-                capacity=washbay_create_form.capacity.data
+                name=form.name.data,
+                remarks=form.remarks.data,
+                capacity=form.capacity.data
             )
-            flash("WashBay added successfully!", category='success')
-        except Exception as e:
-            flash(f"WashBay failed to add: {str(e)}", category='danger')
+            flash(f"{form.name.data} added.", category='success')
+        except Exception:
+            logger.exception("Could not add wash bay")
+            flash("The wash bay could not be added. Please try again.", category='danger')
     else:
-        flash("WashBay failed to add - form validation failed!", category='danger')
-    return redirect(url_for('washbay_blueprint.washbay'))
+        utils.flash_form_errors(form)
+    return utils.redirect_back('washbay_blueprint.washbay')
 
-@washbay_blueprint.route("/app/washbay/<int:washbay_id>/update", methods=['GET', 'POST'])
+
+@washbay_blueprint.route("/app/washbay/<int:washbay_id>/update", methods=['POST'])
 @login_required
 def update_washbay(washbay_id):
-    washbay_update_form = WashBayUpdateForm()
-    if washbay_update_form.validate_on_submit():
-        washbay = WashBay.query.get_or_404(washbay_id)
-        washbay.name = washbay_update_form.name.data
-        washbay.remarks = washbay_update_form.remarks.data
-        washbay.capacity = washbay_update_form.capacity.data
-        db.session.commit()
-        flash("Suppler is updated!", category='success')
+    washbay = WashBay.query.get_or_404(washbay_id)
+    form = WashBayUpdateForm()
+    if form.validate_on_submit():
+        try:
+            washbay.name = form.name.data
+            washbay.remarks = form.remarks.data
+            washbay.capacity = form.capacity.data
+            db.session.commit()
+            flash(f"{washbay.name} saved.", category='success')
+        except Exception:
+            db.session.rollback()
+            logger.exception("Could not update wash bay %s", washbay_id)
+            flash("The wash bay could not be saved. Please try again.", category='danger')
     else:
-        flash("Suppler failed to add!", category='danger')
-    return redirect(url_for('washbay_blueprint.washbay'))
+        utils.flash_form_errors(form)
+    return utils.redirect_back('washbay_blueprint.washbay')
 
-@washbay_blueprint.route('/app/washbay/<int:washbay_id>/delete', methods = ['GET', 'POST'])
+
+@washbay_blueprint.route('/app/washbay/<int:washbay_id>/delete', methods=['POST'])
 @login_required
 def delete_washbay(washbay_id):
     washbay = WashBay.query.get_or_404(washbay_id)
-    db.session.delete(washbay)
-    db.session.commit()
-    flash("WashBay is deleted!", category='success')
-    return redirect(url_for('washbay_blueprint.washbay'))
+    utils.delete_record(washbay, washbay.name, blockers=[
+        (InvoiceHead.query.filter(InvoiceHead.washbay_id == washbay.id).count(), 'service invoices'),
+    ])
+    return utils.redirect_back('washbay_blueprint.washbay')

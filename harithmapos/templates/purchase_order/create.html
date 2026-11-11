@@ -1,38 +1,19 @@
 {% extends 'layout/base.html' %}
-{% block title %} Create Purchase Order {% endblock %}
+{% from 'layout/macros.html' import csrf, field, autocomplete %}
+{% block content_class %}content-narrow{% endblock %}
 {% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <header class="card-header bg-secondary text-white">
-                    <h4 class="card-title mt-2 mb-0"><i class="bi bi-plus-circle me-2"></i>Create Purchase Order</h4>
-                </header>
-                <article class="card-body">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
-                        <fieldset class="form-group">
-                            <div class="form-group mb-3">
-                                {{ form.supplier.label(class="form-control-label", for="supplierDataList") }}
-                                {{ form.supplier(class="form-control", id="supplierSearch", placeholder="Search Supplier...", autocomplete="off") }}
-                            </div>
-                            <div class="form-group mb-3">
-                                {{ form.supplier_invoice_id.label(class="form-control-label") }}
-                                {{ form.supplier_invoice_id(class="form-control") }}
-                            </div>
-                        </fieldset>
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-primary mt-3") }}
-                        </div>
-                    </form>
-                </article>
-            </div>
+<div class="page-head"><div><h1>New purchase order</h1><p>Record a delivery from a supplier.</p></div></div>
+<form class="panel" method="post" action="{{ url_for('purchase_order_blueprint.insert_purchase_order_head') }}">
+    {{ csrf() }}
+    <div class="panel-body">
+        <div class="row g-3">
+            <div class="col-sm-7">{{ autocomplete('supplier', 'Supplier', url_for('search_blueprint.search_suppliers'), prefix='po', show_all=true, placeholder='Choose a supplier', wrap='') }}</div>
+            <div class="col-sm-5">{{ field('supplier_invoice_id', "Supplier's invoice no.", prefix='po', wrap='') }}</div>
         </div>
     </div>
-</div>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        setupDynamicDropdown("supplierSearch", "supplierDropdown", "/app/search/suppliers", "supplierId", true);
-    });
-</script>
-{% endblock body %}
+    <div class="panel-body border-top d-flex justify-content-end gap-2">
+        <a class="btn btn-quiet" href="{{ url_for('purchase_order_blueprint.purchase_order_head') }}">Cancel</a>
+        <button class="btn btn-primary">Create purchase order</button>
+    </div>
+</form>
+{% endblock %}

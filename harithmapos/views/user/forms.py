@@ -11,47 +11,45 @@ import harithmapos.config as config
 
 
 class ResetPasswordForm(FlaskForm):
-    password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
-    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(),EqualTo('password')])
-    submit = SubmitField('Reset Password')
+    password = PasswordField("New password", validators=[DataRequired(), Length(min=8, message='Use at least 8 characters.')])
+    confirm_password = PasswordField("Confirm password", validators=[DataRequired(), EqualTo('password', message='The two passwords do not match.')])
+    submit = SubmitField('Set new password')
+
 
 class RequestPasswordResetFrom(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email()])
-    submit = SubmitField('Request Password Reset')
+    submit = SubmitField('Send reset link')
 
-    def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if not user:
-            raise ValidationError('User with this email do not exists.')
-        
 
 class UserUpdateForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
-    email = EmailField("Email", validators=[DataRequired(), Email()])
-    image = FileField('Update Profile Picture', validators=[FileAllowed(['jpg', 'png'])])
+    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    image = FileField('Profile picture', validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Use a JPG or PNG image.')])
     ui_theme = SelectField('Theme', choices=config.UI_THEME_FORM_LIST)
-    submit = SubmitField('Update Account')
+    submit = SubmitField('Save account')
 
     def validate_email(self, email):
         if email.data != current_user.email:
             user = User.query.filter_by(email=email.data).first()
             if user:
-                raise ValidationError('User with this email already exists.')
+                raise ValidationError('Another user already has this email.')
+
 
 class UserRegisterForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=20)])
-    email = EmailField("Email", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
-    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(),EqualTo('password')])
-    submit = SubmitField('Sign Up')
+    name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=8, message='Use at least 8 characters.')])
+    confirm_password = PasswordField("Confirm password", validators=[DataRequired(), EqualTo('password', message='The two passwords do not match.')])
+    submit = SubmitField('Add user')
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
-            raise ValidationError('User with this email already exists.')
+            raise ValidationError('A user with this email already exists.')
+
 
 class UserLoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[DataRequired(),Length(min=6)])
-    remember = BooleanField("Remember Me")
-    submit = SubmitField('Login')
+    password = PasswordField("Password", validators=[DataRequired()])
+    remember = BooleanField("Keep me signed in")
+    submit = SubmitField('Sign in')

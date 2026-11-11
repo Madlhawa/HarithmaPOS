@@ -1,621 +1,228 @@
 {% extends 'layout/base.html' %}
-{% block title %} Home {% endblock %}
+{% from 'layout/macros.html' import csrf, rs, plate, post_button, modal, field, autocomplete, payment_fields %}
+
+{# The floor board is left open on the counter all day: reload it every minute. #}
+{% block body_attrs %}data-auto-refresh="60"{% endblock %}
+
 {% block body %}
-<div class="container">
-    <!-- Quick Action Buttons -->
-    <div class="row mb-4 mt-3">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body py-3">
-                    <div class="row g-2">
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newInvoiceModal">
-                                <i class="bi bi-receipt me-1"></i>Invoice
-                            </button>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ url_for('invoice_blueprint.create_quick_item_invoice') }}" class="btn btn-info btn-sm w-100">
-                                <i class="bi bi-bag me-1"></i>Item Invoice
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-success btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
-                                <i class="bi bi-credit-card me-1"></i>Payment
-                            </button>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-warning btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newCustomerModal">
-                                <i class="bi bi-person-plus me-1"></i>Customer
-                            </button>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-secondary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newVehicleModal">
-                                <i class="bi bi-car-front me-1"></i>Vehicle
-                            </button>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <button type="button" class="btn btn-dark btn-sm w-100" data-bs-toggle="modal" data-bs-target="#newItemModal">
-                                <i class="bi bi-box me-1"></i>Item
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% set here = url_for('dashboard_blueprint.dashboard') %}
+
+<div class="page-head">
+    <div>
+        <h1>Today at the station</h1>
+        <p>{{ now_utc|local_dt('%A, %d %B %Y') }}</p>
     </div>
-    
-    <!-- Customer Status Overview -->
-    <div class="row mb-4">
-        <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0"><i class="bi bi-clock"></i> Waiting Customers ({{ waiting_invoices|length }})</h6>
-                </div>
-                <div class="card-body p-0">
-                    {% if waiting_invoices %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col">Customer</th>
-                                    <th scope="col">Vehicle</th>
-                                    <th scope="col">Employee</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for invoice in waiting_invoices %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-warning btn-sm">{{invoice.id}}</a>
-                                    </td>
-                                    <td>{{invoice.customer.name}}</td>
-                                    <td>{{invoice.vehicle.number}}</td>
-                                    <td>{{invoice.employee.name}}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newServiceModal">
+            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New service
+        </button>
+        <button type="button" class="btn btn-quiet" data-bs-toggle="modal" data-bs-target="#registerModal">
+            <i class="bi bi-person-plus me-1" aria-hidden="true"></i>New customer and vehicle
+        </button>
+        {{ post_button(url_for('invoice_blueprint.create_quick_item_invoice'), 'Item sale', icon='bag', cls='btn btn-quiet') }}
+        <button type="button" class="btn btn-quiet" data-bs-toggle="modal" data-bs-target="#paymentModal">
+            <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>Record payment
+        </button>
+    </div>
+</div>
+
+{% if not (setup.washbays and setup.employees and setup.items) %}
+<div class="panel mb-4">
+    <div class="panel-head"><h2>Finish setting up</h2></div>
+    <div class="panel-body">
+        <p class="mb-2">A service invoice needs a wash bay, an employee and something to sell. Add these once and you are ready to go.</p>
+        <ol class="setup-list">
+            <li class="{{ 'is-done' if setup.washbays }}"><a href="{{ url_for('washbay_blueprint.washbay') }}">Add your wash bays</a></li>
+            <li class="{{ 'is-done' if setup.employees }}"><a href="{{ url_for('employee_blueprint.employee') }}">Add your employees</a></li>
+            <li class="{{ 'is-done' if setup.items }}"><a href="{{ url_for('item_blueprint.item') }}">Add your services and stock items</a></li>
+        </ol>
+    </div>
+</div>
+{% endif %}
+
+<dl class="strip">
+    <div>
+        <dt>In the station now</dt>
+        <dd>{{ summary.in_station }}</dd>
+    </div>
+    <div>
+        <dt>Finished today</dt>
+        <dd>{{ summary.done_today }}</dd>
+    </div>
+    <div>
+        <dt>Collected today</dt>
+        <dd>{{ rs(summary.collected_today) }}</dd>
+    </div>
+    <div>
+        <dt>Paid out today</dt>
+        <dd>{{ rs(summary.paid_out_today) }}</dd>
+    </div>
+    <div class="{{ 'is-alert' if summary.unpaid_total > 0 }}">
+        <dt>Unpaid on finished jobs</dt>
+        <dd><a href="{{ url_for('invoice_blueprint.invoice_head', status='unpaid') }}">{{ rs(summary.unpaid_total) }}</a></dd>
+    </div>
+    <div class="{{ 'is-alert' if summary.low_stock }}">
+        <dt>Items running low</dt>
+        <dd><a href="{{ url_for('item_blueprint.item', stock='low') }}">{{ summary.low_stock }}</a></dd>
+    </div>
+</dl>
+
+<h2 class="section-title">On the floor</h2>
+<div class="floor">
+    {% for lane in lanes %}
+    {% set is_done_lane = lane.status.id == SERVICE_STATUS_DONE %}
+    <section class="lane" data-status="{{ lane.status.key }}" aria-label="{{ lane.status.label }}">
+        <div class="lane-head">
+            <span class="lane-name">{{ 'Done today' if is_done_lane else lane.status.label }}</span>
+            <span class="lane-count">{{ lane.invoices|length }}</span>
+        </div>
+        {% if lane.invoices %}
+        <div class="lane-list">
+            {% for invoice in lane.invoices %}
+            {% set invoice_url = url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) %}
+            <article class="ticket">
+                <div class="ticket-top">
+                    {{ plate(invoice.vehicle.number, href=invoice_url) }}
+                    {% if is_done_lane %}
+                    <span class="ticket-age">#{{ invoice.id }}</span>
                     {% else %}
-                    <div class="text-center p-4">
-                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                        <p class="text-muted mt-2 mb-0">No waiting customers</p>
-                    </div>
+                    <time class="ticket-age" data-since="{{ invoice.created_dttm|iso_utc }}" data-long-after="120" title="Time since it arrived">{{ invoice.created_dttm|elapsed }}</time>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="bi bi-check-circle"></i> Completed Today ({{ done_invoices|length }})</h6>
+                <div class="ticket-who">{{ invoice.customer.name }}</div>
+                <div class="ticket-where">
+                    <span>{{ invoice.washbay.name }}</span>
+                    <span>{{ invoice.employee.name }}</span>
                 </div>
-                <div class="card-body p-0">
-                    {% if done_invoices %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col">Customer</th>
-                                    <th scope="col">Vehicle</th>
-                                    <th scope="col">Employee</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for invoice in done_invoices %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-success btn-sm">{{invoice.id}}</a>
-                                    </td>
-                                    <td>{{invoice.customer.name}}</td>
-                                    <td>{{invoice.vehicle.number}}</td>
-                                    <td>{{invoice.employee.name}}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center p-4">
-                        <i class="bi bi-hourglass text-muted" style="font-size: 2rem;"></i>
-                        <p class="text-muted mt-2 mb-0">No completed customers today</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Wash Bays -->
-    <div class="row mb-2">
-        <div class="col-12">
-            <h5 class="mb-2"><i class="bi bi-gear"></i> Wash Bays</h5>
-        </div>
-    </div>
-    <div class="row row-cols-1 row-cols-lg-2 row-cols-xl-3 g-4">
-        {% for washbay in active_wash_bays %}
-            <div class="col">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0"><i class="bi bi-gear"></i> {{ washbay.name }}</h6>
-                            <small>{{ washbay.active_invoice.vehicle.number }}</small>
-                        </div>
-                        <div class="text-end">
-                            {% if washbay.active_invoice.is_in_bay %}
-                                <span class="badge bg-success"><i class="bi bi-circle-fill"></i> In Bay</span>
-                            {% else %}
-                                <span class="badge bg-secondary"><i class="bi bi-circle"></i> Outside</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="progress" style="height:30px;">
-                            {% for status_number, service_status in service_status_form_list %}
-                                {% if washbay.active_invoice.service_status < status_number %}
-                                    <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-hourglass-split"> {{ service_status }}</i></div>
-                                {% elif washbay.active_invoice.service_status == status_number %}
-                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-arrow-repeat text-dark"> {{ service_status }}</i></div>
-                                {% else %}
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-check-circle-fill"> {{ service_status }}</i></div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <div class="text-center mb-3">
-                                    <small class="text-muted">Customer</small>
-                                    <h6 class="mb-1">{{ washbay.active_invoice.customer.name }}</h6>
-                                </div>
-                                <div class="text-center mb-3">
-                                    <small class="text-muted">Employee</small>
-                                    <h6 class="mb-1">{{ washbay.active_invoice.employee.name }}</h6>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="text-center mb-3">
-                                    <small class="text-muted">Elapsed Time</small>
-                                    <h6 class="mb-1 text-primary">{{ washbay.active_invoice.created_dttm | elapsed_time }}</h6>
-                                </div>
-                                <div class="text-center mb-3">
-                                    <small class="text-muted">Total</small>
-                                    <h6 class="mb-1 text-success">{{ washbay.active_invoice.total_price }}</h6>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-light">  
-                        <div class="d-grid">
-                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=washbay.active_invoice.id) }}" class="btn btn-primary">
-                                <i class="bi bi-arrow-right me-1"></i>Go to Invoice
-                            </a>
-                        </div>
-                    </div> 
-                </div>
-            </div>
-        {% endfor %}
-        {% for invoice in polishing_invoices %}
-            <div class="col">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0"><i class="bi bi-gem"></i> Polishing Area</h6>
-                            <small>{{ invoice.vehicle.number }}</small>
-                        </div>
-                        <div class="text-end">
-                            {% if invoice.is_in_bay %}
-                                <span class="badge bg-success"><i class="bi bi-circle-fill"></i> In Bay</span>
-                            {% else %}
-                                <span class="badge bg-secondary"><i class="bi bi-circle"></i> Outside</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="progress" style="height:30px;">
-                            {% for status_number, service_status in service_status_form_list %}
-                                {% if invoice.service_status < status_number %}
-                                    <div class="progress-bar bg-secondary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-hourglass-split"> {{ service_status }}</i></div>
-                                {% elif invoice.service_status == status_number %}
-                                    <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 30%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-arrow-repeat text-dark"> {{ service_status }}</i></div>
-                                {% else %}
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><i class="bi bi-check-circle-fill"> {{ service_status }}</i></div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="row mt-3 text-center">
-                            <div class="col">
-                                <div class="row mb-1">
-                                    <small>Customer</small>
-                                    <h5>{{ invoice.customer.name }}</h5>
-                                </div>
-                                <div class="row mb-1">
-                                    <small>Employee</small>
-                                    <h5>{{ invoice.employee.name }}</h5>
-                                </div>
-                                <div class="row mb-1">
-                                    <small>Current Total</small>
-                                    <h5>{{ invoice.total_price }}</h5>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="row mb-1">
-                                    <small>Elapsed Time</small>
-                                    <h5>{{ invoice.created_dttm | elapsed_time }}</h5>
-                                </div>
-                                <div class="row mb-1">
-                                    <small>Started Time</small>
-                                    <h5>{{ invoice.created_dttm | to_ist }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer">  
-                        <div class="d-grid gap-2 col-6 mx-auto">
-                            <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}" class="btn btn-primary">Go to Invoice</a>
-                        </div>
-                    </div> 
-                </div>
-            </div>
-        {% endfor %}
-        
-        <!-- Available Wash Bays -->
-        {% for washbay in inactive_wash_bays %}
-            <div class="col">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0"><i class="bi bi-gear"></i> {{ washbay.name }}</h6>
-                        </div>
-                        <span class="badge bg-light text-dark"><i class="bi bi-pause-circle"></i> Available</span>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-gear text-muted" style="font-size: 2rem;"></i>
-                        </div>
-                        <div class="mb-2">
-                            <small class="text-muted">Capacity</small>
-                            <h6 class="mb-1">{{washbay.capacity}} Tons</h6>
-                        </div>
-                        {% if washbay.remarks %}
-                        <div class="mb-3">
-                            <small class="text-muted">Description</small>
-                            <p class="mb-0 small">{{washbay.remarks}}</p>
-                        </div>
+                <div class="ticket-foot">
+                    {% if is_done_lane %}
+                        {% if invoice.balance > 0 %}
+                        <span class="ticket-total is-unpaid">{{ rs(invoice.balance) }} unpaid</span>
+                        {% else %}
+                        <span class="ticket-total">{{ rs(invoice.gross_price) }}</span>
                         {% endif %}
-                    </div>
-                    <div class="card-footer bg-light">  
-                        <div class="d-grid">
-                            <a href="{{ url_for('invoice_blueprint.insert_invoice_head') }}" class="btn btn-outline-primary">
-                                <i class="bi bi-plus-circle me-1"></i>Start Service
-                            </a>
-                        </div>
-                    </div> 
+                        <a class="btn btn-quiet btn-sm" href="{{ invoice_url }}">Open</a>
+                    {% else %}
+                        <span class="ticket-total">{{ rs(invoice.gross_price) }}</span>
+                        {% if lane.status.id < SERVICE_STATUS_DONE - 1 %}
+                        {{ post_button(
+                            url_for('invoice_blueprint.set_invoice_status', invoice_head_id=invoice.id),
+                            SERVICE_STATUSES[lane.status.id + 1].action,
+                            cls='btn btn-primary btn-sm', next=here, fields={'status': lane.status.id + 1}) }}
+                        {% else %}
+                        <a class="btn btn-finish btn-sm" href="{{ invoice_url }}">Bill and finish</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="lane-empty">
+            {%- if lane.status.id == 0 %}No one is waiting
+            {%- elif is_done_lane %}Nothing finished yet today
+            {%- else %}Empty{% endif -%}
+        </div>
+        {% endif %}
+    </section>
+    {% endfor %}
+</div>
+
+<h2 class="section-title">Wash bays</h2>
+{% if bays %}
+<div class="bays">
+    {% for entry in bays %}
+    <div class="bay {{ 'is-free' if not entry.invoice }}">
+        <div class="min-w-0">
+            <div class="bay-name">{{ entry.bay.name }}</div>
+            <div class="bay-note">
+                {% if entry.invoice %}{{ status_meta(entry.invoice.service_status).label }}, {{ entry.invoice.employee.name }}{% else %}Free{% endif %}
+            </div>
+        </div>
+        {% if entry.invoice %}
+        {{ plate(entry.invoice.vehicle.number, size='sm', href=url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=entry.invoice.id)) }}
+        {% else %}
+        <button type="button" class="btn btn-quiet btn-sm" data-start-in-bay="{{ entry.bay.id }}" data-bay-name="{{ entry.bay.name }}">Start a service here</button>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="lane-empty">No wash bays yet. <a href="{{ url_for('washbay_blueprint.washbay') }}">Add your first bay</a>.</div>
+{% endif %}
+
+
+{# ---- New service ------------------------------------------------------- #}
+{% call modal('newServiceModal', 'New service', attrs={'data-auto-open': ''} if prefill_vehicle else {}) %}
+<form method="post" action="{{ url_for('invoice_blueprint.insert_invoice_head') }}">
+    {{ csrf() }}
+    <input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">
+        {{ autocomplete('vehicle', 'Vehicle', url_for('search_blueprint.search_vehicles'), prefix='ns',
+                        value=prefill_vehicle.number if prefill_vehicle else '',
+                        id_value=prefill_vehicle.id if prefill_vehicle else '',
+                        placeholder='Type the number, owner name or phone', autofocus=true, cls='plate-input') }}
+        <p class="form-hint" style="margin-top: -0.6rem;">
+            First visit?
+            <a href="#registerModal" data-bs-toggle="modal" data-bs-target="#registerModal">Add the customer and vehicle</a>
+        </p>
+        <div class="row g-3">
+            <div class="col-sm-6">
+                {{ autocomplete('employee', 'Employee doing the job', url_for('search_blueprint.search_employees'), prefix='ns', show_all=true, placeholder='Choose an employee', wrap='') }}
+            </div>
+            <div class="col-sm-6">
+                {{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='ns', show_all=true, placeholder='Choose a bay', wrap='') }}
+            </div>
+            <div class="col-sm-6">
+                {{ field('current_milage', 'Mileage now (km)', prefix='ns', kind='whole', hint='Leave empty if you do not have it.', wrap='') }}
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Open the invoice</button>
+    </div>
+</form>
+{% endcall %}
+
+{# ---- New customer + vehicle -------------------------------------------- #}
+{% call modal('registerModal', 'New customer and vehicle') %}
+<form method="post" action="{{ url_for('customer_blueprint.quick_register') }}">
+    {{ csrf() }}
+    <div class="modal-body">
+        <div class="row g-3">
+            <div class="col-sm-7">{{ field('name', 'Customer name', prefix='reg', required=true, wrap='', attrs={'data-autofocus': '', 'maxlength': 100}) }}</div>
+            <div class="col-sm-5">{{ field('contact', 'Phone', prefix='reg', kind='phone', placeholder='077 123 4567', wrap='') }}</div>
+            <div class="col-sm-5">{{ field('number', 'Vehicle number', prefix='reg', required=true, placeholder='CAB-1234', cls='plate-input', wrap='', attrs={'maxlength': 8}) }}</div>
+            <div class="col-sm-7">
+                <div class="row g-3">
+                    <div class="col-5">{{ field('make', 'Make', prefix='reg', placeholder='Toyota', wrap='', attrs={'maxlength': 20}) }}</div>
+                    <div class="col-4">{{ field('model', 'Model', prefix='reg', placeholder='Axio', wrap='', attrs={'maxlength': 20}) }}</div>
+                    <div class="col-3">{{ field('year', 'Year', prefix='reg', kind='whole', wrap='', attrs={'maxlength': 4}) }}</div>
                 </div>
             </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- New Invoice Modal -->
-<div id="newInvoiceModal" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Invoice</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('invoice_blueprint.insert_invoice_head')}}" method="POST">
-                    {{ invoice_head_create_form.hidden_tag() }}
-                    {{ invoice_head_create_form.vehicle_id(class="form-control", id="vehicleId", style="display: none;") }}
-                    {{ invoice_head_create_form.employee_id(class="form-control", id="employeeId", style="display: none;") }}
-                    {{ invoice_head_create_form.washbay_id(class="form-control", id="washbayId", style="display: none;") }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ invoice_head_create_form.vehicle.label(class="form-control-label") }}
-                                {{ invoice_head_create_form.vehicle(class="form-control", id="vehicleSearch", placeholder="Search Vehicle...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="vehicleDropdown"></ul>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ invoice_head_create_form.employee.label(class="form-control-label") }}
-                                {{ invoice_head_create_form.employee(class="form-control", id="employeeSearch", placeholder="Search Employee...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="employeeDropdown"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ invoice_head_create_form.washbay.label(class="form-control-label") }}
-                                {{ invoice_head_create_form.washbay(class="form-control", id="washbaySearch", placeholder="Search WashBay...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="washbayDropdown"></ul>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ invoice_head_create_form.current_milage.label(class="form-control-label") }}
-                                {{ invoice_head_create_form.current_milage(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-primary" type="submit">Create Invoice</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
         </div>
+        <p class="form-hint mt-3 mb-0">After saving, the new service form opens with this vehicle already chosen.</p>
     </div>
-</div>
-
-
-<!-- New Payment Modal -->
-<div id="newPaymentModal" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Payment</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('payment_blueprint.insert_payment')}}" method="POST">
-                    {{ payment_create_form.hidden_tag() }}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.invoice_id.label(class="form-control-label") }}
-                                {{ payment_create_form.invoice_id(class="form-control", id="paymentInvoiceSearch", placeholder="Search Invoices...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="paymentInvoiceDropdown"></ul>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.item_invoice_id.label(class="form-control-label") }}
-                                {{ payment_create_form.item_invoice_id(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.customer_id.label(class="form-control-label") }}
-                                {{ payment_create_form.customer_id(class="form-control", id="paymentCustomerSearch", placeholder="Search Customers...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="paymentCustomerDropdown"></ul>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.employee_id.label(class="form-control-label") }}
-                                {{ payment_create_form.employee_id(class="form-control", id="paymentEmployeeSearch", placeholder="Search Employees...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="paymentEmployeeDropdown"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.payment_method.label(class="form-control-label") }}
-                                {{ payment_create_form.payment_method(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.payment_direction.label(class="form-control-label") }}
-                                {{ payment_create_form.payment_direction(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.payment_type.label(class="form-control-label") }}
-                                {{ payment_create_form.payment_type(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.payment_amount.label(class="form-control-label") }}
-                                {{ payment_create_form.payment_amount(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ payment_create_form.remarks.label(class="form-control-label") }}
-                                {{ payment_create_form.remarks(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-success" type="submit">Create Payment</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save and start a service</button>
     </div>
-</div>
+</form>
+{% endcall %}
 
-<!-- New Customer Modal -->
-<div id="newCustomerModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Customer</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('customer_blueprint.insert_customer')}}" method="POST">
-                    {{ customer_create_form.hidden_tag() }}
-                    <div class="form-group mb-3">
-                        {{ customer_create_form.name.label(class="form-control-label") }}
-                        {{ customer_create_form.name(class="form-control") }}
-                    </div>
-                    <div class="form-group mb-3">
-                        {{ customer_create_form.contact.label(class="form-control-label") }}
-                        {{ customer_create_form.contact(class="form-control") }}
-                    </div>
-                    <div class="form-group mb-3">
-                        {{ customer_create_form.address.label(class="form-control-label") }}
-                        {{ customer_create_form.address(class="form-control") }}
-                    </div>
-                    <div class="form-group mb-3">
-                        {{ customer_create_form.email.label(class="form-control-label") }}
-                        {{ customer_create_form.email(class="form-control") }}
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-warning" type="submit">Create Customer</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+{# ---- Record payment ---------------------------------------------------- #}
+{% call modal('paymentModal', 'Record a payment', size='modal-lg') %}
+<form method="post" action="{{ url_for('payment_blueprint.insert_payment') }}">
+    {{ csrf() }}
+    <input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">
+        {{ payment_fields(prefix='dpay') }}
     </div>
-</div>
-
-<!-- New Vehicle Modal -->
-<div id="newVehicleModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Vehicle</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('vehicle_blueprint.insert_vehicle')}}" method="POST">
-                    {{ vehicle_create_form.hidden_tag() }}
-                    <div class="form-group mb-3">
-                        {{ vehicle_create_form.number.label(class="form-control-label") }}
-                        {{ vehicle_create_form.number(class="form-control") }}
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ vehicle_create_form.make.label(class="form-control-label") }}
-                                {{ vehicle_create_form.make(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ vehicle_create_form.model.label(class="form-control-label") }}
-                                {{ vehicle_create_form.model(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ vehicle_create_form.year.label(class="form-control-label") }}
-                                {{ vehicle_create_form.year(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ vehicle_create_form.owner_id.label(class="form-control-label") }}
-                                {{ vehicle_create_form.owner_id(class="form-control", id="vehicleOwnerSearch", placeholder="Search Customers...", autocomplete="off") }}
-                                <ul class="dropdown-menu w-100" id="vehicleOwnerDropdown"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-secondary" type="submit">Create Vehicle</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Record payment</button>
     </div>
-</div>
-
-<!-- New Item Modal -->
-<div id="newItemModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Create New Item</h4>
-            </div>
-            <div class="modal-body">
-                <form action="{{url_for('item_blueprint.insert_item')}}" method="POST">
-                    {{ item_create_form.hidden_tag() }}
-                    <div class="form-group mb-3">
-                        {{ item_create_form.name.label(class="form-control-label") }}
-                        {{ item_create_form.name(class="form-control") }}
-                    </div>
-                    <div class="form-group mb-3">
-                        {{ item_create_form.description.label(class="form-control-label") }}
-                        {{ item_create_form.description(class="form-control") }}
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ item_create_form.unit_of_measure.label(class="form-control-label") }}
-                                {{ item_create_form.unit_of_measure(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ item_create_form.quantity.label(class="form-control-label") }}
-                                {{ item_create_form.quantity(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ item_create_form.unit_cost.label(class="form-control-label") }}
-                                {{ item_create_form.unit_cost(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                {{ item_create_form.unit_price.label(class="form-control-label") }}
-                                {{ item_create_form.unit_price(class="form-control") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group mb-3">
-                        {{ item_create_form.discount_pct.label(class="form-control-label") }}
-                        {{ item_create_form.discount_pct(class="form-control") }}
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-dark" type="submit">Create Item</button>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize searchable dropdowns for invoice modal
-    setupDynamicDropdown("vehicleSearch", "vehicleDropdown", "/app/search/vehicles", "vehicle_id");
-    setupDynamicDropdown("employeeSearch", "employeeDropdown", "/app/search/employees", "employee_id", true);
-    setupDynamicDropdown("washbaySearch", "washbayDropdown", "/app/search/washbays", "washbay_id", true);
-    
-    // Initialize searchable dropdowns for item invoice modal
-    setupDynamicDropdown("customerSearch", "customerDropdown", "/app/search/customers", "customer");
-    
-    // Initialize searchable dropdowns for payment modal
-    setupDynamicDropdown("paymentInvoiceSearch", "paymentInvoiceDropdown", "/app/search/invoices", "invoice_id");
-    setupDynamicDropdown("paymentCustomerSearch", "paymentCustomerDropdown", "/app/search/customers", "customer_id");
-    setupDynamicDropdown("paymentEmployeeSearch", "paymentEmployeeDropdown", "/app/search/employees", "employee_id", true);
-    
-    // Initialize searchable dropdowns for vehicle modal
-    setupDynamicDropdown("vehicleOwnerSearch", "vehicleOwnerDropdown", "/app/search/customers", "owner_id");
-    
-});
-</script>
-
+</form>
+{% endcall %}
 {% endblock %}

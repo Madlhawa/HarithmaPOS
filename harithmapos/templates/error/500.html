@@ -1,12 +1,10 @@
-{% extends 'layout/customer_base.html' %}
-{% block title %} Error {% endblock %}
-{% block body %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h1>Oops. Something went wrong (500)</h1>
-            <p>We are experiencing some errors from our end. Please try again later.</p>
-        </div>
-    </div>
-</div>
-{% endblock body %}
+{% extends 'layout/auth.html' if not current_user.is_authenticated else 'layout/base.html' %}
+{% macro msg() %}
+<div class="error-page"><div>
+    <h1>{{ heading|default(none) or "Something went wrong on our side" }}</h1>
+    <p>{{ message|default(none) or 'Nothing was saved. Go back and try again; if it keeps happening, note what you were doing and tell whoever looks after the system.' }}</p>
+    {% if current_user.is_authenticated %}<a class="btn btn-primary" href="{{ url_for('dashboard_blueprint.dashboard') }}">Back to the dashboard</a>{% endif %}
+</div></div>
+{% endmacro %}
+{% block body %}{{ msg() }}{% endblock %}
+{% block auth %}{{ msg() }}{% endblock %}

@@ -1,313 +1,90 @@
 {% extends 'layout/base.html' %}
-{% block title %} Items Management {% endblock %}
-{% block body %} 
-<div class="container">
-    <!-- Search and Actions Section -->
-    <div class="row mb-4 mt-3">
-        <div class="col-lg-8 col-md-7">
-            <form action="" method="GET" autocomplete="off">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" name="query" id="query" placeholder="{{ query if query else 'Search items by name or description...'}}">
-                    <button type="submit" class="btn btn-primary" name="">
-                        <i class="bi bi-search me-1"></i>Search
-                    </button>
-                    <a href="{{ url_for('item_blueprint.item') }}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
-                    </a>
-                </div>
-            </form>
-        </div>
-        <div class="col-lg-4 col-md-5 text-end">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#insert_modal">
-                <i class="bi bi-plus-circle me-1"></i>Add New Item
-            </button>
-        </div>
+{% from 'layout/macros.html' import csrf, field, select, modal, pager, search_box, post_button, rs %}
+{% block body %}
+{% set here = request.full_path %}
+<div class="page-head">
+    <div><h1>Items</h1><p>Services you charge for and the stock you sell.</p></div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-primary" data-edit-modal="#itemNewModal" data-values='{"quantity": "0"}'><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add item</button>
     </div>
-    <!-- Add Item Modal -->
-    <div id="insert_modal" class="modal fade" role="dialog">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Item</h4>
-                </div>
-                <div class="modal-body">
-                    <form action="{{url_for('item_blueprint.insert_item')}}" method="POST">
-                        {{ item_create_form.hidden_tag() }}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    {{ item_create_form.name.label(class="form-control-label") }}
-                                    {{ item_create_form.name(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    {{ item_create_form.unit_of_measure.label(class="form-control-label") }}
-                                    {{ item_create_form.unit_of_measure(class="form-control") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group mb-3">
-                            {{ item_create_form.description.label(class="form-control-label") }}
-                            {{ item_create_form.description(class="form-control") }}
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    {{ item_create_form.quantity.label(class="form-control-label") }}
-                                    {{ item_create_form.quantity(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    {{ item_create_form.unit_cost.label(class="form-control-label") }}
-                                    {{ item_create_form.unit_cost(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    {{ item_create_form.unit_price.label(class="form-control-label") }}
-                                    {{ item_create_form.unit_price(class="form-control") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group mb-3">
-                            {{ item_create_form.discount_pct.label(class="form-control-label") }}
-                            {{ item_create_form.discount_pct(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            <button class="btn btn-success" type="submit">
-                                <i class="bi bi-check-circle me-1"></i>Add Item
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
+</div>
+<div class="toolbar">
+    {{ search_box('Search items', query, {'stock': stock}) }}
+    <div class="filter-tabs">
+        <a href="{{ url_for('item_blueprint.item', query=query or none) }}" class="{{ 'active' if not stock }}">All</a>
+        <a href="{{ url_for('item_blueprint.item', stock='low', query=query or none) }}" class="{{ 'active' if stock == 'low' }}">Running low</a>
+        <a href="{{ url_for('item_blueprint.item', stock='services', query=query or none) }}" class="{{ 'active' if stock == 'services' }}">Services</a>
     </div>
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>{{message}}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+</div>
 
-    <!-- Items Table Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0"><i class="bi bi-table me-1"></i>Items Inventory</h6>
-                        <small>Total items: {{ items.total if items else 0 }}</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge bg-light text-dark">
-                            <i class="bi bi-list-ul me-1"></i>{{ items.items|length if items else 0 }} items shown
-                        </span>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% if items and items.items %}
-                        <div class="table-responsive">
-                            <table class="table table-modern table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th scope="col" class="text-center">ID</th>
-                                        <th scope="col">Name</th>
-                                        <th scope="col">Description</th>
-                                        <th scope="col" class="text-center">UOM</th>
-                                        <th scope="col" class="text-center">Qty</th>
-                                        <th scope="col" class="text-end">Cost</th>
-                                        <th scope="col" class="text-end">Price</th>
-                                        <th scope="col" class="text-center">Discount</th>
-                                        <th scope="col" class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="results">
-                                {% for item in items.items %}
-                                    <tr>
-                                        <td class="align-middle text-center">
-                                            <a href="#" class="btn btn-primary btn-sm">{{item.id}}</a>
-                                        </td>
-                                        <td class="align-middle fw-medium">{{item.name}}</td>
-                                        <td class="align-middle text-muted">{{item.description}}</td>
-                                        <td class="align-middle text-center">
-                                            <span class="badge bg-secondary">{{item.unit_of_measure}}</span>
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <span class="badge bg-info">{{item.quantity}}</span>
-                                        </td>
-                                        <td class="align-middle text-end fw-medium text-success">{{item.unit_cost}}</td>
-                                        <td class="align-middle text-end fw-medium text-primary">{{item.unit_price}}</td>
-                                        <td class="align-middle text-center">
-                                            {% if item.discount_pct > 0 %}
-                                                <span class="badge bg-warning">{{item.discount_pct}}%</span>
-                                            {% else %}
-                                                <span class="badge bg-light text-dark">0%</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ url_for('item_blueprint.update_item', item_id=item.id) }}" 
-                                                   class="btn btn-sm btn-outline-primary" 
-                                                   data-bs-toggle="modal" 
-                                                   data-bs-target="#update_item{{item.id}}"
-                                                   title="Edit item">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>                            
-                                                <a href="{{ url_for('item_blueprint.delete_item', item_id=item.id) }}" 
-                                                   class="btn btn-sm btn-outline-danger" 
-                                                   data-bs-toggle="tooltip" 
-                                                   data-bs-placement="top" 
-                                                   title="Delete item" 
-                                                   onclick="return confirm('Are you sure to delete this item?')">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center p-4">
-                            <i class="bi bi-box text-muted" style="font-size: 3rem;"></i>
-                            <h5 class="text-muted mt-3">No Items Found</h5>
-                            <p class="text-muted">Start by adding your first item to the inventory.</p>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#insert_modal">
-                                <i class="bi bi-plus-circle me-1"></i>Add First Item
-                            </button>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Update Item Modals -->
-    {% if items and items.items %}
-        {% for item in items.items %}
-            <div id="update_item{{item.id}}" class="modal fade" role="dialog">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h4 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Update Item</h4>
-                        </div>
-                        <div class="modal-body">
-                            <form action="{{url_for('item_blueprint.update_item', item_id=item.id)}}" method="POST">
-                                {{ item_update_form.hidden_tag() }}
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            {{ item_update_form.name.label(class="form-control-label") }}
-                                            {{ item_update_form.name(class="form-control", value=item.name) }}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group mb-3">
-                                            {{ item_update_form.unit_of_measure.label(class="form-control-label") }}
-                                            {{ item_update_form.unit_of_measure(class="form-control", value=item.unit_of_measure) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group mb-3">
-                                    {{ item_update_form.description.label(class="form-control-label") }}
-                                    {{ item_update_form.description(class="form-control", value=item.description) }}
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group mb-3">
-                                            {{ item_update_form.quantity.label(class="form-control-label") }}
-                                            {{ item_update_form.quantity(class="form-control", value=item.quantity) }}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group mb-3">
-                                            {{ item_update_form.unit_cost.label(class="form-control-label") }}
-                                            {{ item_update_form.unit_cost(class="form-control", value=item.unit_cost) }}
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group mb-3">
-                                            {{ item_update_form.unit_price.label(class="form-control-label") }}
-                                            {{ item_update_form.unit_price(class="form-control", value=item.unit_price) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group mb-3">
-                                    {{ item_update_form.discount_pct.label(class="form-control-label") }}
-                                    {{ item_update_form.discount_pct(class="form-control", value=item.discount_pct) }}
-                                </div>
-                                <div class="form-group">
-                                    <button class="btn btn-warning" type="submit">
-                                        <i class="bi bi-check-circle me-1"></i>Update Item
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="panel">
+    {% if items.items %}
+    <div class="table-responsive">
+    <table class="table table-list table-hover">
+        <thead><tr><th>Item</th><th class="num">In stock</th><th class="num">Cost</th><th class="num">Price</th><th class="num">Margin</th><th class="num">Discount</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for i in items.items %}
+        {% set margin = (i.unit_price or 0) - (i.unit_cost or 0) %}
+        <tr>
+            <td><div class="cell-main">{{ i.name }}</div><div class="cell-sub">{{ i.description or '' }}{% if i.description and i.unit_of_measure %}, {% endif %}{{ i.unit_of_measure or '' }}</div></td>
+            <td class="num">
+                {% if not i.tracks_stock %}<span class="tag">Service</span>
+                {% elif i.is_low_stock %}<span class="tag {{ 'tag-bad' if i.quantity <= 0 else 'tag-warn' }}">{{ i.quantity|qty }}</span>
+                {% else %}{{ i.quantity|qty }}{% endif %}
+            </td>
+            <td class="num">{{ i.unit_cost|money }}</td>
+            <td class="num fw-semibold">{{ i.unit_price|money }}</td>
+            <td class="num {{ 'text-danger' if margin < 0 }}">{{ margin|money }}</td>
+            <td class="num">{% if i.discount_pct %}{{ i.discount_pct|qty }}%{% else %}<span class="text-muted">-</span>{% endif %}</td>
+            <td class="cell-actions">
+                <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ i.name }}" aria-label="Edit {{ i.name }}" data-edit-modal="#itemModal"
+                    data-action="{{ url_for('item_blueprint.update_item', item_id=i.id) }}"
+                    data-values='{{ {"name": i.name, "description": i.description, "unit_of_measure": i.unit_of_measure, "quantity": i.quantity|qty if i.tracks_stock else none, "unit_cost": i.unit_cost|money, "unit_price": i.unit_price|money, "discount_pct": i.discount_pct|qty if i.discount_pct else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                {{ post_button(url_for('item_blueprint.delete_item', item_id=i.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ i.name, confirm='Delete ' ~ i.name ~ '?', next=here) }}
+            </td>
+        </tr>
         {% endfor %}
-    {% endif %}
-
-    <!-- Pagination Section -->
-    {% if items and items.pages > 1 %}
-    <div class="row">
-        <div class="col-12">
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center pagination-modern">
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('item_blueprint.item', page=items.prev_num, query=query) }}" 
-                           aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% for page_number in items.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                        {% if page_number %}
-                            {% if items.page == page_number %}
-                                <li class="page-item active">
-                                    <a class="page-link" href="{{ url_for('item_blueprint.item', page=page_number, query=query) }}">
-                                        {{ page_number }}
-                                    </a>
-                                </li>
-                            {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('item_blueprint.item', page=page_number, query=query) }}">
-                                        {{ page_number }}
-                                    </a>
-                                </li>
-                            {% endif %}
-                        {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('item_blueprint.item', page=items.next_num, query=query) }}" 
-                           aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+        </tbody>
+    </table>
+    </div>
+    {{ pager(items, 'item_blueprint.item', 'items', query=query or none, stock=stock or none) }}
+    {% else %}
+    <div class="empty"><i class="bi bi-box-seam" aria-hidden="true"></i>
+        {% if query or stock %}<h3>No items match</h3><p>Try another search or filter.</p>
+        {% else %}<h3>No items yet</h3><p>Add the services you charge for (body wash, oil change labour) and the stock you sell (oil, filters).</p>{% endif %}
     </div>
     {% endif %}
 </div>
+
+{% macro item_fields(prefix) %}
+    {{ field('name', 'Name', prefix=prefix, required=true, attrs={'data-autofocus': '', 'maxlength': 100}) }}
+    {{ field('description', 'Description', prefix=prefix, placeholder='Brand, grade or size', attrs={'maxlength': 255}) }}
+    <div class="row g-3">
+        <div class="col-sm-6">{{ select('unit_of_measure', 'Unit', UOM_CHOICES, prefix=prefix, required=true, wrap='') }}</div>
+        <div class="col-sm-6">
+            <label class="form-label" for="{{ prefix }}-quantity">Quantity in stock</label>
+            <input class="form-control num" id="{{ prefix }}-quantity" name="quantity" inputmode="decimal" autocomplete="off">
+            <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" id="{{ prefix }}-tracks" data-stock-toggle checked>
+                <label class="form-check-label form-hint m-0" for="{{ prefix }}-tracks">Keep count of stock (untick for services)</label>
+            </div>
+        </div>
+        <div class="col-4">{{ field('unit_cost', 'Cost', prefix=prefix, kind='money', required=true, wrap='') }}</div>
+        <div class="col-4">{{ field('unit_price', 'Price', prefix=prefix, kind='money', required=true, wrap='') }}</div>
+        <div class="col-4">{{ field('discount_pct', 'Discount %', prefix=prefix, kind='money', placeholder='0', wrap='') }}</div>
+    </div>
+{% endmacro %}
+
+{% call modal('itemNewModal', 'Add item') %}
+<form method="post" action="{{ url_for('item_blueprint.insert_item') }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ item_fields('in') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Add item</button></div>
+</form>
+{% endcall %}
+{% call modal('itemModal', 'Edit item') %}
+<form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
+    <div class="modal-body">{{ item_fields('ie') }}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save item</button></div>
+</form>
+{% endcall %}
 {% endblock %}

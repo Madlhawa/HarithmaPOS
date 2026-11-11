@@ -1,5 +1,6 @@
 from harithmapos import db, login_manager, config
 from datetime import datetime
+from decimal import Decimal
 from flask_login import UserMixin
 from flask import current_app
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -7,7 +8,15 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
+
+
+def _balance(document):
+    """What is still owed on an invoice or purchase order (negative = change due)."""
+    return (document.gross_price or Decimal('0')) - (document.paid_amount or Decimal('0'))
 
 class InvoiceStatusLog(db.Model):
     __tablename__ = 'invoice_status_log'
@@ -48,6 +57,11 @@ class PurchaseOrderHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
+    payments = db.relationship('Payment', backref='purchase_order', lazy=True)
+
+    @property
+    def balance(self):
+        return _balance(self)
 
 class PurchaseOrderDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +103,10 @@ class ItemInvoiceHead(db.Model):
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
     payments = db.relationship('Payment', backref='item_invoice', lazy=True)
+
+    @property
+    def balance(self):
+        return _balance(self)
 
 class ItemInvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -135,19 +153,29 @@ class InvoiceHead(db.Model):
         return serializer.dumps({'invoice_id': self.id})
     
     @staticmethod
-    def verify_customer_view_token(token, expire_seconds = 36000):
+    def verify_customer_view_token(token, expire_seconds=None):
+        if expire_seconds is None:
+            expire_seconds = config.CUSTOMER_LINK_MAX_AGE_SECONDS
         serializer = Serializer(current_app.config['SECRET_KEY'])
         try:
             invoice_id = serializer.loads(token, max_age=expire_seconds)['invoice_id']
-        except:
+        except Exception:
             return None
-        return InvoiceHead.query.get(invoice_id)
+        return db.session.get(InvoiceHead, invoice_id)
+
+    @property
+    def balance(self):
+        return _balance(self)
+
+    @property
+    def is_done(self):
+        return self.service_status == config.SERVICE_STATUS_DONE
 
     @hybrid_property
     def service_status_str(self):
         try:
             return config.SERVICE_STATUS_LIST[int(self.service_status)]
-        except (IndexError, ValueError):
+        except (IndexError, ValueError, TypeError):
             return f"Unknown Status ({self.service_status})"
     
     @hybrid_property
@@ -201,6 +229,15 @@ class Item(db.Model):
     item_invoice_details = db.relationship('ItemInvoiceDetail', backref='item', lazy=True)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='item', lazy=True)
 
+    @property
+    def tracks_stock(self):
+        """Items with no quantity are services or labour: sold without touching stock."""
+        return self.quantity is not None
+
+    @property
+    def is_low_stock(self):
+        return self.quantity is not None and self.quantity <= config.LOW_STOCK_THRESHOLD
+
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -220,18 +257,23 @@ class User(db.Model, UserMixin):
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def get_reset_token(self, expire_seconds = 1800):
-        serializer = Serializer(current_app.config['SECRET_KEY'])
+    RESET_TOKEN_SALT = 'password-reset'
+    RESET_TOKEN_MAX_AGE_SECONDS = 1800
+
+    def get_reset_token(self):
+        serializer = Serializer(current_app.config['SECRET_KEY'], salt=self.RESET_TOKEN_SALT)
         return serializer.dumps({'user_id': self.id})
-    
+
     @staticmethod
-    def verify_reset_token(token):
-        serializer = Serializer(current_app.config['SECRET_KEY'])
+    def verify_reset_token(token, max_age=None):
+        if max_age is None:
+            max_age = User.RESET_TOKEN_MAX_AGE_SECONDS
+        serializer = Serializer(current_app.config['SECRET_KEY'], salt=User.RESET_TOKEN_SALT)
         try:
-            user_id = serializer.loads(token)['user_id']
-        except:
+            user_id = serializer.loads(token, max_age=max_age)['user_id']
+        except Exception:
             return None
-        return User.query.get(user_id)
+        return db.session.get(User, user_id)
 
     def __repr__(self):
         return f"User('{self.name}','{self.email}')"

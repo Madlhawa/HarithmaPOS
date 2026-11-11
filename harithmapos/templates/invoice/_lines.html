@@ -1,0 +1,72 @@
+{# Shared item entry + lines table for service and item invoices.
+   Expects: add_url, lines, inc_endpoint, dec_endpoint, del_endpoint, line_arg #}
+{% from 'layout/macros.html' import csrf, autocomplete, post_button, rs %}
+<div class="panel">
+    <div class="panel-body">
+        <form method="post" action="{{ add_url }}" data-entry>
+            {{ csrf() }}
+            <div class="entry">
+                {{ autocomplete('item', 'Add a service or item', url_for('search_blueprint.search_Items'), prefix='add', placeholder='Type a name, e.g. body wash or engine oil', autofocus=true, wrap='') }}
+                <div>
+                    <label class="form-label" for="add-quantity">Quantity</label>
+                    <div class="input-group">
+                        <input class="form-control num" id="add-quantity" name="quantity" value="1" inputmode="decimal" autocomplete="off" required>
+                        <span class="input-group-text" data-uom>Qty</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="add-discount">Extra discount</label>
+                    <input class="form-control num" id="add-discount" name="discount_amount" placeholder="0.00" inputmode="decimal" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+        </form>
+        <div class="entry-hint" data-entry-hint></div>
+    </div>
+    {% if lines %}
+    <div class="table-responsive">
+        <table class="table table-list">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-center">Quantity</th>
+                    <th class="num">Unit price</th>
+                    <th class="num">Discount</th>
+                    <th class="num">Amount</th>
+                    <th><span class="visually-hidden">Remove</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in lines %}
+                <tr>
+                    <td>
+                        <div class="cell-main">{{ line.item.name }}</div>
+                        {% if line.item.description %}<div class="cell-sub">{{ line.item.description }}</div>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="qty-stepper">
+                            {{ post_button(url_for(dec_endpoint, **{line_arg: line.id}), icon='dash', cls='btn btn-quiet btn-sm btn-icon', title='One less') }}
+                            <span class="qty">{{ line.quantity|qty }}</span>
+                            {{ post_button(url_for(inc_endpoint, **{line_arg: line.id}), icon='plus', cls='btn btn-quiet btn-sm btn-icon', title='One more') }}
+                        </span>
+                        {% if line.item.unit_of_measure %}<div class="cell-sub">{{ line.item.unit_of_measure }}</div>{% endif %}
+                    </td>
+                    <td class="num">{{ (line.total_price / line.quantity if line.quantity else 0)|money }}</td>
+                    <td class="num">{% if (line.discount_amount or 0) > 0 %}&minus; {{ line.discount_amount|money }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td class="num fw-semibold">{{ line.gross_price|money }}</td>
+                    <td class="cell-actions">
+                        {{ post_button(url_for(del_endpoint, **{line_arg: line.id}), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove ' ~ line.item.name, confirm='Remove ' ~ line.item.name ~ ' from this invoice?') }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">
+        <i class="bi bi-basket" aria-hidden="true"></i>
+        <h3>Nothing on this invoice yet</h3>
+        <p class="mb-0">Search above for the services and items to charge for.</p>
+    </div>
+    {% endif %}
+</div>
