@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from harithmapos import config
 from harithmapos.billing import to_decimal
 from harithmapos.permissions import user_is_owner
+from harithmapos import settings as app_settings
 from harithmapos.textutils import format_phone
 from harithmapos.timeutils import to_local, elapsed_text, utcnow
 
@@ -109,12 +110,6 @@ def register_template_helpers(app):
         UOM_CHOICES=config.UOM_FORM_LIST,
         UI_THEMES=config.UI_THEME_FORM_LIST,
         CURRENCY=config.CURRENCY,
-        BUSINESS={
-            'name': config.BUSINESS_NAME,
-            'address': config.BUSINESS_ADDRESS,
-            'phone': config.BUSINESS_PHONE,
-        },
-        LOW_STOCK_THRESHOLD=config.LOW_STOCK_THRESHOLD,
         SERVICE_STATUS_DONE=config.SERVICE_STATUS_DONE,
         ROLES=config.ROLE_FORM_LIST,
         # A function, so it also works inside imported macros.
@@ -126,3 +121,11 @@ def register_template_helpers(app):
     @app.context_processor
     def inject_now():
         return {'now_utc': utcnow()}
+
+    @app.context_processor
+    def inject_settings():
+        # Read from the Settings page, so these are worked out per request.
+        return {
+            'BUSINESS': app_settings.business(),
+            'LOW_STOCK_THRESHOLD': app_settings.low_stock_threshold(),
+        }

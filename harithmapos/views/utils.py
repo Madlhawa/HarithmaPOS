@@ -2,17 +2,20 @@ import json
 import logging
 import os
 import secrets
+import smtplib
+import ssl
+from email.message import EmailMessage
 from decimal import Decimal
 
 import pika
 import requests
 from PIL import Image
 from flask import url_for, current_app, flash, request, redirect
-from flask_mail import Message
 from sqlalchemy.exc import IntegrityError
 
 import harithmapos.config as config
-from harithmapos import db, mail
+from harithmapos import db
+from harithmapos import settings as app_settings
 from harithmapos.textutils import normalize_phone
 
 logger = logging.getLogger(__name__)
@@ -97,26 +100,40 @@ def delete_record(record, label, blockers=()):
 # Outside services: receipt printer queue, SMS, e-mail
 # ---------------------------------------------------------------------------
 
+class ServiceError(Exception):
+    """An outside service (printer queue, SMS, e-mail) failed. The message is safe to show to the user."""
+
+
+def printer_enabled():
+    return bool(app_settings.get('printer_enabled') and app_settings.get('rabbitmq_host'))
+
+
+def _rabbitmq_connection():
+    credentials = pika.PlainCredentials(
+        app_settings.get('rabbitmq_username'), app_settings.get('rabbitmq_password'))
+    parameters = pika.ConnectionParameters(
+        host=app_settings.get('rabbitmq_host'),
+        port=app_settings.get('rabbitmq_port'),
+        credentials=credentials,
+        connection_attempts=1,
+        socket_timeout=5,
+        blocked_connection_timeout=5,
+    )
+    return pika.BlockingConnection(parameters)
+
+
 def send_print_invoice(message, queue=None):
     """Queue a receipt for the print agent. Returns True if it was queued.
 
     Never raises: a printer or RabbitMQ outage must not stop a sale from
     being saved.
     """
-    queue = queue or config.PRINT_QUEUE
-    if not config.RABBIT_MQ_HOST:
-        logger.warning("RABBIT_MQ_HOST is not set; skipping receipt printing")
+    if not printer_enabled():
+        logger.info("Receipt printer is switched off or has no host; skipping")
         return False
+    queue = queue or app_settings.get('print_queue')
     try:
-        credentials = pika.PlainCredentials(config.RABBIT_MQ_USERNAME, config.RABBIT_MQ_PASSWORD)
-        parameters = pika.ConnectionParameters(
-            host=config.RABBIT_MQ_HOST,
-            credentials=credentials,
-            connection_attempts=1,
-            socket_timeout=5,
-            blocked_connection_timeout=5,
-        )
-        connection = pika.BlockingConnection(parameters)
+        connection = _rabbitmq_connection()
         try:
             channel = connection.channel()
             channel.queue_declare(queue=queue)
@@ -129,20 +146,56 @@ def send_print_invoice(message, queue=None):
     return True
 
 
-def send_sms(recipient, message):
-    """Send a text through notify.lk. Returns True if the gateway accepted it."""
-    number = normalize_phone(recipient)
-    if not number or len(number) != 9 or set(number) == {'0'}:
-        logger.warning("SMS not sent: no usable phone number")
-        return False
-    if not (config.NOTIFYLK_USER_ID and config.NOTIFYLK_API_KEY):
-        logger.warning("SMS not sent: NOTIFYLK_USER_ID / NOTIFYLK_API_KEY are not set")
+def check_printer_connection():
+    """Connect to RabbitMQ and make sure the queue exists. Raises ServiceError on failure."""
+    if not app_settings.get('rabbitmq_host'):
+        raise ServiceError("Enter the RabbitMQ host first.")
+    try:
+        connection = _rabbitmq_connection()
+    except pika.exceptions.ProbableAuthenticationError:
+        raise ServiceError("RabbitMQ refused the username or password.")
+    except Exception as exc:
+        logger.warning("RabbitMQ test connection failed: %s", type(exc).__name__)
+        raise ServiceError("Could not connect to RabbitMQ. Check the host and port, and that it is running.")
+    try:
+        connection.channel().queue_declare(queue=app_settings.get('print_queue'))
+    except Exception:
+        raise ServiceError("Connected, but the print queue could not be opened. Check the user's permissions.")
+    finally:
+        try:
+            connection.close()
+        except Exception:
+            pass
+
+
+def sms_ready():
+    return bool(app_settings.get('sms_enabled')
+                and app_settings.get('notifylk_user_id') and app_settings.get('notifylk_api_key'))
+
+
+def send_sms(recipient, message, raise_errors=False):
+    """Send a text through notify.lk. Returns True if the gateway accepted it.
+
+    With raise_errors=True a failure raises ServiceError with the reason instead.
+    """
+    def fail(reason):
+        if raise_errors:
+            raise ServiceError(reason)
+        logger.warning("SMS not sent: %s", reason)
         return False
 
+    number = normalize_phone(recipient)
+    if not number or len(number) != 9 or set(number) == {'0'}:
+        return fail("That is not a usable phone number.")
+    if not app_settings.get('sms_enabled'):
+        return fail("SMS is switched off in Settings.")
+    if not (app_settings.get('notifylk_user_id') and app_settings.get('notifylk_api_key')):
+        return fail("The notify.lk user ID and API key are not set.")
+
     payload = {
-        "user_id": config.NOTIFYLK_USER_ID,
-        "api_key": config.NOTIFYLK_API_KEY,
-        "sender_id": config.NOTIFYLK_SENDER_ID,
+        "user_id": app_settings.get('notifylk_user_id'),
+        "api_key": app_settings.get('notifylk_api_key'),
+        "sender_id": app_settings.get('sms_sender_id'),
         "to": f"94{number}",
         "message": message
     }
@@ -151,19 +204,58 @@ def send_sms(recipient, message):
     except requests.RequestException as exc:
         # Log the error type only: the request URL contains the API key.
         logger.error("SMS request failed: %s", type(exc).__name__)
-        return False
+        return fail("Could not reach notify.lk. Check the server's internet connection.")
 
     if response.status_code != 200:
         logger.error("SMS gateway answered HTTP %s", response.status_code)
-        return False
+        return fail(f"notify.lk answered with an error (HTTP {response.status_code}). Check the user ID and API key.")
     try:
         body = response.json()
     except ValueError:
         body = {}
     if isinstance(body, dict) and str(body.get('status', '')).lower() == 'error':
         logger.error("SMS gateway rejected the message")
-        return False
+        detail = body.get('message') or body.get('errors') or ''
+        return fail(f"notify.lk rejected the message{': ' + str(detail) if detail else '.'}")
     return True
+
+
+def send_email(to, subject, body):
+    """Send a plain-text e-mail with the SMTP settings. Raises ServiceError on failure."""
+    server = app_settings.get('mail_server')
+    username = app_settings.get('mail_username')
+    sender = app_settings.get('mail_sender') or username
+    if not server or not sender:
+        raise ServiceError("Email is not set up: enter the SMTP server and a username or From address.")
+
+    message = EmailMessage()
+    message['Subject'] = subject
+    message['From'] = sender
+    message['To'] = to
+    message.set_content(body)
+
+    security = app_settings.get('mail_security')
+    port = app_settings.get('mail_port')
+    try:
+        if security == 'ssl':
+            smtp = smtplib.SMTP_SSL(server, port, timeout=15, context=ssl.create_default_context())
+        else:
+            smtp = smtplib.SMTP(server, port, timeout=15)
+        with smtp:
+            if security == 'starttls':
+                smtp.starttls(context=ssl.create_default_context())
+            if username:
+                smtp.login(username, app_settings.get('mail_password'))
+            smtp.send_message(message)
+    except smtplib.SMTPAuthenticationError:
+        raise ServiceError("The email server refused the username or password.")
+    except smtplib.SMTPSenderRefused:
+        raise ServiceError(f"The email server will not send from {sender}. Check the From address.")
+    except smtplib.SMTPRecipientsRefused:
+        raise ServiceError(f"The email server will not send to {to}.")
+    except (OSError, smtplib.SMTPException) as exc:
+        logger.warning("SMTP failed: %s", type(exc).__name__)
+        raise ServiceError("Could not send through the email server. Check the server, port and security.")
 
 
 def save_image(form_image):
@@ -184,11 +276,10 @@ def save_image(form_image):
 
 def send_reset_email(user):
     token = user.get_reset_token()
-    msg = Message('Password Reset Request', sender=current_app.config['MAIL_USERNAME'], recipients=[user.email])
-    msg.body = f'''To reset your password please visit:
+    body = f'''To reset your password please visit:
 {url_for('user_blueprint.reset_token', token=token, _external=True)}
 
 This link works for 30 minutes.
 If you did not make this request then simply ignore this email.
 '''
-    mail.send(msg)
+    send_email(user.email, 'Password Reset Request', body)

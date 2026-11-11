@@ -3,7 +3,6 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from harithmapos.config import Config
 
@@ -12,7 +11,6 @@ db = SQLAlchemy()
 migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-mail = Mail()
 # Checks the CSRF token on every POST, including the small delete / quantity
 # buttons that are not WTForms forms.
 csrf = CSRFProtect()
@@ -33,7 +31,6 @@ def create_app(Config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
-    mail.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -55,6 +52,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.payment.routes import payment_blueprint
     from harithmapos.views.dashboard.routes import dashboard_blueprint
     from harithmapos.views.search.routes import search_blueprint
+    from harithmapos.views.settings.routes import settings_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -70,5 +68,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(payment_blueprint)
     app.register_blueprint(dashboard_blueprint)
     app.register_blueprint(search_blueprint)
+    app.register_blueprint(settings_blueprint)
 
     return app

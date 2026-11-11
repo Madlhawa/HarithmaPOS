@@ -159,7 +159,8 @@ class InvoiceHead(db.Model):
     @staticmethod
     def verify_customer_view_token(token, expire_seconds=None):
         if expire_seconds is None:
-            expire_seconds = config.CUSTOMER_LINK_MAX_AGE_SECONDS
+            from harithmapos import settings as app_settings
+            expire_seconds = app_settings.customer_link_max_age_seconds()
         serializer = Serializer(current_app.config['SECRET_KEY'])
         try:
             invoice_id = serializer.loads(token, max_age=expire_seconds)['invoice_id']
@@ -240,7 +241,8 @@ class Item(db.Model):
 
     @property
     def is_low_stock(self):
-        return self.quantity is not None and self.quantity <= config.LOW_STOCK_THRESHOLD
+        from harithmapos import settings as app_settings
+        return self.quantity is not None and self.quantity <= app_settings.low_stock_threshold()
 
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -326,3 +328,10 @@ class Vehicle(db.Model):
 
     def __repr__(self):
         return f"Vehicle('{self.number}','{self.make}','{self.model}','{self.year}')"
+
+class Setting(db.Model):
+    """One value from the Settings page. See harithmapos/settings.py for the list."""
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))

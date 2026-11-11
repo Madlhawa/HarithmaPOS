@@ -5,6 +5,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db, config
+from harithmapos import settings as app_settings
 from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail
 from harithmapos.timeutils import utcnow
 from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
@@ -35,7 +36,7 @@ def item():
             conditions.append(Item.id == int(query))
         items = items.filter(or_(*conditions))
     if stock == 'low':
-        items = items.filter(Item.quantity.isnot(None), Item.quantity <= config.LOW_STOCK_THRESHOLD)
+        items = items.filter(Item.quantity.isnot(None), Item.quantity <= app_settings.low_stock_threshold())
     elif stock == 'services':
         items = items.filter(Item.quantity.is_(None))
 

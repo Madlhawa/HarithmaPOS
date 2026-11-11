@@ -6,6 +6,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from harithmapos import db, config
+from harithmapos import settings as app_settings
 from harithmapos.billing import invoice_totals, line_amounts, to_decimal
 from harithmapos.timeutils import local_today, utcnow
 from harithmapos.models import (
@@ -705,6 +706,10 @@ def _complete_documents(head, link_field, to_json, success_message):
               category='danger')
         return
 
+    if not utils.printer_enabled():
+        flash(f"{success_message} Use Print on the invoice screen for a receipt.", category='success')
+        return
+
     printed = False
     try:
         printed = utils.send_print_invoice(to_json(head))
@@ -721,17 +726,21 @@ def _complete_documents(head, link_field, to_json, success_message):
 def _notify_customer(invoice_head, started):
     """Send the 'service started' or 'service completed' SMS and remember that it went out."""
     customer = invoice_head.vehicle.owner
-    if started:
-        token = invoice_head.get_customer_view_token()
-        link = url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)
-        message = (f"Hi {customer.name}, Your vehicle {invoice_head.vehicle.number}'s service has been started. "
-                   f"For more details please view: {link}")
-    else:
-        message = f"Hi {customer.name}, Your vehicle {invoice_head.vehicle.number}'s service has been completed."
+    token = invoice_head.get_customer_view_token()
+    link = url_for('dashboard_blueprint.customer_invoice', token=token, _external=True)
+    template = app_settings.get('sms_start_message' if started else 'sms_done_message')
+    try:
+        message = app_settings.render_sms(
+            template, customer=customer.name, vehicle=invoice_head.vehicle.number,
+            business=app_settings.get('business_name'), link=link)
+    except (KeyError, ValueError, IndexError):
+        flash("The SMS text in Settings has a mistake in it. Ask an owner to fix it.", category='danger')
+        return False
 
-    if not utils.send_sms(customer.contact, message):
-        flash("The SMS could not be sent. Check the customer's phone number and the SMS account.",
-              category='danger')
+    try:
+        utils.send_sms(customer.contact, message, raise_errors=True)
+    except utils.ServiceError as exc:
+        flash(f"The SMS could not be sent. {exc}", category='danger')
         return False
 
     if started:

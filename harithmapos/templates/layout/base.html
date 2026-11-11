@@ -55,6 +55,7 @@
             {{ nav_link('employee_blueprint.employee', 'person-badge', 'Employees', ep.startswith('employee_blueprint.')) }}
             {{ nav_link('washbay_blueprint.washbay', 'droplet', 'Wash bays', ep.startswith('washbay_blueprint.')) }}
             {{ nav_link('user_blueprint.users', 'person-lock', 'Users', ep in ('user_blueprint.users', 'user_blueprint.register', 'user_blueprint.update_user')) }}
+            {{ nav_link('settings_blueprint.settings', 'gear', 'Settings', ep.startswith('settings_blueprint.')) }}
             {% endif %}
         </nav>
 

@@ -8,13 +8,11 @@ python-dotenv
 flask-login
 flask-bcrypt
 itsdangerous
+cryptography
 
 # Forms & Validation
 flask-wtf
 email-validator
-
-# Email
-flask-mail
 
 # Database
 psycopg2-binary

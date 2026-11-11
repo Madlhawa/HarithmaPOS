@@ -1,0 +1,109 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf %}
+{% block content_class %}content-narrow{% endblock %}
+{% block body %}
+<div class="page-head">
+    <div><h1>Settings</h1><p>Business details and the outside services the system uses. Each section saves on its own.</p></div>
+</div>
+
+<nav class="filter-tabs mb-4" aria-label="Settings sections">
+    {% for key, label, hint, defs in groups %}<a href="#{{ key }}">{{ label }}</a>{% endfor %}
+</nav>
+
+{% for key, label, hint, defs in groups %}
+<section class="panel mb-4" id="{{ key }}" aria-labelledby="{{ key }}-title">
+    <div class="panel-head"><h2 id="{{ key }}-title">{{ label }}</h2></div>
+    <form method="post" action="{{ url_for('settings_blueprint.save_settings', group=key) }}" novalidate>
+        {{ csrf() }}
+        <div class="panel-body">
+            {% if hint %}<p class="form-hint mt-0">{{ hint }}</p>{% endif %}
+            {% if key in unsaved_groups and key in ('email', 'sms', 'printer') %}
+            <p class="form-hint">Not saved here yet: these values come from the server's .env file. Saving this section stores them here instead.</p>
+            {% endif %}
+            <div class="row g-3">
+            {% for d in defs %}
+                {% set fid = 'set-' ~ d.key %}
+                {% set err = errors.get(d.key) %}
+                {% if d.kind == 'bool' %}
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="{{ fid }}" name="{{ d.key }}" value="on" {{ 'checked' if values[d.key] }}>
+                        <label class="form-check-label" for="{{ fid }}">{{ d.label }}</label>
+                    </div>
+                </div>
+                {% elif d.kind == 'longtext' %}
+                <div class="col-12">
+                    <label class="form-label" for="{{ fid }}">{{ d.label }}</label>
+                    <textarea class="form-control {{ 'is-invalid' if err }}" id="{{ fid }}" name="{{ d.key }}" rows="3" maxlength="{{ d.max_length }}">{{ values[d.key] }}</textarea>
+                    {% if err %}<div class="field-error">{{ err }}</div>{% endif %}
+                    <div class="form-hint">You can use {% for p in d.placeholders %}<code>{{ '{' ~ p ~ '}' }}</code>{{ ', ' if not loop.last }}{% endfor %}.</div>
+                </div>
+                {% else %}
+                <div class="{{ 'col-sm-4' if d.kind == 'int' else 'col-sm-6' if d.kind in ('choice', 'secret') or d.group in ('email', 'printer', 'sms') else 'col-12' }}">
+                    <label class="form-label" for="{{ fid }}">{{ d.label }}</label>
+                    {% if d.kind == 'choice' %}
+                    <select class="form-select {{ 'is-invalid' if err }}" id="{{ fid }}" name="{{ d.key }}">
+                        {% for value, text in d.choices %}<option value="{{ value }}" {{ 'selected' if values[d.key] == value }}>{{ text }}</option>{% endfor %}
+                    </select>
+                    {% elif d.kind == 'secret' %}
+                    {% set state = secrets[d.key] %}
+                    <input class="form-control {{ 'is-invalid' if err }}" type="password" id="{{ fid }}" name="{{ d.key }}" autocomplete="new-password"
+                        placeholder="{{ 'Saved: type to replace' if state in ('saved', 'env') else 'Not set' }}">
+                    <div class="form-hint">
+                        {% if state == 'saved' %}Saved and encrypted. Leave empty to keep it.
+                        {% elif state == 'env' %}Taken from the .env file. Leave empty to keep it.
+                        {% elif state == 'unreadable' %}<span class="text-danger">The saved value can no longer be read (the server's secret key changed). Enter it again.</span>
+                        {% else %}Not set.{% endif %}
+                    </div>
+                    {% if state in ('saved', 'unreadable') %}
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" id="{{ fid }}-clear" name="{{ d.key }}__clear" value="1">
+                        <label class="form-check-label" for="{{ fid }}-clear">Remove it</label>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <input class="form-control {{ 'is-invalid' if err }} {{ 'num' if d.kind == 'int' }}" id="{{ fid }}" name="{{ d.key }}" value="{{ values[d.key] if values[d.key] is not none }}"
+                        {% if d.kind == 'int' %}inputmode="numeric"{% else %}maxlength="{{ d.max_length }}"{% endif %} autocomplete="off">
+                    {% endif %}
+                    {% if err %}<div class="field-error">{{ err }}</div>{% endif %}
+                    {% if d.hint %}<div class="form-hint">{{ d.hint }}</div>{% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+            </div>
+        </div>
+        <div class="panel-body border-top d-flex justify-content-end">
+            <button class="btn btn-primary">Save {{ label|lower }}</button>
+        </div>
+    </form>
+
+    {% if key == 'email' %}
+    <form class="panel-body border-top" method="post" action="{{ url_for('settings_blueprint.test_email') }}">
+        {{ csrf() }}
+        <label class="form-label" for="test-email-to">Send a test email</label>
+        <div class="d-flex gap-2">
+            <input class="form-control" type="email" id="test-email-to" name="to" value="{{ current_user.email }}" autocomplete="off">
+            <button class="btn btn-quiet text-nowrap">Send test</button>
+        </div>
+        <div class="form-hint">Uses the saved settings, so save first.</div>
+    </form>
+    {% elif key == 'sms' %}
+    <form class="panel-body border-top" method="post" action="{{ url_for('settings_blueprint.test_sms') }}">
+        {{ csrf() }}
+        <label class="form-label" for="test-sms-to">Send a test SMS</label>
+        <div class="d-flex gap-2">
+            <input class="form-control" type="tel" id="test-sms-to" name="to" placeholder="077 123 4567" autocomplete="off">
+            <button class="btn btn-quiet text-nowrap">Send test</button>
+        </div>
+        <div class="form-hint">Uses the saved settings, so save first. This uses one SMS credit.</div>
+    </form>
+    {% elif key == 'printer' %}
+    <form class="panel-body border-top d-flex align-items-center justify-content-between gap-2" method="post" action="{{ url_for('settings_blueprint.test_printer') }}">
+        {{ csrf() }}
+        <div class="form-hint m-0">Checks the saved settings can connect to RabbitMQ and open the queue. Nothing is printed.</div>
+        <button class="btn btn-quiet text-nowrap">Test connection</button>
+    </form>
+    {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

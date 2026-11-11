@@ -3,6 +3,7 @@ from flask_login import login_required
 from flask import Blueprint, render_template, request
 
 from harithmapos import db, config
+from harithmapos import settings as app_settings
 from harithmapos.timeutils import local_day_bounds_utc
 from harithmapos.models import (
     Employee, InvoiceHead, InvoiceDetail, InvoiceStatusLog, Item, Payment, Vehicle, WashBay,
@@ -77,7 +78,7 @@ def dashboard():
         'paid_out_today': payments_today('out'),
         'unpaid_total': unpaid_total,
         'low_stock': Item.query.filter(
-            Item.quantity.isnot(None), Item.quantity <= config.LOW_STOCK_THRESHOLD).count(),
+            Item.quantity.isnot(None), Item.quantity <= app_settings.low_stock_threshold()).count(),
     }
 
     # First-run hints: a service invoice needs a bay, an employee and something to sell.
