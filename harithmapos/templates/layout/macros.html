@@ -210,3 +210,12 @@
     <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix=prefix, optional=true, show_all=true, placeholder='For wages and advances', wrap='') }}</div>
 </div>
 {% endmacro %}
+
+
+{# The Harithma logo: the water-drop mark with the name beside it. #}
+{% macro brand_lockup(cls='') -%}
+<span class="brand-lockup {{ cls }}" role="img" aria-label="Harithma Service Center">
+    <img src="{{ url_for('static', filename='images/logo-mark.svg') }}" alt="">
+    <span><b>Harithma</b><small>Service Center</small></span>
+</span>
+{%- endmacro %}

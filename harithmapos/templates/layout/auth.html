@@ -1,9 +1,9 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import flashes %}
+{% from 'layout/macros.html' import flashes, brand_lockup %}
 {% block shell %}
 <div class="auth">
     <div class="auth-brand">
-        <div class="auth-brand-logo"><img src="{{ url_for('static', filename='images/Harithma-logo.png') }}" alt="Harithma Service Center"></div>
+        {{ brand_lockup('brand-lockup-lg') }}
         <div>
             <h1>Harithma Service Center</h1>
             <p>Services, stock and payments for the station, in one place.</p>
