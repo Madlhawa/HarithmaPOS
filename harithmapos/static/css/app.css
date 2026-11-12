@@ -877,7 +877,7 @@ button.plate { cursor: pointer; }
 .report-custom input[type="date"] { width: auto; }
 .report-custom.is-active input { border-color: var(--h-line-strong); }
 
-.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+.kpi-grid { display: grid; grid-template-columns: 1.35fr repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
 .kpi {
     background: var(--h-surface); border: 1px solid var(--h-line); border-radius: var(--h-radius);
     padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; min-width: 0;
@@ -974,8 +974,10 @@ button.plate { cursor: pointer; }
 
 .report-notes { font-size: 0.8rem; color: var(--h-muted); max-width: 70ch; }
 
-@media (max-width: 1199.98px) {
+@media (max-width: 1399.98px) {
     .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .kpi-hero { grid-column: 1 / -1; grid-row: auto; }
+    .kpi-hero .kpi-split { padding-top: 0.75rem; max-width: 36rem; }
 }
 @media (max-width: 991.98px) {
     .report-row { grid-template-columns: 1fr; }

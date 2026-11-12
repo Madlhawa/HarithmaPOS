@@ -21,6 +21,11 @@
 {% endif %}
 {%- endmacro %}
 
+{# Whole rupees: cents are noise at report level. #}
+{% macro rs0(value) -%}
+<span class="money-unit">{{ CURRENCY }}</span>{{ (value or 0)|money(0) }}
+{%- endmacro %}
+
 {% macro duration(minutes) -%}
 {% if minutes is none %}–{% elif minutes < 60 %}{{ minutes|round|int }} min{% else %}{{ (minutes // 60)|int }} h {{ '%02d'|format((minutes % 60)|round|int) }} min{% endif %}
 {%- endmacro %}
@@ -54,7 +59,7 @@
 <section class="kpi-grid" aria-label="Headline figures">
     <div class="kpi kpi-hero">
         <div class="kpi-label">Revenue</div>
-        <div class="kpi-value">{{ rs(k.revenue) }}</div>
+        <div class="kpi-value">{{ rs0(k.revenue) }}</div>
         {{ delta('revenue') }}
         <div class="kpi-split">
             {% set share = (k.revenue_services / k.revenue * 100) if k.revenue else 0 %}
@@ -64,14 +69,14 @@
                 {% endif %}
             </div>
             <div class="kpi-split-legend">
-                <span><i class="key key-1" aria-hidden="true"></i>Services {{ rs(k.revenue_services) }}</span>
-                <span><i class="key key-2" aria-hidden="true"></i>Item sales {{ rs(k.revenue_items) }}</span>
+                <span><i class="key key-1" aria-hidden="true"></i>Services {{ rs0(k.revenue_services) }}</span>
+                <span><i class="key key-2" aria-hidden="true"></i>Item sales {{ rs0(k.revenue_items) }}</span>
             </div>
         </div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Gross profit</div>
-        <div class="kpi-value">{{ rs(k.gross_profit) }}</div>
+        <div class="kpi-value">{{ rs0(k.gross_profit) }}</div>
         {{ delta('gross_profit') }}
         <div class="kpi-sub">{% if k.margin_pct is not none %}{{ k.margin_pct|round|int }}% margin after the cost of what was sold{% else %}No sales yet{% endif %}</div>
     </div>
@@ -83,19 +88,19 @@
     </div>
     <div class="kpi">
         <div class="kpi-label">Average job</div>
-        <div class="kpi-value">{% if k.avg_ticket is not none %}{{ rs(k.avg_ticket) }}{% else %}–{% endif %}</div>
+        <div class="kpi-value">{% if k.avg_ticket is not none %}{{ rs0(k.avg_ticket) }}{% else %}–{% endif %}</div>
         {{ delta('avg_ticket') }}
         <div class="kpi-sub">Per finished service, after discounts</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Collected</div>
-        <div class="kpi-value">{{ rs(k.collected) }}</div>
+        <div class="kpi-value">{{ rs0(k.collected) }}</div>
         {{ delta('collected') }}
         <div class="kpi-sub">Money taken in during the period</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Still owed</div>
-        <div class="kpi-value {{ 'text-danger' if k.outstanding > 0 }}">{{ rs(k.outstanding) }}</div>
+        <div class="kpi-value {{ 'text-danger' if k.outstanding > 0 }}">{{ rs0(k.outstanding) }}</div>
         {{ delta('outstanding', up_is_good=False) }}
         <div class="kpi-sub">{{ r.unpaid_count }} unpaid sale{{ '' if r.unpaid_count == 1 else 's' }} from this period</div>
     </div>
@@ -113,7 +118,7 @@
     </div>
     <div class="kpi">
         <div class="kpi-label">Discounts given</div>
-        <div class="kpi-value">{{ rs(k.discounts) }}</div>
+        <div class="kpi-value">{{ rs0(k.discounts) }}</div>
         {{ delta('discounts', up_is_good=False) }}
         <div class="kpi-sub">{% if k.revenue %}{{ '%.1f'|format(k.discounts / (k.revenue + k.discounts) * 100) }}% of the price before discounts{% else %}–{% endif %}</div>
     </div>
@@ -159,7 +164,7 @@
                 <li tabindex="0" data-tip="{{ row.name }}|{{ CURRENCY }} {{ row.revenue|money }}|{{ row.qty|round|int }} sold · {{ '%.0f'|format(row.share) }}% of revenue · profit {{ CURRENCY }} {{ row.profit|money(0) }}">
                     <span class="rank-name">{{ row.name }}{% if row.kind %} <span class="rank-kind">{{ row.kind }}</span>{% endif %}</span>
                     <span class="rank-bar"><span class="{{ 'is-other' if row.other }}" style="width: {{ (row.revenue / top * 100)|round(1) }}%"></span></span>
-                    <span class="rank-value">{{ rs(row.revenue|round|int) }}</span>
+                    <span class="rank-value">{{ rs0(row.revenue) }}</span>
                 </li>
                 {% endfor %}
             </ol>
@@ -221,7 +226,7 @@
         </div>
         <div class="heat-scale" aria-hidden="true">
             <span>Fewer</span>{% for s in range(1, 7) %}<i class="h{{ s }}"></i>{% endfor %}<span>More</span>
-            <span class="ms-3 text-muted">Busiest: {{ vmax }} {{ 'a week' if p.days >= 14 else '' }} in one hour</span>
+            <span class="ms-3 text-muted">Darkest square: {{ vmax }} arrival{{ '' if vmax == 1 else 's' }}{{ ' a week on average' if p.days >= 14 else '' }}</span>
         </div>
         {% else %}
         <p class="text-muted mb-0">No vehicles came in during this period.</p>
@@ -238,7 +243,7 @@
             <thead><tr><th>Employee</th><th class="num">Jobs</th><th class="num">Revenue</th><th class="num">Avg time</th></tr></thead>
             <tbody>
             {% for row in r.by_employee %}
-            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs(row.revenue|round|int) }}</td><td class="num">{{ duration(row.avg_minutes) }}</td></tr>
+            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs0(row.revenue) }}</td><td class="num">{{ duration(row.avg_minutes) }}</td></tr>
             {% else %}
             <tr><td colspan="4" class="text-muted">No finished jobs.</td></tr>
             {% endfor %}
@@ -256,7 +261,7 @@
             <tbody>
             {% set bay_total = (r.by_bay|sum(attribute='revenue')) or 1 %}
             {% for row in r.by_bay %}
-            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs(row.revenue|round|int) }}</td><td class="num">{{ '%.0f'|format(row.revenue / bay_total * 100) }}%</td></tr>
+            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs0(row.revenue) }}</td><td class="num">{{ '%.0f'|format(row.revenue / bay_total * 100) }}%</td></tr>
             {% else %}
             <tr><td colspan="4" class="text-muted">No finished jobs.</td></tr>
             {% endfor %}
@@ -275,7 +280,7 @@
             <thead><tr><th>Customer</th><th class="num">Visits</th><th class="num">Spent</th><th class="num">Last visit</th></tr></thead>
             <tbody>
             {% for row in r.top_customers %}
-            <tr><td>{{ row.name }}<div class="small text-muted">{{ row.contact or '' }}</div></td><td class="num">{{ row.visits }}</td><td class="num">{{ rs(row.spend|round|int) }}</td><td class="num">{{ row.last.strftime('%d %b') }}</td></tr>
+            <tr><td>{{ row.name }}<div class="small text-muted">{{ row.contact or '' }}</div></td><td class="num">{{ row.visits }}</td><td class="num">{{ rs0(row.spend) }}</td><td class="num">{{ row.last.strftime('%d %b') }}</td></tr>
             {% else %}
             <tr><td colspan="4" class="text-muted">No customers in this period.</td></tr>
             {% endfor %}
