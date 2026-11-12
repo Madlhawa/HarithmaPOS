@@ -52,6 +52,9 @@
             {{ nav_link('purchase_order_blueprint.purchase_order_head', 'truck', 'Purchase orders', ep.startswith('purchase_order_blueprint.')) }}
             {{ nav_link('supplier_blueprint.supplier', 'building', 'Suppliers', ep.startswith('supplier_blueprint.')) }}
 
+            <div class="side-group">Reports</div>
+            {{ nav_link('reports_blueprint.sales', 'graph-up', 'Sales', ep.startswith('reports_blueprint.')) }}
+
             <div class="side-group">Setup</div>
             {{ nav_link('employee_blueprint.employee', 'person-badge', 'Employees', ep.startswith('employee_blueprint.')) }}
             {{ nav_link('washbay_blueprint.washbay', 'droplet', 'Wash bays', ep.startswith('washbay_blueprint.')) }}

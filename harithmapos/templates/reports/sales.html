@@ -1,0 +1,328 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import rs, plate %}
+
+{% set k = r.kpis %}
+{% set p = r.period %}
+
+{# A change against the previous period. up_is_good=False for costs and waits. #}
+{% macro delta(key, up_is_good=True) -%}
+{% set d = r.deltas.get(key) %}
+{% if d is none %}
+<span class="kpi-delta is-flat">No earlier figures to compare</span>
+{% else %}
+{% set up = d > 0.5 %}{% set down = d < -0.5 %}
+{% set good = (up and up_is_good) or (down and not up_is_good) %}
+{% set bad = (down and up_is_good) or (up and not up_is_good) %}
+<span class="kpi-delta {{ 'is-good' if good else ('is-bad' if bad else 'is-flat') }}">
+    <i class="bi bi-{{ 'arrow-up-right' if up else ('arrow-down-right' if down else 'dash') }}" aria-hidden="true"></i>
+    {{ '%+.0f'|format(d) }}%<span class="visually-hidden"> {{ 'better' if good else ('worse' if bad else 'about the same') }}</span>
+    <span class="kpi-delta-vs">vs previous</span>
+</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro duration(minutes) -%}
+{% if minutes is none %}–{% elif minutes < 60 %}{{ minutes|round|int }} min{% else %}{{ (minutes // 60)|int }} h {{ '%02d'|format((minutes % 60)|round|int) }} min{% endif %}
+{%- endmacro %}
+
+{% block body %}
+<div class="page-head">
+    <div>
+        <h1>Sales</h1>
+        <p>{{ p.label }} <span class="text-muted">· compared with {{ r.previous.label }}</span></p>
+    </div>
+</div>
+
+<form class="report-filters" method="get" action="{{ url_for('reports_blueprint.sales') }}">
+    <nav class="filter-tabs" aria-label="Period">
+        {% for key, label in presets %}
+        <a href="{{ url_for('reports_blueprint.sales', range=key) }}" class="{{ 'active' if p.key == key }}" {% if p.key == key %}aria-current="true"{% endif %}>{{ label }}</a>
+        {% endfor %}
+    </nav>
+    <div class="report-custom {{ 'is-active' if p.key == 'custom' }}">
+        <input type="hidden" name="range" value="custom">
+        <label class="visually-hidden" for="rep-from">From</label>
+        <input class="form-control form-control-sm" type="date" id="rep-from" name="from" value="{{ p.start.isoformat() }}" required>
+        <span class="text-muted">to</span>
+        <label class="visually-hidden" for="rep-to">To</label>
+        <input class="form-control form-control-sm" type="date" id="rep-to" name="to" value="{{ p.end.isoformat() }}" required>
+        <button class="btn btn-quiet btn-sm">Show</button>
+    </div>
+</form>
+
+{# ---- Headline figures --------------------------------------------------- #}
+<section class="kpi-grid" aria-label="Headline figures">
+    <div class="kpi kpi-hero">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value">{{ rs(k.revenue) }}</div>
+        {{ delta('revenue') }}
+        <div class="kpi-split">
+            {% set share = (k.revenue_services / k.revenue * 100) if k.revenue else 0 %}
+            <div class="seg-bar" role="img" aria-label="Services {{ share|round|int }} percent, item sales {{ (100 - share)|round|int }} percent">
+                {% if k.revenue %}
+                <span class="seg seg-1" style="width: {{ share }}%"></span><span class="seg seg-2" style="width: {{ 100 - share }}%"></span>
+                {% endif %}
+            </div>
+            <div class="kpi-split-legend">
+                <span><i class="key key-1" aria-hidden="true"></i>Services {{ rs(k.revenue_services) }}</span>
+                <span><i class="key key-2" aria-hidden="true"></i>Item sales {{ rs(k.revenue_items) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Gross profit</div>
+        <div class="kpi-value">{{ rs(k.gross_profit) }}</div>
+        {{ delta('gross_profit') }}
+        <div class="kpi-sub">{% if k.margin_pct is not none %}{{ k.margin_pct|round|int }}% margin after the cost of what was sold{% else %}No sales yet{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Jobs done</div>
+        <div class="kpi-value">{{ '{:,}'.format(k.jobs) }}</div>
+        {{ delta('jobs') }}
+        <div class="kpi-sub">Plus {{ k.item_sales }} item sale{{ '' if k.item_sales == 1 else 's' }} at the counter</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Average job</div>
+        <div class="kpi-value">{% if k.avg_ticket is not none %}{{ rs(k.avg_ticket) }}{% else %}–{% endif %}</div>
+        {{ delta('avg_ticket') }}
+        <div class="kpi-sub">Per finished service, after discounts</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Collected</div>
+        <div class="kpi-value">{{ rs(k.collected) }}</div>
+        {{ delta('collected') }}
+        <div class="kpi-sub">Money taken in during the period</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Still owed</div>
+        <div class="kpi-value {{ 'text-danger' if k.outstanding > 0 }}">{{ rs(k.outstanding) }}</div>
+        {{ delta('outstanding', up_is_good=False) }}
+        <div class="kpi-sub">{{ r.unpaid_count }} unpaid sale{{ '' if r.unpaid_count == 1 else 's' }} from this period</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Customers</div>
+        <div class="kpi-value">{{ '{:,}'.format(k.customers) }}</div>
+        {{ delta('customers') }}
+        <div class="kpi-sub">{{ k.new_customers }} new{% if k.returning_pct is not none %} · {{ k.returning_pct|round|int }}% came back{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Average time per job</div>
+        <div class="kpi-value">{{ duration(k.avg_minutes) }}</div>
+        {{ delta('avg_minutes', up_is_good=False) }}
+        <div class="kpi-sub">From arrival to Done</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Discounts given</div>
+        <div class="kpi-value">{{ rs(k.discounts) }}</div>
+        {{ delta('discounts', up_is_good=False) }}
+        <div class="kpi-sub">{% if k.revenue %}{{ '%.1f'|format(k.discounts / (k.revenue + k.discounts) * 100) }}% of the price before discounts{% else %}–{% endif %}</div>
+    </div>
+</section>
+
+{# ---- Revenue over time --------------------------------------------------- #}
+<section class="panel mb-4" aria-labelledby="rev-title">
+    <div class="panel-head">
+        <h2 id="rev-title">Revenue {{ 'by week' if r.timeline.weekly else 'by day' }}</h2>
+        <div class="chart-legend" aria-hidden="true">
+            <span><i class="key key-1"></i>Services</span>
+            <span><i class="key key-2"></i>Item sales</span>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="viz chart-timeline" id="chart-timeline" role="img"
+             aria-label="Revenue {{ 'by week' if r.timeline.weekly else 'by day' }}, services and item sales stacked. The table below has every value."></div>
+        <details class="chart-table">
+            <summary>Show as a table</summary>
+            <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>{{ 'Week' if r.timeline.weekly else 'Day' }}</th><th class="num">Jobs</th><th class="num">Services</th><th class="num">Item sales</th><th class="num">Total</th></tr></thead>
+                <tbody>
+                {% for row in r.timeline.rows %}
+                <tr><td>{{ row.span }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ row.services|money }}</td><td class="num">{{ row.sales|money }}</td><td class="num">{{ (row.services + row.sales)|money }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </details>
+    </div>
+</section>
+
+<div class="report-row">
+    {# ---- What earned the money ------------------------------------------- #}
+    <section class="panel" aria-labelledby="items-title">
+        <div class="panel-head"><h2 id="items-title">What earned the money</h2><span class="text-muted small">Revenue after discounts</span></div>
+        <div class="panel-body">
+            {% if r.by_item %}
+            {% set top = r.by_item[0].revenue or 1 %}
+            <ol class="rank-list">
+                {% for row in r.by_item %}
+                <li tabindex="0" data-tip="{{ row.name }}|{{ CURRENCY }} {{ row.revenue|money }}|{{ row.qty|round|int }} sold · {{ '%.0f'|format(row.share) }}% of revenue · profit {{ CURRENCY }} {{ row.profit|money(0) }}">
+                    <span class="rank-name">{{ row.name }}{% if row.kind %} <span class="rank-kind">{{ row.kind }}</span>{% endif %}</span>
+                    <span class="rank-bar"><span class="{{ 'is-other' if row.other }}" style="width: {{ (row.revenue / top * 100)|round(1) }}%"></span></span>
+                    <span class="rank-value">{{ rs(row.revenue|round|int) }}</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="text-muted mb-0">No sales in this period.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---- How customers paid -------------------------------------------- #}
+    <section class="panel" aria-labelledby="pay-title">
+        <div class="panel-head"><h2 id="pay-title">How customers paid</h2><span class="text-muted small">Money in</span></div>
+        <div class="panel-body">
+            {% if r.by_method %}
+            {% set top = r.by_method[0].amount or 1 %}
+            <ol class="rank-list">
+                {% for row in r.by_method %}
+                <li tabindex="0" data-tip="{{ row.method }}|{{ CURRENCY }} {{ row.amount|money }}|{{ row.count }} payment{{ '' if row.count == 1 else 's' }} · {{ '%.0f'|format(row.share) }}%">
+                    <span class="rank-name">{{ row.method }}</span>
+                    <span class="rank-bar"><span style="width: {{ (row.amount / top * 100)|round(1) }}%"></span></span>
+                    <span class="rank-value">{{ '%.0f'|format(row.share) }}%</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="text-muted mb-0">No payments in this period.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+{# ---- Busiest times ----------------------------------------------------------- #}
+{% set busy = r.busy %}
+<section class="panel mb-4" aria-labelledby="busy-title">
+    <div class="panel-head">
+        <h2 id="busy-title">When vehicles arrive</h2>
+        <span class="text-muted small">{{ busy.total }} arrivals{% if p.days >= 14 %}, average per week{% endif %}</span>
+    </div>
+    <div class="panel-body">
+        {% if busy.max %}
+        {% set values = busy.per_week if p.days >= 14 else busy.counts %}
+        {% set vmax = (values|map('max')|max) or 1 %}
+        <div class="table-responsive">
+        <table class="heat viz" aria-describedby="busy-title">
+            <thead><tr><th scope="col"><span class="visually-hidden">Day</span></th>{% for h in busy.hours %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+            <tbody>
+            {% for day in busy.weekdays %}
+            {% set row = values[loop.index0] %}
+            <tr>
+                <th scope="row">{{ day }}</th>
+                {% for v in row %}
+                {% set step = 0 if v == 0 else ((v / vmax * 6)|round(0, 'ceil')|int) %}
+                <td class="h{{ step }}" tabindex="0" data-tip="{{ day }} {{ busy.hours[loop.index0] }}|{{ v }} arrival{{ '' if v == 1 else 's' }}{{ ' a week on average' if p.days >= 14 else '' }}"><span class="visually-hidden">{{ v }}</span></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <div class="heat-scale" aria-hidden="true">
+            <span>Fewer</span>{% for s in range(1, 7) %}<i class="h{{ s }}"></i>{% endfor %}<span>More</span>
+            <span class="ms-3 text-muted">Busiest: {{ vmax }} {{ 'a week' if p.days >= 14 else '' }} in one hour</span>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No vehicles came in during this period.</p>
+        {% endif %}
+    </div>
+</section>
+
+<div class="report-row">
+    {# ---- Staff ------------------------------------------------------------- #}
+    <section class="panel" aria-labelledby="staff-title">
+        <div class="panel-head"><h2 id="staff-title">Staff</h2></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Employee</th><th class="num">Jobs</th><th class="num">Revenue</th><th class="num">Avg time</th></tr></thead>
+            <tbody>
+            {% for row in r.by_employee %}
+            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs(row.revenue|round|int) }}</td><td class="num">{{ duration(row.avg_minutes) }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">No finished jobs.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+    {# ---- Wash bays ---------------------------------------------------------- #}
+    <section class="panel" aria-labelledby="bays-title">
+        <div class="panel-head"><h2 id="bays-title">Wash bays</h2></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Bay</th><th class="num">Jobs</th><th class="num">Revenue</th><th class="num">Share</th></tr></thead>
+            <tbody>
+            {% set bay_total = (r.by_bay|sum(attribute='revenue')) or 1 %}
+            {% for row in r.by_bay %}
+            <tr><td>{{ row.name }}</td><td class="num">{{ row.jobs }}</td><td class="num">{{ rs(row.revenue|round|int) }}</td><td class="num">{{ '%.0f'|format(row.revenue / bay_total * 100) }}%</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">No finished jobs.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+
+<div class="report-row">
+    {# ---- Top customers ---------------------------------------------------- #}
+    <section class="panel" aria-labelledby="cust-title">
+        <div class="panel-head"><h2 id="cust-title">Top customers</h2><span class="text-muted small">By spend</span></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Customer</th><th class="num">Visits</th><th class="num">Spent</th><th class="num">Last visit</th></tr></thead>
+            <tbody>
+            {% for row in r.top_customers %}
+            <tr><td>{{ row.name }}<div class="small text-muted">{{ row.contact or '' }}</div></td><td class="num">{{ row.visits }}</td><td class="num">{{ rs(row.spend|round|int) }}</td><td class="num">{{ row.last.strftime('%d %b') }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">No customers in this period.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+    {# ---- Unpaid ------------------------------------------------------------- #}
+    <section class="panel" aria-labelledby="unpaid-title">
+        <div class="panel-head"><h2 id="unpaid-title">Still owed</h2><span class="text-muted small">{% if r.unpaid_count > r.unpaid|length %}Oldest {{ r.unpaid|length }} of {{ r.unpaid_count }}{% else %}Oldest first{% endif %}</span></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Sale</th><th>Customer</th><th class="num">Owed</th><th class="num">Age</th></tr></thead>
+            <tbody>
+            {% for row in r.unpaid %}
+            <tr>
+                <td>
+                    {% if row.kind == 'service' %}
+                    <a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=row.id) }}">#{{ row.id }}</a> {{ plate(row.plate) }}
+                    {% else %}
+                    <a href="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=row.id) }}">Item sale #{{ row.id }}</a>
+                    {% endif %}
+                </td>
+                <td>{{ row.customer }}</td>
+                <td class="num text-danger">{{ rs(row.owed) }}</td>
+                <td class="num">{{ row.age_days }} day{{ '' if row.age_days == 1 else 's' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">Everything from this period is paid.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+
+<p class="report-notes">
+    A service counts once it is Done; item sales count when they are made. Both are dated by when they were opened.
+    Revenue is after discounts. Gross profit takes off the cost price of what was sold, not wages or bills.
+    Collected is money received in the period, including payments for older sales.
+</p>
+
+<div class="chart-tip" id="chartTip" role="status" aria-live="polite" hidden></div>
+<script type="application/json" id="report-timeline">{{ r.timeline|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js', v=ASSET_VERSION) }}"></script>
+{% endblock %}

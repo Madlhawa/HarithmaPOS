@@ -57,6 +57,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.dashboard.routes import dashboard_blueprint
     from harithmapos.views.search.routes import search_blueprint
     from harithmapos.views.settings.routes import settings_blueprint
+    from harithmapos.views.reports.routes import reports_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -73,5 +74,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(dashboard_blueprint)
     app.register_blueprint(search_blueprint)
     app.register_blueprint(settings_blueprint)
+    app.register_blueprint(reports_blueprint)
 
     return app

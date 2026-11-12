@@ -834,6 +834,161 @@ button.plate { cursor: pointer; }
     .steps label { border-bottom: 1px solid var(--h-line-strong); }
 }
 
+/* 11. Reports (sales dashboard) ---------------------------------------------
+   Chart colours come from a validated palette (two series + one blue ramp),
+   checked for colour-blind separation and contrast on both card surfaces. */
+
+:root,
+[data-bs-theme="light"] {
+    --viz-1: #2a78d6;      /* services */
+    --viz-2: #eb6834;      /* item sales */
+    --viz-grid: #e6e9f0;
+    --viz-axis: #c3c9d6;
+    --viz-tick: #6b7489;
+    --viz-other: #a9b1c2;
+    /* Blue ramp for the heatmap, light to dark = fewer to more */
+    --heat-0: #f3f5f9;
+    --heat-1: #cde2fb;
+    --heat-2: #9ec5f4;
+    --heat-3: #6da7ec;
+    --heat-4: #3987e5;
+    --heat-5: #256abf;
+    --heat-6: #104281;
+}
+[data-bs-theme="dark"] {
+    --viz-1: #3987e5;
+    --viz-2: #d95926;
+    --viz-grid: #1f2a42;
+    --viz-axis: #33415f;
+    --viz-tick: #8f9cb8;
+    --viz-other: #56637d;
+    /* On the dark card, fewer recedes into the surface and more is brighter */
+    --heat-0: #17223a;
+    --heat-1: #13305a;
+    --heat-2: #184f95;
+    --heat-3: #1c5cab;
+    --heat-4: #2a78d6;
+    --heat-5: #5598e7;
+    --heat-6: #9ec5f4;
+}
+
+.report-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 1.25rem; }
+.report-custom { display: flex; align-items: center; gap: 0.4rem; }
+.report-custom input[type="date"] { width: auto; }
+.report-custom.is-active input { border-color: var(--h-line-strong); }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+.kpi {
+    background: var(--h-surface); border: 1px solid var(--h-line); border-radius: var(--h-radius);
+    padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; min-width: 0;
+}
+.kpi-hero { grid-row: span 2; justify-content: flex-start; }
+.kpi-label { font-size: 0.82rem; color: var(--h-muted); font-weight: 500; }
+.kpi-value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: var(--h-ink); overflow-wrap: anywhere; }
+.kpi-hero .kpi-value { font-size: 3rem; line-height: 1.05; letter-spacing: -0.01em; margin: 0.15rem 0 0.25rem; }
+.kpi-hero .kpi-value .money-unit { font-size: 0.4em; vertical-align: 0.9em; }
+.kpi-sub { font-size: 0.8rem; color: var(--h-muted); margin-top: auto; padding-top: 0.25rem; }
+.kpi-delta { font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; }
+.kpi-delta.is-good { color: var(--h-green); }
+.kpi-delta.is-bad { color: var(--h-red); }
+.kpi-delta.is-flat { color: var(--h-muted); font-weight: 500; }
+.kpi-delta-vs { color: var(--h-muted); font-weight: 400; }
+.kpi-split { margin-top: auto; padding-top: 1rem; }
+.seg-bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--h-surface-2); }
+.seg-bar .seg { display: block; height: 100%; min-width: 2px; }
+.seg-bar .seg:first-child { border-radius: 4px 0 0 4px; }
+.seg-bar .seg:last-child { border-radius: 0 4px 4px 0; }
+.seg-1, .fill-1 { background: var(--viz-1); fill: var(--viz-1); }
+.seg-2, .fill-2 { background: var(--viz-2); fill: var(--viz-2); }
+.kpi-split-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin-top: 0.5rem; font-size: 0.82rem; color: var(--h-ink); }
+
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 0.4rem; vertical-align: -1px; }
+.key-1 { background: var(--viz-1); }
+.key-2 { background: var(--viz-2); }
+.chart-legend { display: flex; gap: 1rem; font-size: 0.82rem; color: var(--h-ink); }
+
+.chart-timeline { width: 100%; min-height: 260px; }
+.chart-timeline svg { display: block; overflow: visible; font-family: var(--h-font); }
+.chart-timeline .grid { stroke: var(--viz-grid); stroke-width: 1; }
+.chart-timeline .axis { stroke: var(--viz-axis); stroke-width: 1; }
+.chart-timeline .tick { fill: var(--viz-tick); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart-timeline .peak { fill: var(--h-ink); font-size: 11.5px; font-weight: 600; }
+.chart-timeline .hit { fill: transparent; }
+.chart-timeline .col { outline: none; cursor: default; }
+.chart-timeline .col.is-hover .hit,
+.chart-timeline .col:focus-visible .hit { fill: var(--h-ink); fill-opacity: 0.05; }
+.chart-timeline .col:focus-visible .hit { stroke: var(--h-ring); stroke-width: 2; }
+
+.chart-table { margin-top: 0.5rem; font-size: 0.85rem; }
+.chart-table summary { color: var(--h-link); cursor: pointer; width: max-content; }
+.chart-table table { margin: 0.5rem 0 0; }
+
+.report-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; align-items: start; }
+.report-row > .panel { margin: 0; }
+.report-row .panel + .panel { margin-top: 0; }
+
+.rank-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.rank-list li {
+    display: grid; grid-template-columns: minmax(8rem, 40%) 1fr auto; align-items: center; gap: 0.75rem;
+    padding: 0.35rem 0.4rem; border-radius: var(--h-radius-sm); outline: none;
+}
+.rank-list li:hover, .rank-list li:focus-visible { background: var(--h-surface-2); }
+.rank-list li:focus-visible { box-shadow: 0 0 0 2px var(--h-ring); }
+.rank-name { font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-kind { font-size: 0.7rem; color: var(--h-muted); margin-left: 0.25rem; }
+.rank-bar { height: 12px; display: block; }
+.rank-bar > span { display: block; height: 100%; min-width: 2px; background: var(--viz-1); border-radius: 0 4px 4px 0; }
+.rank-bar > span.is-other { background: var(--viz-other); }
+.rank-value { font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; min-width: 5.5rem; }
+
+.heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 560px; }
+.heat th { font-size: 0.72rem; font-weight: 500; color: var(--h-muted); text-align: center; padding: 0 0 0.2rem; }
+.heat tbody th { text-align: left; padding: 0 0.5rem 0 0; width: 2.5rem; }
+.heat td { height: 26px; border-radius: 4px; outline: none; }
+.heat td:hover, .heat td:focus-visible { box-shadow: 0 0 0 2px var(--h-ink) inset; }
+.h0 { background: var(--heat-0); }
+.h1 { background: var(--heat-1); }
+.h2 { background: var(--heat-2); }
+.h3 { background: var(--heat-3); }
+.h4 { background: var(--heat-4); }
+.h5 { background: var(--heat-5); }
+.h6 { background: var(--heat-6); }
+.heat-scale { display: flex; align-items: center; gap: 2px; margin-top: 0.6rem; font-size: 0.75rem; color: var(--h-muted); flex-wrap: wrap; }
+.heat-scale i { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
+.heat-scale > span:first-child { margin-right: 0.35rem; }
+.heat-scale > span:nth-of-type(2) { margin-left: 0.35rem; }
+
+.chart-tip {
+    position: fixed; z-index: 1080; pointer-events: none; max-width: 280px;
+    background: var(--h-surface); color: var(--h-ink); border: 1px solid var(--h-line-strong);
+    border-radius: var(--h-radius-sm); box-shadow: 0 8px 24px rgba(10, 20, 40, 0.18);
+    padding: 0.45rem 0.6rem; font-size: 0.8rem; line-height: 1.35;
+}
+.chart-tip .tip-title { color: var(--h-muted); margin-bottom: 0.15rem; }
+.chart-tip .tip-row { display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.chart-tip .tip-row span { color: var(--h-muted); }
+.chart-tip strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chart-tip .tip-key { display: inline-block; width: 10px; height: 2px; border-radius: 1px; }
+.chart-tip .tip-key.key-1 { background: var(--viz-1); }
+.chart-tip .tip-key.key-2 { background: var(--viz-2); }
+
+.report-notes { font-size: 0.8rem; color: var(--h-muted); max-width: 70ch; }
+
+@media (max-width: 1199.98px) {
+    .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 991.98px) {
+    .report-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 767.98px) {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-hero { grid-column: 1 / -1; grid-row: auto; }
+    .kpi-hero .kpi-value { font-size: 2.4rem; }
+    .kpi-value { font-size: 1.2rem; }
+    .rank-list li { grid-template-columns: 1fr auto; }
+    .rank-bar { grid-column: 1 / -1; grid-row: 2; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     * { scroll-behavior: auto !important; transition: none !important; }
 }
