@@ -712,6 +712,10 @@ a.plate:hover { color: var(--h-plate-ink); box-shadow: 0 0 0 3px var(--h-ring); 
 .filter-tabs a:hover { background: var(--h-surface); border-color: var(--h-line); }
 .filter-tabs a.active { background: var(--h-surface); border-color: var(--h-line-strong); color: var(--h-ink); }
 
+/* Wide tables scroll inside their box. Screen-reader-only text in a cell is
+   positioned absolutely; anchor it here so it can't widen the whole page. */
+.table-responsive { position: relative; }
+
 .table-list {
     --bs-table-bg: transparent;
     --bs-table-color: var(--h-ink);
