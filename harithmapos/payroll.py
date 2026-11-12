@@ -17,7 +17,8 @@ Days in a month
 - Absent = a no-pay day. Day off = neither worked nor deducted.
 
 Pay
-- Monthly salary: salary - salary / divisor x no-pay days.
+- Monthly salary: salary - salary / divisor x no-pay days. In the month
+  someone joins, the salary is pro-rated by calendar days from the joined date.
 - Daily wage: day rate x days worked (leave is not paid for daily staff).
 - Overtime: hours x hourly rate x overtime %. Hourly rate is salary / hour
   divisor for monthly staff, day rate / normal working hours for daily staff.
@@ -122,6 +123,7 @@ def month_bounds(month):
 @dataclass
 class MonthSummary:
     days_in_month: int = 0
+    employed_days: int = 0          # days of the month on or after the joined date
     days_counted: int = 0           # up to today for the current month
     present: Decimal = ZERO          # days worked, half days as 0.5
     paid_leave: Decimal = ZERO
@@ -139,12 +141,15 @@ class MonthSummary:
     by_date: dict = field(default_factory=dict)
 
 
-def summarise_month(days, short_leaves, month, today):
-    """days: AttendanceDay-like rows for one employee in the month."""
+def summarise_month(days, short_leaves, month, today, joined=None):
+    """days: AttendanceDay-like rows for one employee in the month.
+    joined: the employee's joined date; days before it are not counted at all."""
     first, last = month_bounds(month)
     s = MonthSummary(days_in_month=last.day)
+    start = max(first, joined) if joined else first
+    s.employed_days = max((last - start).days + 1, 0)
     counted_to = min(last, today)
-    s.days_counted = max((counted_to - first).days + 1, 0)
+    s.days_counted = max((counted_to - start).days + 1, 0)
     half = Decimal('0.5')
     for d in days:
         s.by_date[d.work_date] = d
@@ -179,7 +184,7 @@ def summarise_month(days, short_leaves, month, today):
     for sl in short_leaves:
         s.short_leave_count += 1
         s.short_leave_minutes += sl.minutes or 0
-    marked = {d.work_date for d in days if first <= d.work_date <= counted_to}
+    marked = {d.work_date for d in days if start <= d.work_date <= counted_to}
     s.unmarked = s.days_counted - len(marked)
     return s
 
@@ -211,6 +216,9 @@ def compute_pay(pay_type, rate, epf_enabled, summary, rules, allowances=0, advan
         hourly = rate / (Decimal(rules.normal_minutes) / 60)
     else:
         basic = rate
+        if summary.days_in_month and 0 < summary.employed_days < summary.days_in_month:
+            # Joined during the month: pay the share of the month they were here.
+            basic = money(rate * summary.employed_days / summary.days_in_month)
         nopay = min(money(rate / rules.day_divisor * summary.nopay), basic)
         hourly = rate / rules.hour_divisor
     overtime = money(hours * hourly * Decimal(rules.overtime_pct) / 100)

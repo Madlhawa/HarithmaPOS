@@ -129,7 +129,7 @@ def employee_detail(employee_id):
     month_days = [d for d in year_days if d.work_date >= first]
     month_leaves = ShortLeave.query.filter(ShortLeave.employee_id == employee.id,
                                            ShortLeave.work_date.between(first, last)).all()
-    summary = payroll.summarise_month(month_days, month_leaves, month, today)
+    summary = payroll.summarise_month(month_days, month_leaves, month, today, joined=employee.joined_date)
     recent = (AttendanceDay.query.filter(AttendanceDay.employee_id == employee.id)
               .order_by(AttendanceDay.work_date.desc()).limit(14).all())
     advances = (SalaryAdvance.query.filter_by(employee_id=employee.id)

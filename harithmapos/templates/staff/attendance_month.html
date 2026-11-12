@@ -36,8 +36,8 @@
             <th scope="row" class="att-name"><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}">{{ e.name }}</a>{% if s.unmarked %}<div class="cell-sub text-danger">{{ s.unmarked }} not marked</div>{% endif %}</th>
             {% for d in dates %}
             {% set r = s.by_date.get(d) %}
-            {% if d > today %}
-            <td><span class="att-cell att-future"></span></td>
+            {% if d > today or (e.joined_date and d < e.joined_date) %}
+            <td><span class="att-cell att-future" {% if e.joined_date and d < e.joined_date %}title="Before {{ e.name }} joined"{% endif %}></span></td>
             {% elif r %}
             {% set code, label = codes[r.status] %}
             {% set flagged = r.late_minutes or r.early_minutes %}

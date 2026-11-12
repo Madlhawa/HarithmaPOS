@@ -200,7 +200,8 @@ def month_data(month, employees=None):
     if employees is None:
         employees = active_employees(set(by_emp_days) | set(by_emp_leaves))
     now = today()
-    summaries = {e.id: payroll.summarise_month(by_emp_days.get(e.id, []), by_emp_leaves.get(e.id, []), month, now)
+    summaries = {e.id: payroll.summarise_month(by_emp_days.get(e.id, []), by_emp_leaves.get(e.id, []), month, now,
+                                               joined=e.joined_date)
                  for e in employees}
     return employees, summaries
 
@@ -293,7 +294,8 @@ def payroll_employees(month):
     first, last = payroll.month_bounds(month)
     marked = {eid for (eid,) in db.session.query(AttendanceDay.employee_id)
               .filter(AttendanceDay.work_date.between(first, last)).distinct()}
-    return [e for e in active_employees(marked) if e.wage or e.id in marked]
+    return [e for e in active_employees(marked)
+            if (e.wage or e.id in marked) and (e.joined_date is None or e.joined_date <= last)]
 
 
 def open_advances(month):

@@ -241,3 +241,18 @@ def test_employee_pay_settings_save(app, owner, team):
     with app.app_context():
         e = db.session.get(Employee, team['b'])
         assert (e.wage, e.epf_number, e.epf_enabled, e.active) == (Decimal('2750'), 'E-123', True, False)
+
+
+def test_joiner_mid_month_is_prorated_and_not_flagged_before_joining():
+    s = payroll.summarise_month([row(16, 'present')], [], OCT, today=date(2026, 11, 12), joined=date(2026, 10, 16))
+    assert s.employed_days == 16 and s.unmarked == 15        # 16-31 Oct: one day marked
+    f = payroll.compute_pay('monthly', 31000, False, s, RULES)
+    assert f.basic_pay == Decimal('16000.00')                 # 31000 x 16/31
+
+
+def test_not_on_payroll_before_joining(app, owner, team):
+    with app.app_context():
+        db.session.get(Employee, team['a']).joined_date = date(2026, 11, 5)
+        db.session.commit()
+    page = owner.get('/app/payroll?month=2026-10').get_data(as_text=True)
+    assert 'Bandula' in page and 'Ajith' not in page
