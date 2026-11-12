@@ -22,7 +22,7 @@ This guide explains every page, button and field. If you are new, read **Getting
 10. [Purchase orders](#10-purchase-orders)
 11. [Suppliers](#11-suppliers)
 12. [Staff: attendance, payroll, advances, employees](#12-staff)
-13. [Reports: Sales](#13-reports-sales)
+13. [Reports: Sales and Staff](#13-reports-sales)
 14. [Setup: wash bays, users, settings](#14-setup)
 15. [Your account](#15-your-account)
 16. [What customers see](#16-what-customers-see)
@@ -529,6 +529,32 @@ Shows the pay set-up and five summary tiles: pay, this month so far, late this m
 - **Wash bays:** jobs, revenue and share per bay.
 - **Top customers:** the top 10 by spend, with visits and last visit.
 - **Still owed:** the oldest unpaid sales; click to open them.
+
+### Staff report
+
+*Reports → Staff (owners).* How the team is doing over any period, for **Everyone** or one employee (pick in the box next to the dates, or click a name in the scorecard). The period buttons, dates and "vs previous" comparisons work as on the Sales report.
+
+| Tile | Meaning |
+|---|---|
+| Attendance rate | Days worked ÷ working days marked (days off don't count; a half day is 0.5). The bar splits worked, leave and absent. |
+| Punctuality | Arrivals within the grace period ÷ all arrivals with a time. |
+| Late arrivals | How many, and the total time; also how often people left early. |
+| Absences | Days absent without leave. |
+| Leave taken | Days of leave, split into paid and no-pay. |
+| Short leaves | How many, and the total time away. |
+| Overtime | Total overtime in the period. |
+| Jobs done | Finished services assigned to staff, with revenue per day worked. |
+| Advances given | Salary advances in the period, and how much is still to take back. |
+
+A yellow warning appears if register days are **not marked**: those days are left out of every rate, so fill them in first for a true picture.
+
+- **Who was in:** a column per day (per week for long periods) stacked by Present, Half day, Leave and Absent. Hover for numbers, or open **Show as a table**.
+- **When people arrive:** how early or late arrivals are, against the start time. Late bands are orange.
+- **Late arrivals by weekday:** the share of each weekday's arrivals that were late; the worst day is orange.
+- **Scorecard:** one row per employee, covering attendance and punctuality (with small bars), late arrivals, absences, leave, short leaves, overtime, jobs, revenue, revenue per day worked, average job time and advances still owed. Click a name to see the report for just that person.
+- **Staff cost by month:** gross pay plus employer EPF and ETF for the last six months, from finalised payrolls only.
+- **Leave used this year:** annual and casual leave used against the allowance, plus sick and no-pay days, for everyone working here.
+- **Salary advances given in this period,** with whether each has been taken back.
 
 ---
 

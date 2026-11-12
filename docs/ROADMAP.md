@@ -16,6 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 12 Nov 2026 | **Staff report** (Reports → Staff). Attendance rate, punctuality, lateness, absences, leave, short leaves, overtime, jobs and revenue per day worked, advances and staff cost, for everyone or one employee; who-was-in chart, arrival times, late by weekday, scorecard, leave used and staff cost by month. |
 | 12 Nov 2026 | **Staff attendance, leave and payroll.** Daily register (present, half day, leave by type, absent, day off; in/out times), automatic late, early and overtime minutes, short leaves, a month grid, leave balances, salary advances, monthly payroll with EPF/ETF, finalise, pay and print payslips. Lateness is tracked only. Employees gain pay type, EPF and a "working here" switch. |
 | 12 Nov 2026 | **Sales dashboard** (Reports → Sales). Revenue, gross profit, jobs, average job, collected, still owed, customers new vs returning, time per job and discounts against the previous period. Revenue chart, top services and items, payment mix, busy-hours heatmap, staff, bay, top customer and unpaid tables. |
 | 12 Nov 2026 | **HTTPS on harithma.lk.** Let's Encrypt certificate with auto-renewal; HTTP and the bare IP redirect; secure cookies; SMS and email links use https. |
@@ -28,7 +29,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 | 11 Nov 2026 | **Owner and counter-staff roles** and user management. |
 | 11 Nov 2026 | **Deploys through GitHub** with tracked database migrations and pre-deploy backups. |
 
-Tests: 113 automated tests cover billing, roles, settings, reports and payroll.
+Tests: 128 automated tests cover billing, roles, settings, reports and payroll.
 
 ---
 
@@ -43,7 +44,7 @@ Tests: 113 automated tests cover billing, roles, settings, reports and payroll.
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
 | Error tracking | Not started | Sentry (free tier) so failures are seen without reading server logs. | S |
-| Run tests before every deploy | Not started | A GitHub Actions job runs the 113 tests on each push and blocks a failing deploy. | S |
+| Run tests before every deploy | Not started | A GitHub Actions job runs the 128 tests on each push and blocks a failing deploy. | S |
 | Pin library versions | Not started | No version is pinned in `requirements.txt`, so a deploy can pull a breaking release. | S |
 | Zero-downtime deploys | Not started | Reload gunicorn instead of restarting; a 502 was seen during one restart. | S |
 | Two-step sign-in for owners | Not started | An authenticator-app code on top of the password. | M |
