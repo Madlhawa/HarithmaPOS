@@ -15,7 +15,7 @@
 {% set bad = (down and up_is_good) or (up and not up_is_good) %}
 <span class="kpi-delta {{ 'is-good' if good else ('is-bad' if bad else 'is-flat') }}">
     <i class="bi bi-{{ 'arrow-up-right' if up else ('arrow-down-right' if down else 'dash') }}" aria-hidden="true"></i>
-    {{ '%+.0f'|format(d) }}%<span class="visually-hidden"> {{ 'better' if good else ('worse' if bad else 'about the same') }}</span>
+    {% if d >= 200 %}×{{ '%.0f'|format(d / 100 + 1) }}{% else %}{{ '%+.0f'|format(d) }}%{% endif %}<span class="visually-hidden"> {{ 'better' if good else ('worse' if bad else 'about the same') }}</span>
     <span class="kpi-delta-vs">vs previous</span>
 </span>
 {% endif %}

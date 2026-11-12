@@ -873,7 +873,7 @@ button.plate { cursor: pointer; }
 }
 
 .report-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 1.25rem; }
-.report-custom { display: flex; align-items: center; gap: 0.4rem; }
+.report-custom { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; min-width: 0; }
 .report-custom input[type="date"] { width: auto; }
 .report-custom.is-active input { border-color: var(--h-line-strong); }
 
@@ -985,6 +985,8 @@ button.plate { cursor: pointer; }
 @media (max-width: 767.98px) {
     .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .kpi-hero { grid-column: 1 / -1; grid-row: auto; }
+    .report-custom { width: 100%; }
+    .report-custom input[type="date"] { flex: 1 1 8rem; min-width: 0; }
     .kpi-hero .kpi-value { font-size: 2.4rem; }
     .kpi-value { font-size: 1.2rem; }
     .rank-list li { grid-template-columns: 1fr auto; }
