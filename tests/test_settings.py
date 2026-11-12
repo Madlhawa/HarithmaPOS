@@ -224,3 +224,18 @@ def test_printer_uses_saved_connection(owner, app, monkeypatch):
     with app.test_request_context():
         assert utils.send_print_invoice('{"id": 1}')
     assert seen == {'host': 'printer.local', 'port': 5673, 'queue': 'receipts', 'published': ('receipts', '{"id": 1}')}
+
+
+def test_links_use_https_behind_nginx(app):
+    from flask import url_for
+    """Through the real WSGI stack, the scheme and host nginx forwards must win."""
+    client = app.test_client()
+    seen = {}
+
+    @app.route('/_scheme_probe')
+    def _probe():
+        seen['url'] = url_for('main_blueprint.home', _external=True)
+        return 'ok'
+
+    client.get('/_scheme_probe', headers={'X-Forwarded-Proto': 'https', 'X-Forwarded-Host': 'harithma.lk'})
+    assert seen['url'] == 'https://harithma.lk/'

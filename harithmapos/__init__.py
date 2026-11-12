@@ -1,4 +1,5 @@
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
@@ -22,6 +23,9 @@ login_manager.login_message_category = 'info'
 def create_app(Config_class=Config):
     app = Flask(__name__)
     app.config.from_object(Config_class)
+    # nginx sits in front and passes the real scheme and client address.
+    # Trust exactly one proxy, so links in SMS and emails use https://.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError(
