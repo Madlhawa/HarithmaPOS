@@ -1045,8 +1045,8 @@ a.att-cell:hover, a.att-cell:focus-visible { box-shadow: 0 0 0 2px var(--h-ring)
 .mini-stats small { font-weight: 400; color: var(--h-muted); }
 .payslip-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.75rem; }
 .payslip-inputs .form-label { font-size: 0.78rem; margin-bottom: 0.2rem; }
-.payslip-note, .payslip-advances { grid-column: 1 / -1; }
-.payslip-advances { border: 0; padding: 0; margin: 0; }
+.payslip-note, .payslip-recover { grid-column: 1 / -1; }
+.payslip-recover { border: 0; padding: 0; margin: 0; }
 .payslip-sum { width: 100%; font-size: 0.86rem; }
 .payslip-sum td { padding: 0.15rem 0; }
 .payslip-sum tr.sub td { border-top: 1px solid var(--h-line); font-weight: 600; padding-top: 0.3rem; }

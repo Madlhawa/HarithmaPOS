@@ -123,12 +123,12 @@
                     <input class="form-control form-control-sm" id="nt-{{ e.id }}" name="note_{{ e.id }}" value="{{ l.note or '' }}" maxlength="255" autocomplete="off">
                 </div>
                 {% if l.advances %}
-                <fieldset class="payslip-advances">
+                <fieldset class="payslip-recover">
                     <legend class="form-label">Take back advances</legend>
                     {% for a in l.advances %}
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="adv-{{ a.id }}" name="adv_{{ e.id }}" value="{{ a.id }}" {{ 'checked' if a in l.advances_taken }}>
-                        <label class="form-check-label" for="adv-{{ a.id }}">{{ rs(a.amount) }} on {{ a.advance_date.strftime('%d %b') }}</label>
+                        <input class="form-check-input" type="checkbox" id="sa-{{ a.id }}" name="adv_{{ e.id }}" value="{{ a.id }}" {{ 'checked' if a in l.advances_taken }}>
+                        <label class="form-check-label" for="sa-{{ a.id }}">{{ rs(a.amount) }} on {{ a.advance_date.strftime('%d %b') }}</label>
                     </div>
                     {% endfor %}
                 </fieldset>

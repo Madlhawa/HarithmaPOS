@@ -6,36 +6,36 @@
 </div>
 
 <div class="report-row">
-    <section class="panel" aria-labelledby="adv-new">
-        <div class="panel-head"><h2 id="adv-new">Give an advance</h2></div>
+    <section class="panel" aria-labelledby="sa-new">
+        <div class="panel-head"><h2 id="sa-new">Give an advance</h2></div>
         {% if employees %}
         <form method="post" action="{{ url_for('staff_blueprint.add_advance') }}" class="panel-body">
             {{ csrf() }}
             <div class="row g-3">
                 <div class="col-sm-6">
-                    <label class="form-label" for="adv-emp">Employee</label>
-                    <select class="form-select" id="adv-emp" name="employee_id" required>
+                    <label class="form-label" for="sa-emp">Employee</label>
+                    <select class="form-select" id="sa-emp" name="employee_id" required>
                         <option value="">Choose…</option>
                         {% for e in employees %}<option value="{{ e.id }}" {{ 'selected' if request.args.get('employee')|int == e.id }}>{{ e.name }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label" for="adv-amount">Amount ({{ CURRENCY }})</label>
-                    <input class="form-control num" id="adv-amount" name="amount" inputmode="decimal" required autocomplete="off">
+                    <label class="form-label" for="sa-amount">Amount ({{ CURRENCY }})</label>
+                    <input class="form-control num" id="sa-amount" name="amount" inputmode="decimal" required autocomplete="off">
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label" for="adv-date">Date</label>
-                    <input class="form-control" type="date" id="adv-date" name="advance_date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                    <label class="form-label" for="sa-date">Date</label>
+                    <input class="form-control" type="date" id="sa-date" name="advance_date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label" for="adv-method">Paid by</label>
-                    <select class="form-select" id="adv-method" name="method">
+                    <label class="form-label" for="sa-method">Paid by</label>
+                    <select class="form-select" id="sa-method" name="method">
                         {% for value, label in methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-12">
-                    <label class="form-label" for="adv-note">Note</label>
-                    <input class="form-control" id="adv-note" name="note" maxlength="255" placeholder="Optional" autocomplete="off">
+                    <label class="form-label" for="sa-note">Note</label>
+                    <input class="form-control" id="sa-note" name="note" maxlength="255" placeholder="Optional" autocomplete="off">
                 </div>
             </div>
             <div class="d-flex justify-content-end mt-3"><button class="btn btn-primary">Record advance</button></div>
@@ -45,8 +45,8 @@
         {% endif %}
     </section>
 
-    <section class="panel" aria-labelledby="adv-owed">
-        <div class="panel-head"><h2 id="adv-owed">Not yet taken back</h2></div>
+    <section class="panel" aria-labelledby="sa-owed">
+        <div class="panel-head"><h2 id="sa-owed">Not yet taken back</h2></div>
         <div class="table-responsive">
         <table class="table table-list mb-0">
             <thead><tr><th>Employee</th><th class="num">Owed back</th></tr></thead>
