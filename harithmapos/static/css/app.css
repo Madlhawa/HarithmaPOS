@@ -944,7 +944,7 @@ button.plate { cursor: pointer; }
 .heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 560px; }
 .heat th { font-size: 0.72rem; font-weight: 500; color: var(--h-muted); text-align: center; padding: 0 0 0.2rem; }
 .heat tbody th { text-align: left; padding: 0 0.5rem 0 0; width: 2.5rem; }
-.heat td { height: 26px; border-radius: 4px; outline: none; }
+.heat td { height: 26px; border-radius: 4px; outline: none; position: relative; }
 .heat td:hover, .heat td:focus-visible { box-shadow: 0 0 0 2px var(--h-ink) inset; }
 .h0 { background: var(--heat-0); }
 .h1 { background: var(--heat-1); }

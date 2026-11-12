@@ -115,7 +115,7 @@ def register_template_helpers(app):
         # A function, so it also works inside imported macros.
         is_owner=user_is_owner,
         # Change this when app.css / app.js change so browsers fetch the new files.
-        ASSET_VERSION='8',
+        ASSET_VERSION='9',
     )
 
     @app.context_processor
