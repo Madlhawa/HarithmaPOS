@@ -846,6 +846,8 @@ button.plate { cursor: pointer; }
 [data-bs-theme="light"] {
     --viz-1: #2a78d6;      /* services */
     --viz-2: #eb6834;      /* item sales */
+    --viz-3: #1baf7a;      /* half day (aqua) */
+    --viz-4: #6250d6;      /* absent (violet) */
     --viz-grid: #e6e9f0;
     --viz-axis: #c3c9d6;
     --viz-tick: #6b7489;
@@ -862,6 +864,8 @@ button.plate { cursor: pointer; }
 [data-bs-theme="dark"] {
     --viz-1: #3987e5;
     --viz-2: #d95926;
+    --viz-3: #199e70;
+    --viz-4: #9085e9;
     --viz-grid: #1f2a42;
     --viz-axis: #33415f;
     --viz-tick: #8f9cb8;
@@ -903,6 +907,12 @@ button.plate { cursor: pointer; }
 .seg-bar .seg:first-child { border-radius: 4px 0 0 4px; }
 .seg-bar .seg:last-child { border-radius: 0 4px 4px 0; }
 .seg-1, .fill-1 { background: var(--viz-1); fill: var(--viz-1); }
+.fill-3 { fill: var(--viz-3); }
+.fill-4 { fill: var(--viz-4); }
+.key-3 { background: var(--viz-3); }
+.key-4 { background: var(--viz-4); }
+.chart-tip .tip-key.key-3 { background: var(--viz-3); }
+.chart-tip .tip-key.key-4 { background: var(--viz-4); }
 .seg-2, .fill-2 { background: var(--viz-2); fill: var(--viz-2); }
 .kpi-split-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin-top: 0.5rem; font-size: 0.82rem; color: var(--h-ink); }
 
@@ -1079,6 +1089,23 @@ a.att-cell:hover, a.att-cell:focus-visible { box-shadow: 0 0 0 2px var(--h-ring)
     .payroll-totals, .emp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .leave-list li { grid-template-columns: 4rem 1fr; }
     .leave-figure { grid-column: 1 / -1; }
+}
+
+/* 13. Staff report ------------------------------------------------------------ */
+.seg-4 { background: var(--viz-4); }
+.rank-bar > span.is-late { background: var(--viz-2); }
+.mini-meter { display: inline-block; vertical-align: middle; width: 56px; height: 6px; border-radius: 3px; background: var(--h-blue-soft); overflow: hidden; margin-right: 0.35rem; }
+.mini-meter > span { display: block; height: 100%; background: var(--viz-1); border-radius: 3px; }
+.mini-meter.is-over > span { background: var(--h-red); }
+.scorecard td, .scorecard th { white-space: nowrap; }
+.leave-table { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.leave-table li { display: grid; grid-template-columns: minmax(7rem, 1.2fr) 1fr 1fr 1.1fr; gap: 0.75rem; align-items: center; font-size: 0.85rem; }
+.leave-who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leave-cell { display: inline-flex; align-items: center; white-space: nowrap; }
+.leave-cell.muted { color: var(--h-muted); font-size: 0.8rem; }
+@media (max-width: 767.98px) {
+    .leave-table li { grid-template-columns: 1fr 1fr; }
+    .leave-who { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

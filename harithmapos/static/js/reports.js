@@ -82,109 +82,104 @@
     window.addEventListener('scroll', hideTip, { passive: true });
 
     /* ---- revenue over time: stacked columns ---- */
-    var host = document.getElementById('chart-timeline');
-    var dataNode = document.getElementById('report-timeline');
-    if (!host || !dataNode) return;
-    var data = JSON.parse(dataNode.textContent);
-    var rows = data.rows;
+    /* ---- stacked columns, configured on the element ----
+       <div class="viz chart-stacked" data-stacked="json-script-id"
+            data-series='[{"key":"services","label":"services","cls":"fill-1","key_cls":"key-1"}, ...]'
+            data-money="1" data-note-key="jobs" data-note-label="job"></div> */
+    function stacked(host) {
+        var dataNode = document.getElementById(host.dataset.stacked);
+        if (!dataNode) return;
+        var rows = JSON.parse(dataNode.textContent).rows || [];
+        var series = JSON.parse(host.dataset.series || '[]');
+        var money = host.dataset.money === '1';
+        var fmt = money ? full : function (n) { return Math.round(n).toLocaleString('en-US'); };
+        var noteKey = host.dataset.noteKey, noteLabel = host.dataset.noteLabel;
+        if (!rows.length) { host.textContent = 'Nothing to show for this period.'; return; }
 
-    function draw() {
-        var width = Math.max(host.clientWidth, 280);
-        var height = 260;
-        var m = { top: 24, right: 8, bottom: 28, left: 44 };
-        var plotW = width - m.left - m.right;
-        var plotH = height - m.top - m.bottom;
-        var totals = rows.map(function (r) { return r.services + r.sales; });
-        var maxV = Math.max.apply(null, totals.concat([1]));
-        var step = niceStep(maxV, 4);
-        var top = Math.ceil(maxV / step) * step;
-        var y = function (v) { return m.top + plotH - (v / top) * plotH; };
-        var band = plotW / rows.length;
-        var barW = Math.max(2, Math.min(24, band * 0.62));
+        function draw() {
+            var width = Math.max(host.clientWidth, 280);
+            var height = 260;
+            var m = { top: 24, right: 8, bottom: 28, left: 44 };
+            var plotW = width - m.left - m.right;
+            var plotH = height - m.top - m.bottom;
+            var totals = rows.map(function (r) { return series.reduce(function (t, s) { return t + (r[s.key] || 0); }, 0); });
+            var maxV = Math.max.apply(null, totals.concat([1]));
+            var step = niceStep(maxV, 4);
+            if (!money && step < 1) step = 1;
+            var top = Math.ceil(maxV / step) * step;
+            var y = function (v) { return m.top + plotH - (v / top) * plotH; };
+            var band = plotW / rows.length;
+            var barW = Math.max(2, Math.min(24, band * 0.62));
+            var svg = el('svg', { width: width, height: height, viewBox: '0 0 ' + width + ' ' + height });
 
-        var svg = el('svg', { width: width, height: height, viewBox: '0 0 ' + width + ' ' + height });
-
-        // Gridlines and y ticks
-        for (var v = 0; v <= top + 0.5; v += step) {
-            svg.appendChild(el('line', { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), class: v === 0 ? 'axis' : 'grid' }));
-            var t = el('text', { x: m.left - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' });
-            t.textContent = compact(v);
-            svg.appendChild(t);
-        }
-
-        // X labels: as many as fit without touching
-        var labelEvery = Math.max(1, Math.ceil(58 / band));
-        rows.forEach(function (r, i) {
-            if (i % labelEvery !== 0) return;
-            var t = el('text', { x: m.left + band * i + band / 2, y: height - 8, 'text-anchor': 'middle', class: 'tick' });
-            t.textContent = r.short;
-            svg.appendChild(t);
-        });
-
-        // Columns: services at the base, item sales on top, 2px surface gap between
-        var peak = totals.indexOf(maxV);
-        rows.forEach(function (r, i) {
-            var cx = m.left + band * i + band / 2;
-            var x = cx - barW / 2;
-            var g = el('g', { class: 'col', tabindex: '0' });
-            var base = y(0);
-            var parts = [['services', 'fill-1'], ['sales', 'fill-2']].filter(function (p) { return r[p[0]] > 0; });
-            var cursor = base;
-            parts.forEach(function (p, j) {
-                var hgt = (r[p[0]] / top) * plotH;
-                var gap = j > 0 ? 2 : 0;
-                var segTop = cursor - hgt;
-                var drawH = Math.max(hgt - gap, 1);
-                var isTop = j === parts.length - 1;
-                var radius = Math.min(4, drawH, barW / 2);
-                var path;
-                if (isTop) {
-                    // Rounded data end, square at the bottom.
-                    path = 'M' + x + ',' + (segTop + drawH) + 'V' + (segTop + radius) +
-                        'Q' + x + ',' + segTop + ' ' + (x + radius) + ',' + segTop +
-                        'H' + (x + barW - radius) + 'Q' + (x + barW) + ',' + segTop + ' ' + (x + barW) + ',' + (segTop + radius) +
-                        'V' + (segTop + drawH) + 'Z';
-                } else {
-                    path = 'M' + x + ',' + (segTop) + 'H' + (x + barW) + 'V' + (segTop + drawH) + 'H' + x + 'Z';
-                }
-                g.appendChild(el('path', { d: path, class: p[1] }));
-                cursor = segTop;
-            });
-            // Hit area: the whole band, taller than the bar.
-            var hit = el('rect', { x: m.left + band * i, y: m.top, width: band, height: plotH, class: 'hit' });
-            g.appendChild(hit);
-            var lines = [
-                { label: r.span },
-                { value: full(r.services + r.sales), label: ' total' },
-                { key: 'key-1', value: full(r.services), label: ' services · ' + r.jobs + ' job' + (r.jobs === 1 ? '' : 's') },
-                { key: 'key-2', value: full(r.sales), label: ' item sales' }
-            ];
-            g.addEventListener('pointermove', function (e) { showTip(lines, e.clientX, e.clientY); g.classList.add('is-hover'); });
-            g.addEventListener('pointerleave', function () { hideTip(); g.classList.remove('is-hover'); });
-            g.addEventListener('focus', function () {
-                var b = hit.getBoundingClientRect();
-                showTip(lines, b.left + b.width / 2, b.top + b.height / 3);
-                g.classList.add('is-hover');
-            });
-            g.addEventListener('blur', function () { hideTip(); g.classList.remove('is-hover'); });
-            g.setAttribute('aria-label', r.span + ': ' + full(r.services + r.sales));
-            svg.appendChild(g);
-
-            // One direct label: the best day or week.
-            if (i === peak && maxV > 0) {
-                var lbl = el('text', { x: cx, y: y(maxV) - 8, 'text-anchor': 'middle', class: 'peak' });
-                lbl.textContent = compact(maxV);
-                svg.appendChild(lbl);
+            for (var v = 0; v <= top + 0.5; v += step) {
+                svg.appendChild(el('line', { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), class: v === 0 ? 'axis' : 'grid' }));
+                var t = el('text', { x: m.left - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' });
+                t.textContent = compact(v);
+                svg.appendChild(t);
             }
+            var labelEvery = Math.max(1, Math.ceil(58 / band));
+            rows.forEach(function (r, i) {
+                if (i % labelEvery !== 0) return;
+                var t = el('text', { x: m.left + band * i + band / 2, y: height - 8, 'text-anchor': 'middle', class: 'tick' });
+                t.textContent = r.short;
+                svg.appendChild(t);
+            });
+
+            var peak = totals.indexOf(maxV);
+            rows.forEach(function (r, i) {
+                var cx = m.left + band * i + band / 2;
+                var x = cx - barW / 2;
+                var g = el('g', { class: 'col', tabindex: '0' });
+                var parts = series.filter(function (s) { return (r[s.key] || 0) > 0; });
+                var cursor = y(0);
+                parts.forEach(function (s, j) {
+                    var hgt = (r[s.key] / top) * plotH;
+                    var gap = j > 0 ? 2 : 0;
+                    var segTop = cursor - hgt;
+                    var drawH = Math.max(hgt - gap, 1);
+                    var isTop = j === parts.length - 1;
+                    var radius = Math.min(4, drawH, barW / 2);
+                    var path = isTop
+                        ? 'M' + x + ',' + (segTop + drawH) + 'V' + (segTop + radius) +
+                          'Q' + x + ',' + segTop + ' ' + (x + radius) + ',' + segTop +
+                          'H' + (x + barW - radius) + 'Q' + (x + barW) + ',' + segTop + ' ' + (x + barW) + ',' + (segTop + radius) +
+                          'V' + (segTop + drawH) + 'Z'
+                        : 'M' + x + ',' + segTop + 'H' + (x + barW) + 'V' + (segTop + drawH) + 'H' + x + 'Z';
+                    g.appendChild(el('path', { d: path, class: s.cls }));
+                    cursor = segTop;
+                });
+                var hit = el('rect', { x: m.left + band * i, y: m.top, width: band, height: plotH, class: 'hit' });
+                g.appendChild(hit);
+                var lines = [{ label: r.span }, { value: fmt(totals[i]), label: ' total' }];
+                series.forEach(function (s) {
+                    var extra = (noteKey && s === series[0]) ? ' · ' + r[noteKey] + ' ' + noteLabel + (r[noteKey] === 1 ? '' : 's') : '';
+                    lines.push({ key: s.key_cls, value: fmt(r[s.key] || 0), label: ' ' + s.label + extra });
+                });
+                g.addEventListener('pointermove', function (e) { showTip(lines, e.clientX, e.clientY); g.classList.add('is-hover'); });
+                g.addEventListener('pointerleave', function () { hideTip(); g.classList.remove('is-hover'); });
+                g.addEventListener('focus', function () {
+                    var b = hit.getBoundingClientRect();
+                    showTip(lines, b.left + b.width / 2, b.top + b.height / 3);
+                    g.classList.add('is-hover');
+                });
+                g.addEventListener('blur', function () { hideTip(); g.classList.remove('is-hover'); });
+                g.setAttribute('aria-label', r.span + ': ' + fmt(totals[i]));
+                svg.appendChild(g);
+                if (i === peak && maxV > 0) {
+                    var lbl = el('text', { x: cx, y: y(maxV) - 8, 'text-anchor': 'middle', class: 'peak' });
+                    lbl.textContent = money ? compact(maxV) : String(Math.round(maxV));
+                    svg.appendChild(lbl);
+                }
+            });
+            host.replaceChildren(svg);
+        }
+        draw();
+        var resizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(draw, 120);
         });
-
-        host.replaceChildren(svg);
     }
-
-    draw();
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(draw, 120);
-    });
+    document.querySelectorAll('[data-stacked]').forEach(stacked);
 })();

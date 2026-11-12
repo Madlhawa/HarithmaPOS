@@ -59,7 +59,8 @@
             {{ nav_link('employee_blueprint.employee', 'person-badge', 'Employees', ep.startswith('employee_blueprint.')) }}
 
             <div class="side-group">Reports</div>
-            {{ nav_link('reports_blueprint.sales', 'graph-up', 'Sales', ep.startswith('reports_blueprint.')) }}
+            {{ nav_link('reports_blueprint.sales', 'graph-up', 'Sales', ep == 'reports_blueprint.sales') }}
+            {{ nav_link('reports_blueprint.staff', 'people', 'Staff', ep == 'reports_blueprint.staff') }}
 
             <div class="side-group">Setup</div>
             {{ nav_link('washbay_blueprint.washbay', 'droplet', 'Wash bays', ep.startswith('washbay_blueprint.')) }}

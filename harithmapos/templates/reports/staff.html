@@ -1,0 +1,352 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import rs %}
+
+{% set k = r.kpis %}
+{% set p = r.period %}
+{% set emp_arg = chosen.id if chosen else none %}
+
+{% macro delta(key, up_is_good=True) -%}
+{% set d = r.deltas.get(key) %}
+{% if d is none %}
+<span class="kpi-delta is-flat">No earlier figures to compare</span>
+{% else %}
+{% set up = d > 0.5 %}{% set down = d < -0.5 %}
+{% set good = (up and up_is_good) or (down and not up_is_good) %}
+{% set bad = (down and up_is_good) or (up and not up_is_good) %}
+<span class="kpi-delta {{ 'is-good' if good else ('is-bad' if bad else 'is-flat') }}">
+    <i class="bi bi-{{ 'arrow-up-right' if up else ('arrow-down-right' if down else 'dash') }}" aria-hidden="true"></i>
+    {% if d >= 200 %}×{{ '%.0f'|format(d / 100 + 1) }}{% else %}{{ '%+.0f'|format(d) }}%{% endif %}<span class="visually-hidden"> {{ 'better' if good else ('worse' if bad else 'about the same') }}</span>
+    <span class="kpi-delta-vs">vs previous</span>
+</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro pct(v) -%}{% if v is none %}–{% else %}{{ '%.0f'|format(v) }}%{% endif %}{%- endmacro %}
+{% macro days(n) -%}{{ ('%.1f'|format(n|float))|replace('.0', '') }}{%- endmacro %}
+{% macro rs0(value) -%}<span class="money-unit">{{ CURRENCY }}</span>{{ (value or 0)|money(0) }}{%- endmacro %}
+{% macro meter(v, cls='') -%}
+<span class="mini-meter {{ cls }}" aria-hidden="true"><span style="width: {{ [v or 0, 100]|min }}%"></span></span>
+{%- endmacro %}
+
+{% block body %}
+<div class="page-head">
+    <div>
+        <h1>Staff report{% if chosen %}: {{ chosen.name }}{% endif %}</h1>
+        <p>{{ p.label }} <span class="text-muted">· compared with {{ r.previous.label }}</span></p>
+    </div>
+    {% if chosen %}
+    <div class="page-actions"><a class="btn btn-quiet" href="{{ url_for('employee_blueprint.employee_detail', employee_id=chosen.id) }}"><i class="bi bi-person-lines-fill me-1" aria-hidden="true"></i>{{ chosen.name }}'s page</a></div>
+    {% endif %}
+</div>
+
+<form class="report-filters" method="get" action="{{ url_for('reports_blueprint.staff') }}">
+    <nav class="filter-tabs" aria-label="Period">
+        {% for key, label in presets %}
+        <a href="{{ url_for('reports_blueprint.staff', range=key, employee=emp_arg) }}" class="{{ 'active' if p.key == key }}" {% if p.key == key %}aria-current="true"{% endif %}>{{ label }}</a>
+        {% endfor %}
+    </nav>
+    <div class="report-custom {{ 'is-active' if p.key == 'custom' }}">
+        <input type="hidden" name="range" value="custom">
+        <label class="visually-hidden" for="rep-from">From</label>
+        <input class="form-control form-control-sm" type="date" id="rep-from" name="from" value="{{ p.start.isoformat() }}" required>
+        <span class="text-muted">to</span>
+        <label class="visually-hidden" for="rep-to">To</label>
+        <input class="form-control form-control-sm" type="date" id="rep-to" name="to" value="{{ p.end.isoformat() }}" required>
+        <label class="visually-hidden" for="rep-emp">Employee</label>
+        <select class="form-select form-select-sm w-auto" id="rep-emp" name="employee">
+            <option value="">Everyone</option>
+            {% for e in employees %}<option value="{{ e.id }}" {{ 'selected' if chosen and chosen.id == e.id }}>{{ e.name }}{{ '' if e.active else ' (left)' }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-quiet btn-sm">Show</button>
+    </div>
+</form>
+
+{% if k.unmarked %}
+<div class="alert alert-warning">
+    <strong>{{ k.unmarked }} employee-day{{ '' if k.unmarked == 1 else 's' }} not marked</strong> in the register for this period, so these figures are incomplete.
+    <a href="{{ url_for('staff_blueprint.attendance_month', month=p.end.strftime('%Y-%m')) }}">Open the month view</a> to fill them in.
+</div>
+{% endif %}
+
+{# ---- Headline figures --------------------------------------------------- #}
+{% set t = r.team %}
+<section class="kpi-grid" aria-label="Headline figures">
+    <div class="kpi kpi-hero">
+        <div class="kpi-label">Attendance rate</div>
+        <div class="kpi-value">{{ pct(k.attendance_rate) }}</div>
+        {{ delta('attendance_rate') }}
+        <div class="kpi-split">
+            {% if t.working_days %}
+            {% set w = (t.worked|float) / t.working_days * 100 %}
+            {% set lv = (t.leave_total|float) / t.working_days * 100 %}
+            <div class="seg-bar" role="img" aria-label="Of {{ t.working_days }} working days: {{ days(t.worked) }} worked, {{ days(t.leave_total) }} on leave, {{ t.absent }} absent">
+                <span class="seg seg-1" style="width: {{ w }}%"></span><span class="seg seg-2" style="width: {{ lv }}%"></span><span class="seg seg-4" style="width: {{ [100 - w - lv, 0]|max }}%"></span>
+            </div>
+            {% endif %}
+            <div class="kpi-split-legend">
+                <span><i class="key key-1" aria-hidden="true"></i>{{ days(t.worked) }} days worked</span>
+                <span><i class="key key-2" aria-hidden="true"></i>{{ days(t.leave_total) }} on leave</span>
+                <span><i class="key key-4" aria-hidden="true"></i>{{ t.absent }} absent</span>
+            </div>
+            <div class="kpi-sub">Out of {{ t.working_days }} working days marked (days off not counted)</div>
+        </div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Punctuality</div>
+        <div class="kpi-value">{{ pct(k.punctuality) }}</div>
+        {{ delta('punctuality') }}
+        <div class="kpi-sub">{{ t.on_time }} of {{ t.arrivals }} arrivals on time (within {{ r.rules.grace }} min)</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Late arrivals</div>
+        <div class="kpi-value">{{ k.late_count }}</div>
+        {{ delta('late_count', up_is_good=False) }}
+        <div class="kpi-sub">{{ fmt(k.late_minutes) }} in total{% if t.early_count %} · left early {{ t.early_count }}×{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Absences</div>
+        <div class="kpi-value {{ 'text-danger' if k.absent }}">{{ k.absent }}</div>
+        {{ delta('absent', up_is_good=False) }}
+        <div class="kpi-sub">Days absent without leave</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Leave taken</div>
+        <div class="kpi-value">{{ days(k.leave_total) }} day{{ '' if k.leave_total == 1 else 's' }}</div>
+        {{ delta('leave_total', up_is_good=False) }}
+        <div class="kpi-sub">{{ days(k.paid_leave) }} paid · {{ days(k.nopay_leave) }} no-pay</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Short leaves</div>
+        <div class="kpi-value">{{ k.short_count }}</div>
+        {{ delta('short_count', up_is_good=False) }}
+        <div class="kpi-sub">{{ fmt(k.short_minutes) }} away in total</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Overtime</div>
+        <div class="kpi-value">{{ fmt(k.overtime_minutes) }}</div>
+        {{ delta('overtime_minutes', up_is_good=False) }}
+        <div class="kpi-sub">Past {{ r.rules.work_end.strftime('%H:%M') }}, paid at {{ r.rules.overtime_pct }}%</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Jobs done</div>
+        <div class="kpi-value">{{ '{:,}'.format(k.jobs) }}</div>
+        {{ delta('jobs') }}
+        <div class="kpi-sub">{% if k.revenue_per_day is not none %}{{ rs0(k.revenue_per_day) }} revenue per day worked{% else %}–{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Advances given</div>
+        <div class="kpi-value">{{ rs0(k.advances_given) }}</div>
+        {{ delta('advances_given', up_is_good=False) }}
+        <div class="kpi-sub">{{ rs0(k.advances_open) }} still to take back</div>
+    </div>
+</section>
+
+{# ---- Who was in ------------------------------------------------------------ #}
+<section class="panel mb-4" aria-labelledby="days-title">
+    <div class="panel-head">
+        <h2 id="days-title">Who was in, {{ 'by week' if r.daily.weekly else 'by day' }}</h2>
+        <div class="chart-legend" aria-hidden="true">
+            <span><i class="key key-1"></i>Present</span>
+            <span><i class="key key-3"></i>Half day</span>
+            <span><i class="key key-2"></i>Leave</span>
+            <span><i class="key key-4"></i>Absent</span>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="viz chart-timeline" data-stacked="staff-days"
+             data-series='[{"key": "present", "label": "present", "cls": "fill-1", "key_cls": "key-1"}, {"key": "half", "label": "half day", "cls": "fill-3", "key_cls": "key-3"}, {"key": "leave", "label": "on leave", "cls": "fill-2", "key_cls": "key-2"}, {"key": "absent", "label": "absent", "cls": "fill-4", "key_cls": "key-4"}]'
+             role="img" aria-label="Number of staff present, on a half day, on leave and absent {{ 'each week (person-days)' if r.daily.weekly else 'each day' }}. The table below has every value."></div>
+        <details class="chart-table">
+            <summary>Show as a table</summary>
+            <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>{{ 'Week' if r.daily.weekly else 'Day' }}</th><th class="num">Present</th><th class="num">Half day</th><th class="num">Leave</th><th class="num">Absent</th></tr></thead>
+                <tbody>
+                {% for row in r.daily.rows %}
+                <tr><td>{{ row.span }}</td><td class="num">{{ row.present }}</td><td class="num">{{ row.half }}</td><td class="num">{{ row.leave }}</td><td class="num">{{ row.absent }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </details>
+        {% if r.daily.weekly %}<p class="form-hint mb-0">Weekly bars add up person-days (5 staff present all week = 35).</p>{% endif %}
+    </div>
+</section>
+
+<div class="report-row">
+    {# ---- Arrival times --------------------------------------------------- #}
+    <section class="panel" aria-labelledby="arr-title">
+        <div class="panel-head"><h2 id="arr-title">When people arrive</h2><span class="text-muted small">{{ r.arrivals_total }} arrivals · work starts {{ r.rules.work_start.strftime('%H:%M') }}</span></div>
+        <div class="panel-body">
+            {% if r.arrivals_total %}
+            {% set top = (r.arrival_bins|map(attribute=2)|max) or 1 %}
+            <ol class="rank-list">
+                {% for key, label, count, late in r.arrival_bins %}
+                <li tabindex="0" data-tip="{{ label }}|{{ count }} arrival{{ '' if count == 1 else 's' }}|{{ '%.0f'|format(count / r.arrivals_total * 100) }}% of arrivals">
+                    <span class="rank-name">{{ label }}</span>
+                    <span class="rank-bar"><span class="{{ 'is-late' if late }}" style="width: {{ (count / top * 100)|round(1) }}%"></span></span>
+                    <span class="rank-value">{{ '%.0f'|format(count / r.arrivals_total * 100) }}%</span>
+                </li>
+                {% endfor %}
+            </ol>
+            <div class="chart-legend mt-2" aria-hidden="true"><span><i class="key key-1"></i>On time</span><span><i class="key key-2"></i>Late</span></div>
+            {% else %}
+            <p class="text-muted mb-0">No arrival times recorded in this period.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---- Late by weekday ---------------------------------------------------- #}
+    <section class="panel" aria-labelledby="wd-title">
+        <div class="panel-head"><h2 id="wd-title">Late arrivals by weekday</h2><span class="text-muted small">Share of that day's arrivals</span></div>
+        <div class="panel-body">
+            {% set rates = r.weekday|selectattr('rate')|map(attribute='rate')|list %}
+            {% if rates %}
+            {% set top = (rates|max) or 1 %}
+            <ol class="rank-list">
+                {% for w in r.weekday %}
+                <li tabindex="0" data-tip="{{ w.day }}|{{ pct(w.rate) }} late|{{ w.late }} of {{ w.arrivals }} arrivals">
+                    <span class="rank-name">{{ w.day }}</span>
+                    <span class="rank-bar"><span class="{{ 'is-late' if w.rate and w.rate == top }}" style="width: {{ ((w.rate or 0) / top * 100)|round(1) }}%"></span></span>
+                    <span class="rank-value">{{ pct(w.rate) }}</span>
+                </li>
+                {% endfor %}
+            </ol>
+            <p class="form-hint mb-0 mt-2">The worst day is highlighted.</p>
+            {% else %}
+            <p class="text-muted mb-0">No late arrivals in this period.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+{# ---- Scorecard -------------------------------------------------------------- #}
+<section class="panel mb-4" aria-labelledby="sc-title">
+    <div class="panel-head"><h2 id="sc-title">Scorecard</h2><span class="text-muted small">One row per employee for {{ p.label }}</span></div>
+    <div class="table-responsive">
+    <table class="table table-list mb-0 scorecard">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Attendance</th>
+                <th>Punctuality</th>
+                <th class="num">Late</th>
+                <th class="num">Absent</th>
+                <th class="num">Leave</th>
+                <th class="num">Short leaves</th>
+                <th class="num">Overtime</th>
+                <th class="num">Jobs</th>
+                <th class="num">Revenue</th>
+                <th class="num">Per day worked</th>
+                <th class="num">Avg job time</th>
+                <th class="num">Advances owed</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in r.rows %}
+        <tr>
+            <td><a href="{{ url_for('reports_blueprint.staff', range=p.key, employee=s.employee.id, **({'from': p.start.isoformat(), 'to': p.end.isoformat()} if p.key == 'custom' else {})) }}">{{ s.employee.name }}</a>
+                <div class="cell-sub">{{ s.employee.designation or '' }}{{ ' · left' if not s.employee.active }}{% if s.unmarked %} · <span class="text-danger">{{ s.unmarked }} not marked</span>{% endif %}</div></td>
+            <td class="nowrap">{{ meter(s.attendance_rate) }} {{ pct(s.attendance_rate) }}<div class="cell-sub">{{ days(s.worked) }} of {{ s.working_days }} days</div></td>
+            <td class="nowrap">{{ meter(s.punctuality) }} {{ pct(s.punctuality) }}</td>
+            <td class="num">{{ s.late_count }}{% if s.late_count %}<div class="cell-sub">{{ fmt(s.late_minutes) }}</div>{% endif %}</td>
+            <td class="num {{ 'text-danger' if s.absent }}">{{ s.absent }}</td>
+            <td class="num">{{ days(s.leave_total) }}{% if s.nopay_leave %}<div class="cell-sub">{{ days(s.nopay_leave) }} no-pay</div>{% endif %}</td>
+            <td class="num">{{ s.short_count }}{% if s.short_count %}<div class="cell-sub">{{ fmt(s.short_minutes) }}</div>{% endif %}</td>
+            <td class="num">{{ fmt(s.overtime_minutes) if s.overtime_minutes else '0' }}</td>
+            <td class="num">{{ s.jobs }}</td>
+            <td class="num">{{ rs0(s.revenue) }}</td>
+            <td class="num">{{ rs0(s.revenue_per_day) if s.revenue_per_day is not none else '–' }}</td>
+            <td class="num">{{ fmt(s.avg_job_minutes) if s.avg_job_minutes is not none else '–' }}</td>
+            <td class="num {{ 'text-danger' if s.advances_open }}">{{ rs0(s.advances_open) if s.advances_open else '–' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="text-muted">No employees.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<div class="report-row">
+    {# ---- Staff cost by month ----------------------------------------------- #}
+    <section class="panel" aria-labelledby="cost-title">
+        <div class="panel-head">
+            <h2 id="cost-title">Staff cost by month</h2>
+            <div class="chart-legend" aria-hidden="true"><span><i class="key key-1"></i>Gross pay</span><span><i class="key key-2"></i>Employer EPF + ETF</span></div>
+        </div>
+        <div class="panel-body">
+            <div class="viz chart-timeline chart-short" data-stacked="staff-cost" data-money="1"
+                 data-series='[{"key": "gross", "label": "gross pay", "cls": "fill-1", "key_cls": "key-1"}, {"key": "employer", "label": "employer EPF + ETF", "cls": "fill-2", "key_cls": "key-2"}]'
+                 role="img" aria-label="Staff cost per month from finalised payrolls. The table below has every value."></div>
+            <details class="chart-table">
+                <summary>Show as a table</summary>
+                <table class="table table-sm">
+                    <thead><tr><th>Month</th><th class="num">Gross pay</th><th class="num">Employer EPF + ETF</th><th class="num">Net paid</th></tr></thead>
+                    <tbody>
+                    {% for m in r.payroll_months %}
+                    <tr><td>{{ m.label }}{% if not m.finalised %} <span class="text-muted">(not finalised)</span>{% endif %}</td><td class="num">{{ m.gross|money(0) }}</td><td class="num">{{ m.employer|money(0) }}</td><td class="num">{{ m.net|money(0) }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </details>
+            <p class="form-hint mb-0">Only finalised payrolls are counted. {% if k.staff_cost %}Months inside this period cost {{ rs0(k.staff_cost) }}.{% endif %} <a href="{{ url_for('staff_blueprint.payroll_page') }}">Payroll</a></p>
+        </div>
+    </section>
+
+    {# ---- Leave balances ------------------------------------------------------ #}
+    <section class="panel" aria-labelledby="lb-title">
+        <div class="panel-head"><h2 id="lb-title">Leave used in {{ r.year }}</h2><span class="text-muted small">Annual and casual against the yearly allowance</span></div>
+        <div class="panel-body">
+            {% if r.balances %}
+            <ul class="leave-table">
+                {% for b in r.balances %}
+                {% set au, aa = b.annual %}{% set cu, ca = b.casual %}
+                <li>
+                    <a class="leave-who" href="{{ url_for('employee_blueprint.employee_detail', employee_id=b.employee.id) }}">{{ b.employee.name }}</a>
+                    <span class="leave-cell">{{ meter((au / aa * 100) if aa else 0, 'is-over' if au > aa else '') }}<span>Annual {{ days(au) }}/{{ aa }}</span></span>
+                    <span class="leave-cell">{{ meter((cu / ca * 100) if ca else 0, 'is-over' if cu > ca else '') }}<span>Casual {{ days(cu) }}/{{ ca }}</span></span>
+                    <span class="leave-cell muted">Sick {{ days(b.sick) }} · No-pay {{ days(b.nopay) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mb-0">No employees working here.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+{# ---- Advances in the period ---------------------------------------------- #}
+<section class="panel mb-4" aria-labelledby="adv2-title">
+    <div class="panel-head"><h2 id="adv2-title">Salary advances given in this period</h2><a class="small" href="{{ url_for('staff_blueprint.advances') }}">All advances</a></div>
+    <div class="table-responsive">
+    <table class="table table-list mb-0">
+        <thead><tr><th>Date</th><th>Employee</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for a in r.advances %}
+        <tr><td>{{ a.advance_date.strftime('%d %b %Y') }}</td><td>{{ a.employee.name }}</td><td class="num">{{ rs0(a.amount) }}</td>
+            <td>{% if a.is_recovered %}<a href="{{ url_for('staff_blueprint.view_payslip', slip_id=a.payslip_id) }}">Taken back, {{ a.payslip.run.month.strftime('%b %Y') }}</a>{% else %}<span class="status" data-status="waiting">Open</span>{% endif %}</td></tr>
+        {% else %}
+        <tr><td colspan="4" class="text-muted">No advances given in this period.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<p class="report-notes">
+    Working days are register days that are not a day off. Attendance rate = days worked ÷ working days (a half day counts 0.5).
+    Punctuality = arrivals within the {{ r.rules.grace }}-minute grace period ÷ all arrivals with a time. Late arrivals and short leaves are
+    tracked only; they do not change pay. Jobs and revenue are finished services assigned to the employee, after discounts.
+    Days not marked in the register are left out of every rate.
+</p>
+
+<div class="chart-tip" id="chartTip" role="status" aria-live="polite" hidden></div>
+<script type="application/json" id="staff-days">{{ r.daily|tojson }}</script>
+<script type="application/json" id="staff-cost">{{ {'rows': r.payroll_months}|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js', v=ASSET_VERSION) }}"></script>
+{% endblock %}

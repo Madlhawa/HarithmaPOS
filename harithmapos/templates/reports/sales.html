@@ -134,7 +134,8 @@
         </div>
     </div>
     <div class="panel-body">
-        <div class="viz chart-timeline" id="chart-timeline" role="img"
+        <div class="viz chart-timeline" id="chart-timeline" data-stacked="report-timeline" data-money="1" data-note-key="jobs" data-note-label="job"
+             data-series='[{"key": "services", "label": "services", "cls": "fill-1", "key_cls": "key-1"}, {"key": "sales", "label": "item sales", "cls": "fill-2", "key_cls": "key-2"}]' role="img"
              aria-label="Revenue {{ 'by week' if r.timeline.weekly else 'by day' }}, services and item sales stacked. The table below has every value."></div>
         <details class="chart-table">
             <summary>Show as a table</summary>
