@@ -15,6 +15,7 @@
         if (!needsLeave) leave.value = '';
         if (status === 'leave' && !leave.value) leave.value = 'casual';
         timeIn.disabled = timeOut.disabled = !needsTime;
+        if (!needsTime) { timeIn.value = ''; timeOut.value = ''; }
         timeIn.required = status === 'present';
         row.classList.toggle('is-unmarked', status === '');
     }
