@@ -1,0 +1,94 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf, post_button, rs %}
+{% block body %}
+<div class="page-head">
+    <div><h1>Salary advances</h1><p>Money given ahead of payday. Each advance is recorded as money out and taken back on the next payroll.</p></div>
+</div>
+
+<div class="report-row">
+    <section class="panel" aria-labelledby="adv-new">
+        <div class="panel-head"><h2 id="adv-new">Give an advance</h2></div>
+        {% if employees %}
+        <form method="post" action="{{ url_for('staff_blueprint.add_advance') }}" class="panel-body">
+            {{ csrf() }}
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label class="form-label" for="adv-emp">Employee</label>
+                    <select class="form-select" id="adv-emp" name="employee_id" required>
+                        <option value="">Choose…</option>
+                        {% for e in employees %}<option value="{{ e.id }}" {{ 'selected' if request.args.get('employee')|int == e.id }}>{{ e.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label" for="adv-amount">Amount ({{ CURRENCY }})</label>
+                    <input class="form-control num" id="adv-amount" name="amount" inputmode="decimal" required autocomplete="off">
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label" for="adv-date">Date</label>
+                    <input class="form-control" type="date" id="adv-date" name="advance_date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label" for="adv-method">Paid by</label>
+                    <select class="form-select" id="adv-method" name="method">
+                        {% for value, label in methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="adv-note">Note</label>
+                    <input class="form-control" id="adv-note" name="note" maxlength="255" placeholder="Optional" autocomplete="off">
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3"><button class="btn btn-primary">Record advance</button></div>
+        </form>
+        {% else %}
+        <div class="panel-body text-muted"><a href="{{ url_for('employee_blueprint.employee') }}">Add your employees</a> first.</div>
+        {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="adv-owed">
+        <div class="panel-head"><h2 id="adv-owed">Not yet taken back</h2></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Employee</th><th class="num">Owed back</th></tr></thead>
+            <tbody>
+            {% for emp_id, amount in outstanding|dictsort(by='value', reverse=true) %}
+            <tr><td><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=emp_id) }}">{{ names.get(emp_id, '?') }}</a></td><td class="num">{{ rs(amount) }}</td></tr>
+            {% else %}
+            <tr><td colspan="2" class="text-muted">No open advances.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+
+<div class="toolbar">
+    <nav class="filter-tabs" aria-label="Show">
+        <a href="{{ url_for('staff_blueprint.advances') }}" class="{{ 'active' if show != 'all' }}">Open</a>
+        <a href="{{ url_for('staff_blueprint.advances', show='all') }}" class="{{ 'active' if show == 'all' }}">All, including taken back</a>
+    </nav>
+</div>
+<div class="panel">
+    {% if items %}
+    <div class="table-responsive">
+    <table class="table table-list table-hover mb-0">
+        <thead><tr><th>Date</th><th>Employee</th><th class="num">Amount</th><th>Note</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for a in items %}
+        <tr>
+            <td class="nowrap">{{ a.advance_date.strftime('%d %b %Y') }}</td>
+            <td><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=a.employee_id) }}">{{ names.get(a.employee_id, '?') }}</a></td>
+            <td class="num">{{ rs(a.amount) }}</td>
+            <td>{{ a.note or '' }}</td>
+            <td>{% if a.is_recovered %}<a href="{{ url_for('staff_blueprint.view_payslip', slip_id=a.payslip_id) }}">Taken back, {{ a.payslip.run.month.strftime('%b %Y') }}</a>{% else %}<span class="status" data-status="waiting">Open</span>{% endif %}</td>
+            <td class="cell-actions">{% if not a.is_recovered %}{{ post_button(url_for('staff_blueprint.delete_advance', advance_id=a.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete advance', confirm='Delete this advance and its payment?') }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty"><i class="bi bi-cash-stack" aria-hidden="true"></i><h3>{{ 'No open advances' if show != 'all' else 'No advances yet' }}</h3><p>Advances you record appear here until a payroll takes them back.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

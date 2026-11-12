@@ -1,29 +1,40 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, field, modal, pager, search_box, post_button, rs %}
+{% from 'layout/macros.html' import csrf, field, select, modal, pager, search_box, post_button, rs %}
 {% block body %}
 {% set here = request.full_path %}
 <div class="page-head">
-    <div><h1>Employees</h1><p>The people who do the work. Each service invoice is assigned to one.</p></div>
+    <div><h1>Employees</h1><p>The people who do the work, and how each is paid.</p></div>
     <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#empNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add employee</button></div>
 </div>
-<div class="toolbar">{{ search_box('Search employees', query) }}</div>
+<div class="toolbar">
+    {{ search_box('Search employees', query, hidden={'show': show if show == 'all' else ''}) }}
+    <nav class="filter-tabs" aria-label="Show">
+        <a href="{{ url_for('employee_blueprint.employee', query=query or none) }}" class="{{ 'active' if show != 'all' }}">Working here</a>
+        <a href="{{ url_for('employee_blueprint.employee', show='all', query=query or none) }}" class="{{ 'active' if show == 'all' }}">Everyone</a>
+    </nav>
+</div>
 <div class="panel">
     {% if employees.items %}
     <div class="table-responsive">
     <table class="table table-list table-hover">
-        <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th>Joined</th><th class="num">Wage</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th>Paid</th><th class="num">Salary / day rate</th><th>EPF</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
         {% for e in employees.items %}
         <tr>
-            <td><div class="cell-main">{{ e.name }}</div>{% if e.address %}<div class="cell-sub">{{ e.address }}</div>{% endif %}</td>
+            <td>
+                <div class="cell-main"><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}">{{ e.name }}</a>{% if not e.active %} <span class="badge text-bg-secondary">Left</span>{% endif %}</div>
+                {% if e.joined_date %}<div class="cell-sub">Joined {{ e.joined_date.strftime('%d %b %Y') }}</div>{% endif %}
+            </td>
             <td>{{ e.designation or '-' }}</td>
             <td class="nowrap">{{ e.contact|phone or '-' }}</td>
-            <td class="nowrap">{{ e.joined_date.strftime('%d %b %Y') if e.joined_date else '-' }}</td>
+            <td>{{ pay_labels.get(e.pay_type, e.pay_type) }}</td>
             <td class="num">{{ e.wage|money if e.wage is not none else '-' }}</td>
+            <td>{{ (e.epf_number or 'Yes') if e.epf_enabled else 'No' }}</td>
             <td class="cell-actions">
+                <a class="btn btn-quiet btn-sm btn-icon" href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}" title="Open {{ e.name }}" aria-label="Open {{ e.name }}"><i class="bi bi-person-lines-fill" aria-hidden="true"></i></a>
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ e.name }}" aria-label="Edit {{ e.name }}" data-edit-modal="#empModal"
                     data-action="{{ url_for('employee_blueprint.update_employee', employee_id=e.id) }}"
-                    data-values='{{ {"name": e.name, "contact": e.contact|phone, "address": e.address, "designation": e.designation, "joined_date": e.joined_date.isoformat() if e.joined_date else "", "wage": e.wage|money if e.wage is not none else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                    data-values='{{ {"name": e.name, "contact": e.contact|phone, "address": e.address, "designation": e.designation, "joined_date": e.joined_date.isoformat() if e.joined_date else "", "wage": e.wage|money if e.wage is not none else "", "pay_type": e.pay_type, "epf_enabled": e.epf_enabled, "epf_number": e.epf_number or "", "active": e.active}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
                 {{ post_button(url_for('employee_blueprint.delete_employee', employee_id=e.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ e.name, confirm='Delete ' ~ e.name ~ '?', next=here) }}
             </td>
         </tr>
@@ -31,18 +42,33 @@
         </tbody>
     </table>
     </div>
-    {{ pager(employees, 'employee_blueprint.employee', 'employees', query=query or none) }}
+    {{ pager(employees, 'employee_blueprint.employee', 'employees', query=query or none, show=show if show == 'all' else none) }}
     {% else %}
     <div class="empty"><i class="bi bi-person-badge" aria-hidden="true"></i><h3>{{ 'No employee matches "' ~ query ~ '"' if query else 'No employees yet' }}</h3><p>{{ 'Check the spelling.' if query else 'Add the people who work at the station.' }}</p></div>
     {% endif %}
 </div>
+<p class="form-hint mt-2">Someone who has left: untick "Working here" instead of deleting them, so their attendance and payslips stay on record.</p>
 {% macro emp_fields(p) %}
     {{ field('name', 'Name', prefix=p, required=true, attrs={'data-autofocus': '', 'maxlength': 100}) }}
     <div class="row g-3">
         <div class="col-sm-6">{{ field('designation', 'Designation', prefix=p, placeholder='Washer, mechanic', wrap='', attrs={'maxlength': 40}) }}</div>
         <div class="col-sm-6">{{ field('contact', 'Phone', prefix=p, kind='phone', wrap='') }}</div>
         <div class="col-sm-6">{{ field('joined_date', 'Joined date', prefix=p, kind='date', wrap='') }}</div>
-        <div class="col-sm-6">{{ field('wage', 'Wage (' ~ CURRENCY ~ ')', prefix=p, kind='money', wrap='') }}</div>
+        <div class="col-sm-6">{{ select('pay_type', 'Paid', pay_types, prefix=p, wrap='') }}</div>
+        <div class="col-sm-6">{{ field('wage', 'Monthly salary or day rate (' ~ CURRENCY ~ ')', prefix=p, kind='money', wrap='') }}</div>
+        <div class="col-sm-6">{{ field('epf_number', 'EPF number', prefix=p, wrap='', attrs={'maxlength': 20}) }}</div>
+        <div class="col-sm-6">
+            <div class="form-check form-switch mt-sm-4">
+                <input class="form-check-input" type="checkbox" role="switch" id="{{ p }}-epf_enabled" name="epf_enabled" value="y" checked>
+                <label class="form-check-label" for="{{ p }}-epf_enabled">Pay EPF and ETF</label>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-check form-switch mt-sm-4">
+                <input class="form-check-input" type="checkbox" role="switch" id="{{ p }}-active" name="active" value="y" checked>
+                <label class="form-check-label" for="{{ p }}-active">Working here</label>
+            </div>
+        </div>
     </div>
     {{ field('address', 'Address', prefix=p, wrap='mt-3', attrs={'maxlength': 255}) }}
 {% endmacro %}

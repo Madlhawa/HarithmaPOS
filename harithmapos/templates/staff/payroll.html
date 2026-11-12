@@ -1,0 +1,160 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf, post_button, rs %}
+
+{% macro days(n) -%}{{ (n|round(1))|string|replace('.0', '') }}{%- endmacro %}
+
+{% block body %}
+<div class="page-head">
+    <div>
+        <h1>Payroll</h1>
+        <p>{{ month.strftime('%B %Y') }} · {% if run %}finalised{% else %}draft, nothing is saved until you finalise{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-quiet" href="{{ url_for('staff_blueprint.attendance_month', month=month.strftime('%Y-%m')) }}"><i class="bi bi-calendar3 me-1" aria-hidden="true"></i>Attendance for {{ month.strftime('%B') }}</a>
+    </div>
+</div>
+<div class="toolbar">
+    <a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.payroll_page', month=prev_month.strftime('%Y-%m')) }}"><i class="bi bi-chevron-left" aria-hidden="true"></i> {{ prev_month.strftime('%b %Y') }}</a>
+    {% if next_month <= today %}<a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.payroll_page', month=next_month.strftime('%Y-%m')) }}">{{ next_month.strftime('%b %Y') }} <i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% endif %}
+</div>
+
+{% if run %}
+{# ---------------- Finalised ------------------------------------------------ #}
+{% set t_net = slips|sum(attribute='net_pay') %}
+{% set t_paid = slips|selectattr('payment_id')|sum(attribute='net_pay') %}
+<section class="kpi-grid payroll-totals" aria-label="Totals">
+    <div class="kpi"><div class="kpi-label">Net pay to hand over</div><div class="kpi-value">{{ rs(t_net) }}</div><div class="kpi-sub">{{ rs(t_net - t_paid) }} still to pay</div></div>
+    <div class="kpi"><div class="kpi-label">Gross pay</div><div class="kpi-value">{{ rs(slips|sum(attribute='gross_pay')) }}</div></div>
+    <div class="kpi"><div class="kpi-label">EPF to send (8% + 12%)</div><div class="kpi-value">{{ rs((slips|sum(attribute='epf_employee')) + (slips|sum(attribute='epf_employer'))) }}</div></div>
+    <div class="kpi"><div class="kpi-label">ETF to send (3%)</div><div class="kpi-value">{{ rs(slips|sum(attribute='etf_employer')) }}</div></div>
+    <div class="kpi"><div class="kpi-label">Advances taken back</div><div class="kpi-value">{{ rs(slips|sum(attribute='advances')) }}</div></div>
+</section>
+<div class="panel mb-3">
+    <div class="table-responsive">
+    <table class="table table-list mb-0">
+        <thead><tr><th>Employee</th><th class="num">Worked</th><th class="num">Gross</th><th class="num">EPF 8%</th><th class="num">Advances</th><th class="num">Other</th><th class="num">Net pay</th><th>Paid</th><th><span class="visually-hidden">Payslip</span></th></tr></thead>
+        <tbody>
+        {% for p in slips %}
+        <tr>
+            <td><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=p.employee_id) }}">{{ p.employee.name }}</a><div class="cell-sub">{{ pay_labels.get(p.pay_type) }}</div></td>
+            <td class="num">{{ days(p.days_present) }}{% if p.nopay_days %}<div class="cell-sub text-danger">{{ days(p.nopay_days) }} no-pay</div>{% endif %}</td>
+            <td class="num">{{ p.gross_pay|money }}</td>
+            <td class="num">{{ p.epf_employee|money }}</td>
+            <td class="num">{{ p.advances|money }}</td>
+            <td class="num">{{ p.other_deductions|money }}</td>
+            <td class="num"><strong>{{ rs(p.net_pay) }}</strong></td>
+            <td>
+                {% if p.is_paid %}
+                <span class="status" data-status="done">Paid {{ p.payment.created_dttm|local_dt('%d %b') }}</span>
+                {% else %}
+                <form method="post" action="{{ url_for('staff_blueprint.pay_payslip', slip_id=p.id) }}" class="d-flex gap-1">
+                    {{ csrf() }}
+                    <label class="visually-hidden" for="pm-{{ p.id }}">Paid by</label>
+                    <select class="form-select form-select-sm" id="pm-{{ p.id }}" name="method">{% for value, label in methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+                    <button class="btn btn-primary btn-sm text-nowrap" data-confirm="Record {{ CURRENCY }} {{ p.net_pay|money }} paid to {{ p.employee.name }}?">Pay</button>
+                </form>
+                {% endif %}
+            </td>
+            <td class="cell-actions"><a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.view_payslip', slip_id=p.id) }}" target="_blank" rel="noopener"><i class="bi bi-printer me-1" aria-hidden="true"></i>Payslip</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% if not (slips|selectattr('payment_id')|list) %}
+<form method="post" action="{{ url_for('staff_blueprint.reopen_payroll', run_id=run.id) }}" class="d-flex justify-content-end">
+    {{ csrf() }}
+    <button class="btn btn-quiet btn-sm" data-confirm="Reopen {{ month.strftime('%B %Y') }}? The payslips are removed and you can change them and finalise again.">Reopen as draft</button>
+</form>
+{% else %}
+<p class="form-hint text-end">To change a finalised payroll, delete its wage payments on the Payments page, then reopen it here.</p>
+{% endif %}
+
+{% else %}
+{# ---------------- Draft ------------------------------------------------------ #}
+{% set unmarked = lines|selectattr('summary.unmarked')|list %}
+{% if month > today.replace(day=1) %}
+<div class="alert alert-info">This month hasn't started yet.</div>
+{% elif not lines %}
+<div class="panel"><div class="empty"><i class="bi bi-wallet2" aria-hidden="true"></i><h3>Nobody to pay</h3><p>Set a salary or day rate on the <a href="{{ url_for('employee_blueprint.employee') }}">Employees</a> page.</p></div></div>
+{% else %}
+{% if unmarked %}
+<div class="alert alert-warning">
+    <strong>{{ unmarked|length }} employee{{ '' if unmarked|length == 1 else 's' }} ha{{ 's' if unmarked|length == 1 else 've' }} days not marked in the register.</strong>
+    Unmarked days are not paid to daily staff and not deducted from monthly staff.
+    <a href="{{ url_for('staff_blueprint.attendance_month', month=month.strftime('%Y-%m')) }}">Mark them first</a> if they should count.
+</div>
+{% endif %}
+{% if month == today.replace(day=1) %}
+<div class="alert alert-info">{{ month.strftime('%B') }} isn't over yet: these figures only count days up to today.</div>
+{% endif %}
+<form method="post" action="{{ url_for('staff_blueprint.finalise_payroll') }}">
+    {{ csrf() }}
+    <input type="hidden" name="month" value="{{ month.strftime('%Y-%m') }}">
+    {% for l in lines %}
+    {% set e, s, f = l.employee, l.summary, l.figures %}
+    <section class="panel payslip-draft mb-3" aria-labelledby="ps-{{ e.id }}">
+        <div class="panel-head">
+            <h2 id="ps-{{ e.id }}"><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}">{{ e.name }}</a></h2>
+            <span class="text-muted small">{{ pay_labels.get(e.pay_type) }} {{ rs(e.wage or 0) }}{{ ' a day' if e.pay_type == 'daily' else ' a month' }}{{ ' · no EPF' if not e.epf_enabled }}</span>
+        </div>
+        <div class="panel-body payslip-grid">
+            <dl class="mini-stats">
+                <div><dt>Worked</dt><dd>{{ days(s.present) }} day{{ '' if s.present == 1 else 's' }}</dd></div>
+                <div><dt>Paid leave</dt><dd>{{ days(s.paid_leave) }}</dd></div>
+                <div><dt>No-pay</dt><dd class="{{ 'text-danger' if s.nopay }}">{{ days(s.nopay) }}</dd></div>
+                <div><dt>Not marked</dt><dd class="{{ 'text-danger' if s.unmarked }}">{{ s.unmarked }}</dd></div>
+                <div><dt>Late</dt><dd>{{ s.late_count }}{% if s.late_count %} <small>({{ fmt(s.late_minutes) }})</small>{% endif %}</dd></div>
+                <div><dt>Short leaves</dt><dd>{{ s.short_leave_count }}{% if s.short_leave_count %} <small>({{ fmt(s.short_leave_minutes) }})</small>{% endif %}</dd></div>
+                <div><dt>Overtime</dt><dd>{{ fmt(s.overtime_minutes) }}</dd></div>
+            </dl>
+            <div class="payslip-inputs">
+                <div>
+                    <label class="form-label" for="al-{{ e.id }}">Allowances ({{ CURRENCY }})</label>
+                    <input class="form-control form-control-sm num" id="al-{{ e.id }}" name="allow_{{ e.id }}" value="{{ f.allowances|money if f.allowances else '' }}" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                </div>
+                <div>
+                    <label class="form-label" for="dd-{{ e.id }}">Other deductions ({{ CURRENCY }})</label>
+                    <input class="form-control form-control-sm num" id="dd-{{ e.id }}" name="deduct_{{ e.id }}" value="{{ f.other_deductions|money if f.other_deductions else '' }}" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                </div>
+                <div class="payslip-note">
+                    <label class="form-label" for="nt-{{ e.id }}">Note on payslip</label>
+                    <input class="form-control form-control-sm" id="nt-{{ e.id }}" name="note_{{ e.id }}" value="{{ l.note or '' }}" maxlength="255" autocomplete="off">
+                </div>
+                {% if l.advances %}
+                <fieldset class="payslip-advances">
+                    <legend class="form-label">Take back advances</legend>
+                    {% for a in l.advances %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="adv-{{ a.id }}" name="adv_{{ e.id }}" value="{{ a.id }}" {{ 'checked' if a in l.advances_taken }}>
+                        <label class="form-check-label" for="adv-{{ a.id }}">{{ rs(a.amount) }} on {{ a.advance_date.strftime('%d %b') }}</label>
+                    </div>
+                    {% endfor %}
+                </fieldset>
+                {% endif %}
+            </div>
+            <table class="payslip-sum">
+                <tr><td>{{ 'Salary' if e.pay_type != 'daily' else days(s.present) ~ ' days × ' ~ (e.wage or 0)|money(0) }}</td><td class="num">{{ f.basic_pay|money }}</td></tr>
+                {% if f.nopay_deduction %}<tr><td>No-pay ({{ days(s.nopay) }} day{{ '' if s.nopay == 1 else 's' }})</td><td class="num text-danger">−{{ f.nopay_deduction|money }}</td></tr>{% endif %}
+                {% if f.overtime_pay %}<tr><td>Overtime ({{ fmt(s.overtime_minutes) }})</td><td class="num">{{ f.overtime_pay|money }}</td></tr>{% endif %}
+                {% if f.allowances %}<tr><td>Allowances</td><td class="num">{{ f.allowances|money }}</td></tr>{% endif %}
+                <tr class="sub"><td>Gross</td><td class="num">{{ f.gross_pay|money }}</td></tr>
+                {% if f.epf_employee %}<tr><td>EPF 8%</td><td class="num">−{{ f.epf_employee|money }}</td></tr>{% endif %}
+                {% if f.advances %}<tr><td>Advances</td><td class="num">−{{ f.advances|money }}</td></tr>{% endif %}
+                {% if f.other_deductions %}<tr><td>Other deductions</td><td class="num">−{{ f.other_deductions|money }}</td></tr>{% endif %}
+                <tr class="total {{ 'text-danger' if f.net_pay < 0 }}"><td>Net pay</td><td class="num">{{ rs(f.net_pay) }}</td></tr>
+                {% if f.epf_employer or f.etf_employer %}<tr class="employer"><td>Employer EPF 12% + ETF 3%</td><td class="num">{{ (f.epf_employer + f.etf_employer)|money }}</td></tr>{% endif %}
+            </table>
+        </div>
+    </section>
+    {% endfor %}
+    <div class="payroll-actions">
+        <span class="form-hint m-0">Change allowances, deductions or advances, then recalculate. Finalising freezes the payslips; you then record each payment when you hand it over.</span>
+        <button class="btn btn-quiet" name="action" value="preview">Recalculate</button>
+        <button class="btn btn-primary" name="action" value="finalise" data-confirm="Finalise {{ month.strftime('%B %Y') }} payroll for {{ lines|length }} employee{{ '' if lines|length == 1 else 's' }}?">Finalise payroll</button>
+    </div>
+</form>
+{% endif %}
+{% endif %}
+{% endblock %}

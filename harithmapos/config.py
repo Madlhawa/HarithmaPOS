@@ -95,6 +95,7 @@ PAYMENT_TYPE_FORM_LIST = [
     ('general', 'General'),
     ('wage', 'Employee Wage'),
     ('withdraw', 'Owner Withdrawal'),
+    ('advance', 'Salary Advance'),
 ]
 
 UI_THEME_FORM_LIST = [
@@ -139,4 +140,37 @@ ROLE_STAFF = 'staff'
 ROLE_FORM_LIST = [
     (ROLE_STAFF, 'Counter staff'),
     (ROLE_OWNER, 'Owner'),
+]
+
+
+# Staff pay and attendance.
+PAY_MONTHLY = 'monthly'
+PAY_DAILY = 'daily'
+PAY_TYPE_FORM_LIST = [
+    (PAY_MONTHLY, 'Monthly salary'),
+    (PAY_DAILY, 'Daily wage'),
+]
+
+ATT_PRESENT = 'present'
+ATT_HALF = 'half'
+ATT_LEAVE = 'leave'
+ATT_ABSENT = 'absent'
+ATT_OFF = 'off'
+ATTENDANCE_STATUSES = [
+    (ATT_PRESENT, 'Present'),
+    (ATT_HALF, 'Half day'),
+    (ATT_LEAVE, 'Leave'),
+    (ATT_ABSENT, 'Absent'),
+    (ATT_OFF, 'Day off'),
+]
+
+LEAVE_ANNUAL = 'annual'
+LEAVE_CASUAL = 'casual'
+LEAVE_SICK = 'sick'
+LEAVE_NOPAY = 'nopay'
+LEAVE_TYPES = [
+    (LEAVE_ANNUAL, 'Annual'),
+    (LEAVE_CASUAL, 'Casual'),
+    (LEAVE_SICK, 'Sick'),
+    (LEAVE_NOPAY, 'No-pay'),
 ]

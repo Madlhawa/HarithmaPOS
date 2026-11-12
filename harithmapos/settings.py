@@ -24,6 +24,7 @@ from harithmapos import db, config
 logger = logging.getLogger(__name__)
 
 TEXT, INT, BOOL, SECRET, CHOICE, LONGTEXT = 'text', 'int', 'bool', 'secret', 'choice', 'longtext'
+TIME = 'time'  # a time of day, stored as HH:MM
 
 # Words that can be used in the SMS texts, with an example for the preview.
 SMS_PLACEHOLDERS = {
@@ -54,6 +55,7 @@ GROUPS = [
     ('email', 'Email', 'Used to send password reset links.'),
     ('sms', 'SMS (notify.lk)', 'Texts customers when a service starts and finishes.'),
     ('printer', 'Receipt printer (RabbitMQ)', 'Completed invoices are sent to this queue for the print agent at the counter.'),
+    ('staff', 'Staff and payroll', 'Working hours, leave allowances and how pay is worked out.'),
     ('general', 'General', ''),
 ]
 
@@ -97,6 +99,27 @@ DEFINITIONS = [
     Definition('rabbitmq_username', 'Username', 'printer', default=config.RABBIT_MQ_USERNAME or ''),
     Definition('rabbitmq_password', 'Password', 'printer', SECRET, default=config.RABBIT_MQ_PASSWORD or ''),
     Definition('print_queue', 'Queue name', 'printer', default=config.PRINT_QUEUE, max_length=100),
+
+    # Staff and payroll
+    Definition('work_start', 'Work starts', 'staff', TIME, default='07:30', max_length=5,
+               hint='Arriving after this (plus the grace period) counts as late.'),
+    Definition('work_end', 'Work ends', 'staff', TIME, default='17:30', max_length=5,
+               hint='Leaving before this counts as leaving early; staying on can count as overtime.'),
+    Definition('late_grace_minutes', 'Grace period (minutes)', 'staff', INT, default=10, min_value=0, max_value=120,
+               hint='Arrivals within this many minutes are not counted as late.'),
+    Definition('overtime_min_minutes', 'Overtime starts after (minutes)', 'staff', INT, default=30, min_value=0, max_value=240,
+               hint='Staying on for less than this after work ends is not overtime.'),
+    Definition('annual_leave_days', 'Annual leave (days a year)', 'staff', INT, default=14, min_value=0, max_value=60),
+    Definition('casual_leave_days', 'Casual leave (days a year)', 'staff', INT, default=7, min_value=0, max_value=60),
+    Definition('salary_day_divisor', 'Monthly salary per day: divide by', 'staff', INT, default=30, min_value=20, max_value=31,
+               hint='A no-pay day takes salary / this number off a monthly salary.'),
+    Definition('overtime_hour_divisor', 'Monthly salary per hour: divide by', 'staff', INT, default=240, min_value=100, max_value=400,
+               hint='Overtime hourly rate for monthly staff = salary / this number. Daily staff: day rate / the normal working hours.'),
+    Definition('overtime_rate_pct', 'Overtime pay rate (%)', 'staff', INT, default=150, min_value=100, max_value=300,
+               hint='150 means time and a half.'),
+    Definition('epf_employee_pct', 'EPF from the employee (%)', 'staff', INT, default=8, min_value=0, max_value=20),
+    Definition('epf_employer_pct', 'EPF from the employer (%)', 'staff', INT, default=12, min_value=0, max_value=30),
+    Definition('etf_employer_pct', 'ETF from the employer (%)', 'staff', INT, default=3, min_value=0, max_value=10),
 
     # General
     Definition('low_stock_threshold', 'Running low at', 'general', INT, default=config.LOW_STOCK_THRESHOLD,

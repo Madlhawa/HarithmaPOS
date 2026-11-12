@@ -76,6 +76,16 @@ def _read_form(group):
                 errors[d.key] = f'Enter a number from {d.min_value} to {d.max_value}.'
                 continue
             values[d.key] = number
+        elif d.kind == app_settings.TIME:
+            text = raw.strip()
+            try:
+                hours, minutes = (int(x) for x in text.split(':')[:2])
+                if not (0 <= hours < 24 and 0 <= minutes < 60):
+                    raise ValueError
+            except ValueError:
+                errors[d.key] = 'Enter a time such as 07:30.'
+                continue
+            values[d.key] = f'{hours:02d}:{minutes:02d}'
         elif d.kind == app_settings.CHOICE:
             if raw not in dict(d.choices):
                 errors[d.key] = 'Choose one of the options.'

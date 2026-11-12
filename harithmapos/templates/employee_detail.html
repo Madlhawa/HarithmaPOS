@@ -1,0 +1,108 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf, rs %}
+{% macro days(n) -%}{{ (n|round(1))|string|replace('.0', '') }}{%- endmacro %}
+{% block body %}
+<div class="page-head">
+    <div>
+        <h1>{{ e.name }}{% if not e.active %} <span class="badge text-bg-secondary align-middle">Left</span>{% endif %}</h1>
+        <p>{{ e.designation or 'Employee' }}{% if e.joined_date %} · joined {{ e.joined_date.strftime('%d %b %Y') }}{% endif %}{% if e.contact %} · {{ e.contact|phone }}{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-quiet" href="{{ url_for('staff_blueprint.attendance') }}"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Register</a>
+        <a class="btn btn-quiet" href="{{ url_for('employee_blueprint.employee', query=e.name, show='all') }}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit details</a>
+    </div>
+</div>
+
+<section class="kpi-grid emp-kpis" aria-label="Summary">
+    <div class="kpi"><div class="kpi-label">Paid</div><div class="kpi-value">{{ rs(e.wage or 0) }}</div><div class="kpi-sub">{{ pay_labels.get(e.pay_type) }}{{ ' · EPF ' ~ (e.epf_number or 'on') if e.epf_enabled else ' · no EPF' }}</div></div>
+    <div class="kpi"><div class="kpi-label">This month so far</div><div class="kpi-value">{{ days(summary.present) }} day{{ '' if summary.present == 1 else 's' }}</div><div class="kpi-sub">{{ days(summary.paid_leave) }} paid leave · {{ days(summary.nopay) }} no-pay{% if summary.unmarked %} · <span class="text-danger">{{ summary.unmarked }} not marked</span>{% endif %}</div></div>
+    <div class="kpi"><div class="kpi-label">Late this month</div><div class="kpi-value">{{ summary.late_count }}</div><div class="kpi-sub">{{ fmt(summary.late_minutes) }} in total · {{ summary.short_leave_count }} short leave{{ '' if summary.short_leave_count == 1 else 's' }}</div></div>
+    <div class="kpi"><div class="kpi-label">Overtime this month</div><div class="kpi-value">{{ fmt(summary.overtime_minutes) }}</div></div>
+    <div class="kpi"><div class="kpi-label">Advances to take back</div><div class="kpi-value {{ 'text-danger' if open_total }}">{{ rs(open_total) }}</div><div class="kpi-sub"><a href="{{ url_for('staff_blueprint.advances', employee=e.id) }}">Give an advance</a></div></div>
+</section>
+
+<div class="report-row">
+    <section class="panel" aria-labelledby="lv-title">
+        <div class="panel-head"><h2 id="lv-title">Leave in {{ today.year }}</h2></div>
+        <div class="panel-body">
+            <ul class="leave-list">
+            {% for label, allowed, used in balances %}
+                <li>
+                    <span class="leave-name">{{ label }}</span>
+                    {% if allowed is not none %}
+                    {% set pct = ((used / allowed * 100) if allowed else 100)|float %}
+                    <span class="leave-meter" role="img" aria-label="{{ days(used) }} of {{ allowed }} days used"><span class="{{ 'is-over' if used > allowed }}" style="width: {{ [pct, 100]|min }}%"></span></span>
+                    <span class="leave-figure">{{ days(used) }} of {{ allowed }} used · <strong>{{ days(allowed - used) }} left</strong></span>
+                    {% else %}
+                    <span></span><span class="leave-figure">{{ days(used) }} day{{ '' if used == 1 else 's' }} taken</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+            <p class="form-hint mb-0">Allowances are set in Settings, Staff and payroll. Half days count as 0.5.</p>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="rec-title">
+        <div class="panel-head"><h2 id="rec-title">Last 14 register entries</h2><a class="small" href="{{ url_for('staff_blueprint.attendance_month') }}">Month view</a></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Day</th><th>Status</th><th>Times</th><th>Notes</th></tr></thead>
+            <tbody>
+            {% for r in recent %}
+            <tr>
+                <td class="nowrap"><a href="{{ url_for('staff_blueprint.attendance', date=r.work_date.isoformat()) }}">{{ r.work_date.strftime('%a %d %b') }}</a></td>
+                <td>{{ status_labels.get(r.status) }}{% if r.leave_type %} <span class="cell-sub d-inline">({{ leave_labels.get(r.leave_type) }})</span>{% endif %}</td>
+                <td class="nowrap">{% if r.time_in %}{{ r.time_in.strftime('%H:%M') }}–{{ r.time_out.strftime('%H:%M') if r.time_out else '…' }}{% else %}–{% endif %}</td>
+                <td>
+                    {% if r.late_minutes %}<span class="flag flag-warn">Late {{ fmt(r.late_minutes) }}</span>{% endif %}
+                    {% if r.early_minutes %}<span class="flag flag-warn">Left {{ fmt(r.early_minutes) }} early</span>{% endif %}
+                    {% if r.overtime_minutes %}<span class="flag flag-good">OT {{ fmt(r.overtime_minutes) }}</span>{% endif %}
+                    {{ r.note or '' }}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">Nothing in the register yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+
+<div class="report-row">
+    <section class="panel" aria-labelledby="adv-title">
+        <div class="panel-head"><h2 id="adv-title">Salary advances</h2></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Date</th><th class="num">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+            {% for a in advances %}
+            <tr><td>{{ a.advance_date.strftime('%d %b %Y') }}{% if a.note %}<div class="cell-sub">{{ a.note }}</div>{% endif %}</td><td class="num">{{ rs(a.amount) }}</td>
+                <td>{% if a.is_recovered %}<a href="{{ url_for('staff_blueprint.view_payslip', slip_id=a.payslip_id) }}">Taken back, {{ a.payslip.run.month.strftime('%b %Y') }}</a>{% else %}<span class="status" data-status="waiting">Open</span>{% endif %}</td></tr>
+            {% else %}
+            <tr><td colspan="3" class="text-muted">No advances.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="slip-title">
+        <div class="panel-head"><h2 id="slip-title">Payslips</h2></div>
+        <div class="table-responsive">
+        <table class="table table-list mb-0">
+            <thead><tr><th>Month</th><th class="num">Gross</th><th class="num">Net</th><th>Paid</th></tr></thead>
+            <tbody>
+            {% for p in slips %}
+            <tr><td><a href="{{ url_for('staff_blueprint.view_payslip', slip_id=p.id) }}" target="_blank" rel="noopener">{{ p.run.month.strftime('%B %Y') }}</a></td><td class="num">{{ p.gross_pay|money }}</td><td class="num">{{ rs(p.net_pay) }}</td>
+                <td>{% if p.is_paid %}<span class="status" data-status="done">Paid</span>{% else %}<a href="{{ url_for('staff_blueprint.payroll_page', month=p.run.month.strftime('%Y-%m')) }}">Not paid yet</a>{% endif %}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">No payslips yet. They appear here once a month's <a href="{{ url_for('staff_blueprint.payroll_page') }}">payroll</a> is finalised.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf, post_button %}
+{% block body %}
+{% set start = rules.work_start.strftime('%H:%M') %}
+{% set end = rules.work_end.strftime('%H:%M') %}
+<div class="page-head">
+    <div>
+        <h1>Attendance register</h1>
+        <p>{{ day.strftime('%A, %d %B %Y') }}{% if day == today %} · today{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-quiet" href="{{ url_for('staff_blueprint.attendance_month', month=day.strftime('%Y-%m')) }}"><i class="bi bi-calendar3 me-1" aria-hidden="true"></i>Month view</a>
+    </div>
+</div>
+
+<div class="toolbar day-nav">
+    <a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.attendance', date=prev_day.isoformat()) }}"><i class="bi bi-chevron-left" aria-hidden="true"></i> {{ prev_day.strftime('%a %d') }}</a>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <label class="visually-hidden" for="reg-date">Day</label>
+        <input class="form-control form-control-sm" type="date" id="reg-date" name="date" value="{{ day.isoformat() }}" max="{{ today.isoformat() }}" data-autosubmit>
+    </form>
+    {% if day < today %}
+    <a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.attendance', date=next_day.isoformat()) }}">{{ next_day.strftime('%a %d') }} <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+    <a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.attendance') }}">Today</a>
+    {% endif %}
+    <span class="form-hint m-0 ms-auto">Work {{ start }}–{{ end }} · late after {{ rules.grace }} min · overtime from {{ rules.overtime_min }} min past {{ end }} · <a href="{{ url_for('settings_blueprint.settings', _anchor='staff') }}">change</a></span>
+</div>
+
+{% if not employees %}
+<div class="panel"><div class="empty"><i class="bi bi-person-badge" aria-hidden="true"></i><h3>No employees yet</h3><p><a href="{{ url_for('employee_blueprint.employee') }}">Add your employees</a> first.</p></div></div>
+{% else %}
+<form method="post" action="{{ url_for('staff_blueprint.save_attendance') }}" class="panel mb-4" id="register" data-work-start="{{ start }}" data-work-end="{{ end }}">
+    {{ csrf() }}
+    <input type="hidden" name="date" value="{{ day.isoformat() }}">
+    <div class="panel-head">
+        <h2>{{ employees|length }} employee{{ '' if employees|length == 1 else 's' }}</h2>
+        {% if day <= today %}
+        <button type="button" class="btn btn-quiet btn-sm" data-fill-present>Mark the rest present, {{ start }}–{{ end }}</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="table table-list register">
+        <thead><tr><th>Employee</th><th>Status</th><th>Leave type</th><th>In</th><th>Out</th><th>Worked out as</th><th>Note</th></tr></thead>
+        <tbody>
+        {% for e in employees %}
+        {% set r = rows.get(e.id) %}
+        {% set st = r.status if r else '' %}
+        <tr data-row class="{{ 'is-unmarked' if not r }}">
+            <td><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}">{{ e.name }}</a>{% if e.designation %}<div class="cell-sub">{{ e.designation }}</div>{% endif %}</td>
+            <td>
+                <label class="visually-hidden" for="st-{{ e.id }}">Status for {{ e.name }}</label>
+                <select class="form-select form-select-sm" id="st-{{ e.id }}" name="status_{{ e.id }}" data-status>
+                    <option value="" {{ 'selected' if not st }}>Not marked</option>
+                    {% for value, label in statuses %}<option value="{{ value }}" {{ 'selected' if st == value }}>{{ label }}</option>{% endfor %}
+                </select>
+            </td>
+            <td>
+                <label class="visually-hidden" for="lv-{{ e.id }}">Leave type for {{ e.name }}</label>
+                <select class="form-select form-select-sm" id="lv-{{ e.id }}" name="leave_{{ e.id }}" data-leave>
+                    <option value="">–</option>
+                    {% for value, label in leave_types %}<option value="{{ value }}" {{ 'selected' if r and r.leave_type == value }}>{{ label }}</option>{% endfor %}
+                </select>
+            </td>
+            <td><label class="visually-hidden" for="in-{{ e.id }}">In</label><input class="form-control form-control-sm" type="time" id="in-{{ e.id }}" name="in_{{ e.id }}" value="{{ r.time_in.strftime('%H:%M') if r and r.time_in else '' }}" data-in></td>
+            <td><label class="visually-hidden" for="out-{{ e.id }}">Out</label><input class="form-control form-control-sm" type="time" id="out-{{ e.id }}" name="out_{{ e.id }}" value="{{ r.time_out.strftime('%H:%M') if r and r.time_out else '' }}" data-out></td>
+            <td class="register-flags">
+                {% if r %}
+                {% if r.late_minutes %}<span class="flag flag-warn">Late {{ fmt(r.late_minutes) }}</span>{% endif %}
+                {% if r.early_minutes %}<span class="flag flag-warn">Left {{ fmt(r.early_minutes) }} early</span>{% endif %}
+                {% if r.overtime_minutes %}<span class="flag flag-good">Overtime {{ fmt(r.overtime_minutes) }}</span>{% endif %}
+                {% if st == 'present' and not (r.late_minutes or r.early_minutes or r.overtime_minutes) %}<span class="text-muted small">On time</span>{% endif %}
+                {% if st in ('present', 'half') and not r.time_out %}<span class="text-muted small">No leaving time yet</span>{% endif %}
+                {% else %}<span class="text-muted small">–</span>{% endif %}
+            </td>
+            <td><label class="visually-hidden" for="nt-{{ e.id }}">Note</label><input class="form-control form-control-sm" id="nt-{{ e.id }}" name="note_{{ e.id }}" value="{{ r.note if r and r.note else '' }}" maxlength="255" autocomplete="off"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <div class="panel-body border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <span class="form-hint m-0">Leave the leaving time empty until they go home, then come back and fill it in. "Not marked" removes a saved row.</span>
+        <button class="btn btn-primary">Save register</button>
+    </div>
+</form>
+
+<section class="panel" id="short-leaves" aria-labelledby="sl-title">
+    <div class="panel-head"><h2 id="sl-title">Short leaves on {{ day.strftime('%d %b') }}</h2><span class="text-muted small">Time away during the day. Recorded only, pay is not changed.</span></div>
+    {% if short_leaves %}
+    <div class="table-responsive">
+    <table class="table table-list mb-0">
+        <thead><tr><th>Employee</th><th>From</th><th>To</th><th class="num">Time away</th><th>Reason</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for sl in short_leaves %}
+        <tr>
+            <td>{{ sl.employee.name }}</td><td>{{ sl.time_from.strftime('%H:%M') }}</td><td>{{ sl.time_to.strftime('%H:%M') }}</td>
+            <td class="num">{{ fmt(sl.minutes) }}</td><td>{{ sl.reason or '' }}</td>
+            <td class="cell-actions">{{ post_button(url_for('staff_blueprint.delete_short_leave', leave_id=sl.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove', confirm='Remove this short leave?') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('staff_blueprint.add_short_leave') }}" class="panel-body {{ 'border-top' if short_leaves }} short-leave-form">
+        {{ csrf() }}
+        <input type="hidden" name="date" value="{{ day.isoformat() }}">
+        <div>
+            <label class="form-label" for="sl-emp">Employee</label>
+            <select class="form-select" id="sl-emp" name="employee_id" required>
+                {% for e in employees %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div><label class="form-label" for="sl-from">Left at</label><input class="form-control" type="time" id="sl-from" name="time_from" required></div>
+        <div><label class="form-label" for="sl-to">Back at</label><input class="form-control" type="time" id="sl-to" name="time_to" required></div>
+        <div class="flex-grow-1"><label class="form-label" for="sl-reason">Reason</label><input class="form-control" id="sl-reason" name="reason" maxlength="255" placeholder="Bank, hospital, family" autocomplete="off"></div>
+        <div class="align-self-end"><button class="btn btn-quiet">Add short leave</button></div>
+    </form>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/staff.js', v=ASSET_VERSION) }}"></script>
+{% endblock %}

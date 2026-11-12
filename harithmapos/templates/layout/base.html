@@ -52,11 +52,16 @@
             {{ nav_link('purchase_order_blueprint.purchase_order_head', 'truck', 'Purchase orders', ep.startswith('purchase_order_blueprint.')) }}
             {{ nav_link('supplier_blueprint.supplier', 'building', 'Suppliers', ep.startswith('supplier_blueprint.')) }}
 
+            <div class="side-group">Staff</div>
+            {{ nav_link('staff_blueprint.attendance', 'calendar-check', 'Attendance', ep in ('staff_blueprint.attendance', 'staff_blueprint.attendance_month')) }}
+            {{ nav_link('staff_blueprint.payroll_page', 'wallet2', 'Payroll', ep in ('staff_blueprint.payroll_page', 'staff_blueprint.view_payslip')) }}
+            {{ nav_link('staff_blueprint.advances', 'cash-stack', 'Salary advances', ep == 'staff_blueprint.advances') }}
+            {{ nav_link('employee_blueprint.employee', 'person-badge', 'Employees', ep.startswith('employee_blueprint.')) }}
+
             <div class="side-group">Reports</div>
             {{ nav_link('reports_blueprint.sales', 'graph-up', 'Sales', ep.startswith('reports_blueprint.')) }}
 
             <div class="side-group">Setup</div>
-            {{ nav_link('employee_blueprint.employee', 'person-badge', 'Employees', ep.startswith('employee_blueprint.')) }}
             {{ nav_link('washbay_blueprint.washbay', 'droplet', 'Wash bays', ep.startswith('washbay_blueprint.')) }}
             {{ nav_link('user_blueprint.users', 'person-lock', 'Users', ep in ('user_blueprint.users', 'user_blueprint.register', 'user_blueprint.update_user')) }}
             {{ nav_link('settings_blueprint.settings', 'gear', 'Settings', ep.startswith('settings_blueprint.')) }}

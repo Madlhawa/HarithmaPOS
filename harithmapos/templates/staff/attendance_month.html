@@ -1,0 +1,66 @@
+{% extends 'layout/base.html' %}
+{% block body %}
+{% set codes = {'present': ('P', 'Present'), 'half': ('½', 'Half day'), 'leave': ('L', 'Leave'), 'absent': ('A', 'Absent'), 'off': ('–', 'Day off')} %}
+<div class="page-head">
+    <div><h1>Attendance</h1><p>{{ month.strftime('%B %Y') }}</p></div>
+    <div class="page-actions">
+        <a class="btn btn-primary" href="{{ url_for('staff_blueprint.attendance') }}"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Today's register</a>
+    </div>
+</div>
+<div class="toolbar">
+    <a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.attendance_month', month=prev_month.strftime('%Y-%m')) }}"><i class="bi bi-chevron-left" aria-hidden="true"></i> {{ prev_month.strftime('%b') }}</a>
+    {% if next_month <= today %}<a class="btn btn-quiet btn-sm" href="{{ url_for('staff_blueprint.attendance_month', month=next_month.strftime('%Y-%m')) }}">{{ next_month.strftime('%b') }} <i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% endif %}
+    <span class="att-legend ms-auto">
+        {% for key, (code, label) in codes.items() %}<span><i class="att-cell att-{{ key }}">{{ code }}</i>{{ label }}</span>{% endfor %}
+        <span><i class="att-cell att-unmarked"></i>Not marked</span>
+        <span><i class="att-dot" aria-hidden="true"></i>Late or short leave</span>
+    </span>
+</div>
+
+<div class="panel mb-4">
+    {% if employees %}
+    <div class="table-responsive">
+    <table class="att-grid">
+        <thead>
+            <tr>
+                <th scope="col" class="att-name">Employee</th>
+                {% for d in dates %}<th scope="col" class="{{ 'is-weekend' if d.weekday() == 6 }}"><a href="{{ url_for('staff_blueprint.attendance', date=d.isoformat()) }}" {% if d > today %}tabindex="-1"{% endif %}><span>{{ 'MTWTFSS'[d.weekday()] }}</span>{{ d.day }}</a></th>{% endfor %}
+                <th scope="col" class="num">Worked</th><th scope="col" class="num">Paid leave</th><th scope="col" class="num">No-pay</th>
+                <th scope="col" class="num">Late</th><th scope="col" class="num">Short leaves</th><th scope="col" class="num">Overtime</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in employees %}
+        {% set s = summaries[e.id] %}
+        <tr>
+            <th scope="row" class="att-name"><a href="{{ url_for('employee_blueprint.employee_detail', employee_id=e.id) }}">{{ e.name }}</a>{% if s.unmarked %}<div class="cell-sub text-danger">{{ s.unmarked }} not marked</div>{% endif %}</th>
+            {% for d in dates %}
+            {% set r = s.by_date.get(d) %}
+            {% if d > today %}
+            <td><span class="att-cell att-future"></span></td>
+            {% elif r %}
+            {% set code, label = codes[r.status] %}
+            {% set flagged = r.late_minutes or r.early_minutes %}
+            <td><a class="att-cell att-{{ r.status }}" href="{{ url_for('staff_blueprint.attendance', date=d.isoformat()) }}"
+                   title="{{ d.strftime('%a %d %b') }}: {{ label }}{% if r.leave_type %} ({{ r.leave_type }}){% endif %}{% if r.time_in %}, {{ r.time_in.strftime('%H:%M') }}{% endif %}{% if r.time_out %}–{{ r.time_out.strftime('%H:%M') }}{% endif %}{% if r.late_minutes %}, late {{ fmt(r.late_minutes) }}{% endif %}{% if r.early_minutes %}, left {{ fmt(r.early_minutes) }} early{% endif %}{% if r.overtime_minutes %}, overtime {{ fmt(r.overtime_minutes) }}{% endif %}">{{ code }}{% if flagged %}<i class="att-dot" aria-hidden="true"></i>{% endif %}</a></td>
+            {% else %}
+            <td><a class="att-cell att-unmarked" href="{{ url_for('staff_blueprint.attendance', date=d.isoformat()) }}" title="{{ d.strftime('%a %d %b') }}: not marked"><span class="visually-hidden">Not marked</span></a></td>
+            {% endif %}
+            {% endfor %}
+            <td class="num">{{ s.present|round(1)|string|replace('.0', '') }}</td>
+            <td class="num">{{ s.paid_leave|round(1)|string|replace('.0', '') }}</td>
+            <td class="num {{ 'text-danger' if s.nopay }}">{{ s.nopay|round(1)|string|replace('.0', '') }}</td>
+            <td class="num">{% if s.late_count %}{{ s.late_count }}<div class="cell-sub">{{ fmt(s.late_minutes) }}</div>{% else %}0{% endif %}</td>
+            <td class="num">{% if s.short_leave_count %}{{ s.short_leave_count }}<div class="cell-sub">{{ fmt(s.short_leave_minutes) }}</div>{% else %}0{% endif %}</td>
+            <td class="num">{{ fmt(s.overtime_minutes) if s.overtime_minutes else '0' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty"><i class="bi bi-person-badge" aria-hidden="true"></i><h3>No employees yet</h3><p><a href="{{ url_for('employee_blueprint.employee') }}">Add your employees</a> first.</p></div>
+    {% endif %}
+</div>
+<p class="form-hint">Click a day to open its register. Late arrivals, leaving early and short leaves are recorded for your information; they do not change pay.</p>
+{% endblock %}

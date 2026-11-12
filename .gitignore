@@ -17,6 +17,7 @@ instance/
 # Flask config files
 *.cfg
 *.ini
+!migrations/alembic.ini
 
 # SQLite database files
 *.db

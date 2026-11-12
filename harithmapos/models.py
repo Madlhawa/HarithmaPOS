@@ -212,7 +212,11 @@ class Employee(db.Model):
     address = db.Column(db.String(255))
     designation = db.Column(db.String(40))
     joined_date = db.Column(db.Date())
-    wage = db.Column(db.Numeric(10,2))
+    wage = db.Column(db.Numeric(10,2))  # monthly salary, or the day rate for daily-paid staff
+    pay_type = db.Column(db.String(10), nullable=False, default=config.PAY_MONTHLY)
+    epf_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    epf_number = db.Column(db.String(20))
+    active = db.Column(db.Boolean, nullable=False, default=True)
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoices = db.relationship('InvoiceHead', backref='employee', lazy=True)
@@ -335,3 +339,114 @@ class Setting(db.Model):
     value = db.Column(db.Text)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+
+# ---------------------------------------------------------------------------
+# Attendance, leave, advances and payroll
+# ---------------------------------------------------------------------------
+
+class AttendanceDay(db.Model):
+    """One employee's day in the register. A day with no row is "not marked"."""
+    __tablename__ = 'attendance_day'
+    __table_args__ = (db.UniqueConstraint('employee_id', 'work_date', name='uq_attendance_employee_date'),)
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False, index=True)
+    work_date = db.Column(db.Date, nullable=False, index=True)
+    status = db.Column(db.String(10), nullable=False)        # config.ATTENDANCE_STATUSES
+    leave_type = db.Column(db.String(10))                    # config.LEAVE_TYPES, for leave and half days
+    time_in = db.Column(db.Time)
+    time_out = db.Column(db.Time)
+    late_minutes = db.Column(db.Integer, nullable=False, default=0)
+    early_minutes = db.Column(db.Integer, nullable=False, default=0)
+    overtime_minutes = db.Column(db.Integer, nullable=False, default=0)
+    note = db.Column(db.String(255))
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    employee = db.relationship('Employee', backref=db.backref('attendance_days', lazy='dynamic'))
+
+
+class ShortLeave(db.Model):
+    """Time away during a working day (left for an hour and came back)."""
+    __tablename__ = 'short_leave'
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False, index=True)
+    work_date = db.Column(db.Date, nullable=False, index=True)
+    time_from = db.Column(db.Time, nullable=False)
+    time_to = db.Column(db.Time, nullable=False)
+    minutes = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.String(255))
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    employee = db.relationship('Employee', backref=db.backref('short_leaves', lazy='dynamic'))
+
+
+class PayrollRun(db.Model):
+    """One month's payroll. Draft until finalised; finalised payslips are frozen."""
+    __tablename__ = 'payroll_run'
+    id = db.Column(db.Integer, primary_key=True)
+    month = db.Column(db.Date, nullable=False, unique=True)  # the first day of the month
+    status = db.Column(db.String(10), nullable=False, default='final')
+    finalised_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    payslips = db.relationship('Payslip', backref='run', lazy=True, cascade='all, delete-orphan')
+
+
+class Payslip(db.Model):
+    __tablename__ = 'payslip'
+    __table_args__ = (db.UniqueConstraint('payroll_run_id', 'employee_id', name='uq_payslip_run_employee'),)
+    id = db.Column(db.Integer, primary_key=True)
+    payroll_run_id = db.Column(db.Integer, db.ForeignKey('payroll_run.id'), nullable=False, index=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False, index=True)
+    pay_type = db.Column(db.String(10), nullable=False)
+    rate = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    days_in_month = db.Column(db.Integer, nullable=False, default=0)
+    days_present = db.Column(db.Numeric(5, 1), nullable=False, default=0)
+    paid_leave_days = db.Column(db.Numeric(5, 1), nullable=False, default=0)
+    nopay_days = db.Column(db.Numeric(5, 1), nullable=False, default=0)
+    unmarked_days = db.Column(db.Integer, nullable=False, default=0)
+    late_count = db.Column(db.Integer, nullable=False, default=0)
+    late_minutes = db.Column(db.Integer, nullable=False, default=0)
+    short_leave_count = db.Column(db.Integer, nullable=False, default=0)
+    short_leave_minutes = db.Column(db.Integer, nullable=False, default=0)
+    overtime_minutes = db.Column(db.Integer, nullable=False, default=0)
+    basic_pay = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    nopay_deduction = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    overtime_pay = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    allowances = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    gross_pay = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    epf_employee = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    advances = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    other_deductions = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    net_pay = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    epf_employer = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    etf_employer = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    note = db.Column(db.String(255))
+    payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'))
+    employee = db.relationship('Employee', backref=db.backref('payslips', lazy='dynamic'))
+    payment = db.relationship('Payment', foreign_keys=[payment_id])
+
+    @property
+    def is_paid(self):
+        return self.payment_id is not None
+
+
+class SalaryAdvance(db.Model):
+    """Money paid to an employee ahead of payday, taken back on a payslip."""
+    __tablename__ = 'salary_advance'
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False, index=True)
+    advance_date = db.Column(db.Date, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    note = db.Column(db.String(255))
+    payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'))
+    payslip_id = db.Column(db.Integer, db.ForeignKey('payslip.id'))  # set when it is taken back
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    employee = db.relationship('Employee', backref=db.backref('advances', lazy='dynamic'))
+    payment = db.relationship('Payment', foreign_keys=[payment_id])
+    payslip = db.relationship('Payslip', backref='advance_items', foreign_keys=[payslip_id])
+
+    @property
+    def is_recovered(self):
+        return self.payslip_id is not None

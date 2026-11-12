@@ -133,11 +133,24 @@ def update_payment(payment_id):
 @owner_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
+    from harithmapos.models import Payslip, SalaryAdvance
+    advance = SalaryAdvance.query.filter_by(payment_id=payment.id).first()
+    if advance is not None and advance.is_recovered:
+        flash("This is a salary advance that a payslip has already taken back. Reopen that month's payroll first.",
+              category='danger')
+        return utils.redirect_back('payment_blueprint.payment')
     try:
         apply_payment(payment, sign=-1)
+        note = ''
+        for slip in Payslip.query.filter_by(payment_id=payment.id).all():
+            slip.payment_id = None
+            note = ' The payslip is now unpaid again.'
+        if advance is not None:
+            db.session.delete(advance)
+            note = ' The salary advance was removed too.'
         db.session.delete(payment)
         db.session.commit()
-        flash("Payment deleted.", category='success')
+        flash("Payment deleted." + note, category='success')
     except Exception:
         db.session.rollback()
         logger.exception("Could not delete payment %s", payment_id)

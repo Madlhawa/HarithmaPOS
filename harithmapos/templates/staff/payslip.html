@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payslip {{ slip.employee.name }} {{ slip.run.month.strftime('%B %Y') }}</title>
+<style>
+    /* A5 portrait; prints on A4 too. */
+    @page { size: A5; margin: 10mm; }
+    body { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; color: #111; margin: 0; background: #eef1f6; }
+    .sheet { background: #fff; width: 128mm; margin: 12px auto; padding: 10mm; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; border-bottom: 2px solid #111; padding-bottom: 3mm; }
+    h1 { font-size: 15px; margin: 0 0 1mm; }
+    .muted { color: #555; }
+    .title { text-align: right; }
+    .title strong { display: block; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+    .who { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 6mm; margin: 4mm 0; }
+    .who div span { display: block; color: #555; font-size: 10.5px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 10.5px; color: #555; font-weight: 600; border-bottom: 1px solid #bbb; padding: 1.5mm 0; }
+    td { padding: 1.2mm 0; vertical-align: top; }
+    .n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .att td { border-bottom: 1px dotted #ddd; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 4mm; }
+    .sub td { border-top: 1px solid #bbb; font-weight: 600; }
+    .net { margin-top: 4mm; display: flex; justify-content: space-between; align-items: baseline; border: 2px solid #111; padding: 2.5mm 3mm; }
+    .net strong { font-size: 17px; }
+    .employer { margin-top: 3mm; font-size: 10.5px; color: #555; }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 12mm; font-size: 10.5px; color: #555; }
+    .sign div { border-top: 1px solid #999; padding-top: 1mm; }
+    .bar { text-align: center; margin: 12px 0; }
+    @media print { body { background: #fff; } .sheet { box-shadow: none; margin: 0; width: auto; padding: 0; } .bar { display: none; } }
+</style>
+</head>
+<body>
+{% set e = slip.employee %}
+{% macro days(n) -%}{{ (n|round(1))|string|replace('.0', '') }}{%- endmacro %}
+<div class="bar"><button onclick="window.print()">Print</button> <button onclick="window.close()">Close</button></div>
+<div class="sheet">
+    <header>
+        <div>
+            <h1>{{ BUSINESS.name }}</h1>
+            <div class="muted">{{ BUSINESS.address }}{% if BUSINESS.phone %} · {{ BUSINESS.phone }}{% endif %}</div>
+        </div>
+        <div class="title"><strong>Payslip</strong>{{ slip.run.month.strftime('%B %Y') }}</div>
+    </header>
+
+    <div class="who">
+        <div><span>Employee</span>{{ e.name }}</div>
+        <div><span>Designation</span>{{ e.designation or '–' }}</div>
+        <div><span>Paid</span>{{ pay_labels.get(slip.pay_type) }}, {{ CURRENCY }} {{ slip.rate|money }}{{ ' a day' if slip.pay_type == 'daily' else ' a month' }}</div>
+        <div><span>EPF number</span>{{ e.epf_number or ('–' if not slip.epf_employee else 'not recorded') }}</div>
+    </div>
+
+    <table class="att">
+        <tr><th colspan="4">Attendance</th></tr>
+        <tr><td>Days worked</td><td class="n">{{ days(slip.days_present) }}</td><td style="padding-left:6mm">Late arrivals</td><td class="n">{{ slip.late_count }}{% if slip.late_count %} ({{ fmt(slip.late_minutes) }}){% endif %}</td></tr>
+        <tr><td>Paid leave</td><td class="n">{{ days(slip.paid_leave_days) }}</td><td style="padding-left:6mm">Short leaves</td><td class="n">{{ slip.short_leave_count }}{% if slip.short_leave_count %} ({{ fmt(slip.short_leave_minutes) }}){% endif %}</td></tr>
+        <tr><td>No-pay days</td><td class="n">{{ days(slip.nopay_days) }}</td><td style="padding-left:6mm">Overtime</td><td class="n">{{ fmt(slip.overtime_minutes) }}</td></tr>
+    </table>
+
+    <div class="cols">
+        <table>
+            <tr><th>Earnings</th><th class="n">{{ CURRENCY }}</th></tr>
+            <tr><td>{{ 'Basic salary' if slip.pay_type != 'daily' else 'Wages (' ~ days(slip.days_present) ~ ' days)' }}</td><td class="n">{{ slip.basic_pay|money }}</td></tr>
+            {% if slip.nopay_deduction %}<tr><td>Less no-pay</td><td class="n">−{{ slip.nopay_deduction|money }}</td></tr>{% endif %}
+            {% if slip.overtime_pay %}<tr><td>Overtime</td><td class="n">{{ slip.overtime_pay|money }}</td></tr>{% endif %}
+            {% if slip.allowances %}<tr><td>Allowances</td><td class="n">{{ slip.allowances|money }}</td></tr>{% endif %}
+            <tr class="sub"><td>Gross pay</td><td class="n">{{ slip.gross_pay|money }}</td></tr>
+        </table>
+        <table>
+            <tr><th>Deductions</th><th class="n">{{ CURRENCY }}</th></tr>
+            <tr><td>EPF (employee)</td><td class="n">{{ slip.epf_employee|money }}</td></tr>
+            <tr><td>Salary advances</td><td class="n">{{ slip.advances|money }}</td></tr>
+            {% if slip.other_deductions %}<tr><td>Other</td><td class="n">{{ slip.other_deductions|money }}</td></tr>{% endif %}
+            <tr class="sub"><td>Total deductions</td><td class="n">{{ (slip.epf_employee + slip.advances + slip.other_deductions)|money }}</td></tr>
+        </table>
+    </div>
+    {% if advance_items %}<div class="employer">Advances taken back: {% for a in advance_items %}{{ CURRENCY }} {{ a.amount|money }} on {{ a.advance_date.strftime('%d %b') }}{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+
+    <div class="net"><span>Net pay</span><strong>{{ CURRENCY }} {{ slip.net_pay|money }}</strong></div>
+    {% if slip.epf_employer or slip.etf_employer %}
+    <div class="employer">Paid by the employer on top: EPF 12% {{ CURRENCY }} {{ slip.epf_employer|money }} · ETF 3% {{ CURRENCY }} {{ slip.etf_employer|money }}</div>
+    {% endif %}
+    {% if slip.note %}<div class="employer">Note: {{ slip.note }}</div>{% endif %}
+    {% if slip.is_paid %}<div class="employer">Paid on {{ slip.payment.created_dttm|local_dt('%d %b %Y') }} by {{ slip.payment.payment_method|upper }}.</div>{% endif %}
+
+    <div class="sign"><div>Employer</div><div>Received by employee</div></div>
+</div>
+</body>
+</html>

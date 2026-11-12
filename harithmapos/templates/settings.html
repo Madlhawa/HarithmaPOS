@@ -39,7 +39,7 @@
                     <div class="form-hint">You can use {% for p in d.placeholders %}<code>{{ '{' ~ p ~ '}' }}</code>{{ ', ' if not loop.last }}{% endfor %}.</div>
                 </div>
                 {% else %}
-                <div class="{{ 'col-sm-4' if d.kind == 'int' else 'col-sm-6' if d.kind in ('choice', 'secret') or d.group in ('email', 'printer', 'sms') else 'col-12' }}">
+                <div class="{{ 'col-sm-4' if d.kind in ('int', 'time') else 'col-sm-6' if d.kind in ('choice', 'secret') or d.group in ('email', 'printer', 'sms') else 'col-12' }}">
                     <label class="form-label" for="{{ fid }}">{{ d.label }}</label>
                     {% if d.kind == 'choice' %}
                     <select class="form-select {{ 'is-invalid' if err }}" id="{{ fid }}" name="{{ d.key }}">
@@ -61,6 +61,8 @@
                         <label class="form-check-label" for="{{ fid }}-clear">Remove it</label>
                     </div>
                     {% endif %}
+                    {% elif d.kind == 'time' %}
+                    <input class="form-control {{ 'is-invalid' if err }}" type="time" id="{{ fid }}" name="{{ d.key }}" value="{{ values[d.key] }}" required>
                     {% else %}
                     <input class="form-control {{ 'is-invalid' if err }} {{ 'num' if d.kind == 'int' }}" id="{{ fid }}" name="{{ d.key }}" value="{{ values[d.key] if values[d.key] is not none }}"
                         {% if d.kind == 'int' %}inputmode="numeric"{% else %}maxlength="{{ d.max_length }}"{% endif %} autocomplete="off">
