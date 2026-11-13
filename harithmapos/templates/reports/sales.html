@@ -218,7 +218,7 @@
                 <th scope="row">{{ day }}</th>
                 {% for v in row %}
                 {% set step = 0 if v == 0 else ((v / vmax * 6)|round(0, 'ceil')|int) %}
-                <td class="h{{ step }}" tabindex="0" data-tip="{{ day }} {{ busy.hours[loop.index0] }}|{{ v }} arrival{{ '' if v == 1 else 's' }}{{ ' a week on average' if p.days >= 14 else '' }}"><span class="visually-hidden">{{ v }}</span></td>
+                <td class="heat-{{ step }}" tabindex="0" data-tip="{{ day }} {{ busy.hours[loop.index0] }}|{{ v }} arrival{{ '' if v == 1 else 's' }}{{ ' a week on average' if p.days >= 14 else '' }}"><span class="visually-hidden">{{ v }}</span></td>
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -226,7 +226,7 @@
         </table>
         </div>
         <div class="heat-scale" aria-hidden="true">
-            <span>Fewer</span>{% for s in range(1, 7) %}<i class="h{{ s }}"></i>{% endfor %}<span>More</span>
+            <span>Fewer</span>{% for s in range(1, 7) %}<i class="heat-{{ s }}"></i>{% endfor %}<span>More</span>
             <span class="ms-3 text-muted">Darkest square: {{ vmax }} arrival{{ '' if vmax == 1 else 's' }}{{ ' a week on average' if p.days >= 14 else '' }}</span>
         </div>
         {% else %}

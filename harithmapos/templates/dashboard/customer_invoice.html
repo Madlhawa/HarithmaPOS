@@ -20,7 +20,8 @@
     </div>
     <div class="panel mb-3">
         <div class="panel-body">
-            <h1 class="h4 mb-1">Hi {{ inv.customer.name }},</h1>
+            <p class="greet-eyebrow">{{ 'Ready to collect' if inv.is_done else 'Service in progress' }}</p>
+            <h1 class="greet">Hi <span>{{ inv.customer.name }}</span>,</h1>
             <p class="text-muted mb-3">{% if inv.is_done %}Your vehicle is ready to collect.{% else %}Here is where your vehicle is right now. This page updates every minute.{% endif %}</p>
             <ol class="track">
                 {% for s in SERVICE_STATUSES %}
@@ -35,12 +36,27 @@
         <table class="table table-list">
             <tbody>
             {% for d in invoice_details %}
-            <tr><td>{{ d.item.name }}{% if d.quantity != 1 %} <span class="text-muted">x {{ d.quantity|qty }}</span>{% endif %}</td><td class="num">{{ d.gross_price|money }}</td></tr>
+            <tr>
+                <td>{{ d.item.name }}{% if d.quantity != 1 %} <span class="text-muted">x {{ d.quantity|qty }}</span>{% endif %}
+                    {% if (d.discount_amount or 0) > 0 %}<div class="line-discount">Discount -{{ d.discount_amount|money }}</div>{% endif %}</td>
+                <td class="num">{{ d.total_price|money }}</td>
+            </tr>
             {% endfor %}
             </tbody>
         </table>
         <div class="panel-body border-top">
-            <dl class="totals"><div class="is-total"><dt>Total</dt><dd>{{ rs(inv.gross_price) }}</dd></div></dl>
+            <dl class="totals">
+                {% if (inv.total_discount or 0) > 0 %}
+                <div><dt>Subtotal</dt><dd>{{ inv.total_price|money }}</dd></div>
+                {% if (inv.discount_amount or 0) > 0 and inv.discount_amount != inv.total_discount %}
+                <div class="is-saving"><dt>Item discounts</dt><dd>-{{ (inv.total_discount - inv.discount_amount)|money }}</dd></div>
+                <div class="is-saving"><dt>Bill discount</dt><dd>-{{ inv.discount_amount|money }}</dd></div>
+                {% else %}
+                <div class="is-saving"><dt>Discount</dt><dd>-{{ inv.total_discount|money }}</dd></div>
+                {% endif %}
+                {% endif %}
+                <div class="is-total"><dt>Total</dt><dd>{{ rs(inv.gross_price) }}</dd></div>
+            </dl>
         </div>
         {% else %}
         <div class="panel-body text-muted">Nothing added yet.</div>

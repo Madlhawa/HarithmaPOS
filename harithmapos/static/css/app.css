@@ -776,6 +776,11 @@ button.plate { cursor: pointer; }
 
 .public { max-width: 520px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 .public-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.greet-eyebrow { margin: 0 0 0.15rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--h-accent); }
+.greet { font-size: 1.45rem; font-weight: 600; line-height: 1.2; margin: 0 0 0.35rem; overflow-wrap: anywhere; }
+.greet span { color: var(--h-accent); }
+.line-discount { font-size: 0.8rem; color: var(--h-green); }
+.totals .is-saving dt, .totals .is-saving dd { color: var(--h-green); }
 .track { list-style: none; margin: 0; padding: 0; }
 .track li { display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.75rem; padding-bottom: 1.1rem; position: relative; color: var(--h-muted); }
 .track li::before { content: ""; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid var(--h-line-strong); background: var(--h-surface); margin-top: 0.15rem; z-index: 1; }
@@ -960,13 +965,13 @@ button.plate { cursor: pointer; }
 .heat tbody th { text-align: left; padding: 0 0.5rem 0 0; width: 2.5rem; }
 .heat td { height: 26px; border-radius: 4px; outline: none; position: relative; }
 .heat td:hover, .heat td:focus-visible { box-shadow: 0 0 0 2px var(--h-ink) inset; }
-.h0 { background: var(--heat-0); }
-.h1 { background: var(--heat-1); }
-.h2 { background: var(--heat-2); }
-.h3 { background: var(--heat-3); }
-.h4 { background: var(--heat-4); }
-.h5 { background: var(--heat-5); }
-.h6 { background: var(--heat-6); }
+.heat-0 { background: var(--heat-0); }
+.heat-1 { background: var(--heat-1); }
+.heat-2 { background: var(--heat-2); }
+.heat-3 { background: var(--heat-3); }
+.heat-4 { background: var(--heat-4); }
+.heat-5 { background: var(--heat-5); }
+.heat-6 { background: var(--heat-6); }
 .heat-scale { display: flex; align-items: center; gap: 2px; margin-top: 0.6rem; font-size: 0.75rem; color: var(--h-muted); flex-wrap: wrap; }
 .heat-scale i { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
 .heat-scale > span:first-child { margin-right: 0.35rem; }
