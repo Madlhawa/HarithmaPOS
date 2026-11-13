@@ -20,6 +20,7 @@
             <i class="bi bi-person-plus me-1" aria-hidden="true"></i>New customer and vehicle
         </button>
         {{ post_button(url_for('invoice_blueprint.create_quick_item_invoice'), 'Item sale', icon='bag', cls='btn btn-quiet') }}
+        <a class="btn btn-quiet" href="{{ url_for('floor_blueprint.board') }}"><i class="bi bi-phone me-1" aria-hidden="true"></i>Floor board</a>
         <button type="button" class="btn btn-quiet" data-bs-toggle="modal" data-bs-target="#paymentModal">
             <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>Record payment
         </button>

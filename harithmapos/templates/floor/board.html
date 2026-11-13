@@ -1,0 +1,219 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import csrf, plate, flashes %}
+
+{# Left open on the supervisor's phone all day: reload quietly while no sheet is open. #}
+{% block body_attrs %}data-auto-refresh="45" class="floor-page"{% endblock %}
+
+{% macro move_button(invoice, to, label, cls='btn btn-primary') -%}
+<form method="post" action="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}" class="fl-go">
+    {{ csrf() }}<input type="hidden" name="status" value="{{ to }}">
+    <button type="submit" class="{{ cls }}">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{% macro next_action(invoice) -%}
+{% set s = invoice.service_status or 0 %}
+{% if s == 0 %}{{ move_button(invoice, 1, 'Bring into ' ~ invoice.washbay.name) }}
+{% elif s == 1 %}{{ move_button(invoice, 2, 'Start washing') }}
+{% elif s == 2 %}{{ move_button(invoice, 3, 'Start polishing') }}
+{% elif s == 3 %}{{ move_button(invoice, 4, 'Ready to collect', 'btn btn-finish') }}{% endif %}
+{%- endmacro %}
+
+{% macro card(invoice, show_bay=true) -%}
+{% set meta = status_meta(invoice.service_status) %}
+<article class="fl-card" data-status="{{ meta.key }}">
+    <button type="button" class="fl-card-main" data-fl-edit
+            data-url="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}"
+            data-invoice="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}"
+            data-plate="{{ invoice.vehicle.number }}" data-owner="{{ invoice.customer.name }}"
+            data-status="{{ invoice.service_status or 0 }}" data-bay="{{ invoice.washbay_id }}" data-emp="{{ invoice.employee_id }}"
+            aria-label="Change {{ invoice.vehicle.number }}">
+        <span class="fl-card-top">
+            {{ plate(invoice.vehicle.number) }}
+            <time class="fl-time" data-since="{{ since[invoice.id]|iso_utc }}" data-long-after="{{ 20 if invoice.service_status == 0 else 45 }}" title="Time in this stage">{{ since[invoice.id]|elapsed }}</time>
+        </span>
+        <span class="fl-card-who">{{ invoice.customer.name }}{% if invoice.vehicle.make %} · {{ invoice.vehicle.make }} {{ invoice.vehicle.model or '' }}{% endif %}</span>
+        <span class="fl-card-meta">
+            <span class="status" data-status="{{ meta.key }}">{{ meta.label }}</span>
+            {% if show_bay %}<span><i class="bi bi-droplet" aria-hidden="true"></i>{{ invoice.washbay.name }}</span>{% endif %}
+            <span><i class="bi bi-person" aria-hidden="true"></i>{{ invoice.employee.name }}</span>
+            <i class="bi bi-three-dots fl-more" aria-hidden="true"></i>
+        </span>
+    </button>
+    {{ next_action(invoice) }}
+</article>
+{%- endmacro %}
+
+{% block shell %}
+<div class="fl">
+    <header class="fl-bar">
+        <a class="fl-back" href="{{ url_for('dashboard_blueprint.dashboard') }}" aria-label="Back to the dashboard"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+        <div class="fl-title">
+            <span>Floor</span>
+            <small>{{ in_station }} in the station · {{ free_bays|length }} of {{ bays|length }} bays free</small>
+        </div>
+        <a class="fl-refresh" href="{{ url_for('floor_blueprint.board') }}" aria-label="Refresh"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></a>
+    </header>
+
+    <nav class="fl-tabs" role="tablist" aria-label="Sections">
+        <button type="button" role="tab" data-fl-tab="bays">Bays <b>{{ bays|length - free_bays|length }}</b></button>
+        <button type="button" role="tab" data-fl-tab="queue">Queue <b class="{{ 'is-hot' if queue }}">{{ queue|length }}</b></button>
+        <button type="button" role="tab" data-fl-tab="polish">Polishing <b>{{ polishing|length }}</b></button>
+        <button type="button" role="tab" data-fl-tab="ready">Ready <b>{{ ready_count }}</b></button>
+    </nav>
+
+    {{ flashes() }}
+
+    <main class="fl-grid" id="main">
+        <section class="fl-col" data-fl-pane="bays" aria-label="Wash bays">
+            <h2 class="fl-h">Wash bays</h2>
+            {% for entry in bays %}
+            <div class="fl-bay {{ 'is-free' if not entry.jobs }}">
+                <div class="fl-bay-head">
+                    <span class="fl-bay-name">{{ entry.bay.name }}</span>
+                    <span class="fl-bay-state">{{ 'Free' if not entry.jobs else status_meta(entry.jobs[0].service_status).label }}</span>
+                </div>
+                {% for job in entry.jobs %}{{ card(job, show_bay=false) }}{% endfor %}
+                {% if not entry.jobs %}
+                    {% set nxt = entry.next[0] if entry.next else (queue[0] if queue else none) %}
+                    {% if nxt %}
+                    <form method="post" action="{{ url_for('floor_blueprint.move', invoice_id=nxt.id) }}" class="fl-go">
+                        {{ csrf() }}<input type="hidden" name="status" value="1"><input type="hidden" name="washbay_id" value="{{ entry.bay.id }}">
+                        <button type="submit" class="btn btn-primary">Bring in {{ nxt.vehicle.number }}</button>
+                    </form>
+                    {% else %}
+                    <button type="button" class="btn btn-quiet fl-wide" data-fl-add data-bay="{{ entry.bay.id }}" data-start="now">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Start a vehicle here</button>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="fl-empty">No wash bays yet. An owner can add them under Setup.</p>
+            {% endfor %}
+        </section>
+
+        <section class="fl-col" data-fl-pane="queue" aria-label="Queue">
+            <h2 class="fl-h">Queue</h2>
+            {% for invoice in queue %}{{ card(invoice) }}{% else %}<p class="fl-empty">No one is waiting.</p>{% endfor %}
+        </section>
+
+        <section class="fl-col" data-fl-pane="polish" aria-label="Polishing">
+            <h2 class="fl-h">Polishing</h2>
+            {% for invoice in polishing %}{{ card(invoice) }}{% else %}<p class="fl-empty">Nothing being polished.</p>{% endfor %}
+        </section>
+
+        <section class="fl-col" data-fl-pane="ready" aria-label="Ready to collect">
+            <h2 class="fl-h">Ready today</h2>
+            {% if unpaid_ready %}<p class="fl-note"><i class="bi bi-cash-coin" aria-hidden="true"></i> {{ unpaid_ready }} still to be billed or paid at the counter.</p>{% endif %}
+            {% for invoice in ready %}
+            <a class="fl-ready" href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}">
+                {{ plate(invoice.vehicle.number, size='sm') }}
+                <span class="fl-ready-who">{{ invoice.customer.name }}</span>
+                {% if invoice.balance > 0 %}<span class="fl-tag is-due">To pay</span>{% else %}<span class="fl-tag is-paid">Paid</span>{% endif %}
+            </a>
+            {% else %}<p class="fl-empty">Nothing finished yet today.</p>{% endfor %}
+            {% if ready_count > ready|length %}<p class="fl-empty">and {{ ready_count - ready|length }} more on the dashboard.</p>{% endif %}
+        </section>
+    </main>
+
+    <button type="button" class="fl-fab btn btn-primary" data-fl-add>
+        <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Add vehicle</span>
+    </button>
+</div>
+
+{# ---- Sheet: change a vehicle ---- #}
+<div class="modal fade fl-sheet" id="flEdit" tabindex="-1" aria-labelledby="flEdit-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content" method="post" id="flEditForm">
+            {{ csrf() }}
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title" id="flEdit-title"><span class="plate" data-fl-plate></span></h2>
+                    <div class="fl-sheet-sub" data-fl-owner></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <fieldset class="fl-field">
+                    <legend>Stage</legend>
+                    <div class="fl-chips fl-stages">
+                        {% for s in SERVICE_STATUSES %}
+                        <label class="fl-chip" data-status="{{ s.key }}"><input type="radio" name="status" value="{{ s.id }}"><span>{{ 'Ready' if s.id == SERVICE_STATUS_DONE else s.label }}</span></label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+                <fieldset class="fl-field">
+                    <legend>Wash bay</legend>
+                    <div class="fl-chips">
+                        {% for b in washbays %}<label class="fl-chip"><input type="radio" name="washbay_id" value="{{ b.id }}"><span>{{ b.name }}</span></label>{% endfor %}
+                    </div>
+                </fieldset>
+                <fieldset class="fl-field">
+                    <legend>Working on it</legend>
+                    <div class="fl-chips">
+                        {% for e in employees %}<label class="fl-chip"><input type="radio" name="employee_id" value="{{ e.id }}"><span>{{ e.name }}{% if busy.get(e.id) %} <small>{{ busy[e.id] }}</small>{% endif %}</span></label>{% endfor %}
+                    </div>
+                </fieldset>
+                <p class="fl-hint">"Ready" tells the counter the vehicle is finished. Billing and payment still happen on the invoice.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-quiet" data-fl-invoice href="#">Open invoice</a>
+                <button type="submit" class="btn btn-primary flex-grow-1">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ---- Sheet: add a vehicle ---- #}
+<div class="modal fade fl-sheet" id="flAdd" tabindex="-1" aria-labelledby="flAdd-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content" method="post" action="{{ url_for('floor_blueprint.add') }}" id="flAddForm" autocomplete="off">
+            {{ csrf() }}
+            <input type="hidden" name="vehicle_id" value="">
+            <div class="modal-header">
+                <h2 class="modal-title" id="flAdd-title">Add a vehicle</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fl-field">
+                    <label class="form-label" for="fl-number">Vehicle number</label>
+                    <input type="text" class="form-control plate-input fl-plate-input" id="fl-number" name="number" maxlength="8"
+                           placeholder="CAB-1234" autocapitalize="characters" spellcheck="false" required
+                           data-search="{{ url_for('search_blueprint.search_vehicles') }}">
+                    <ul class="fl-matches" data-fl-matches hidden></ul>
+                    <div class="fl-picked" data-fl-picked hidden></div>
+                </div>
+                <div class="fl-new" data-fl-new hidden>
+                    <p class="fl-hint"><i class="bi bi-stars" aria-hidden="true"></i> New vehicle. Add the owner and it is registered as well.</p>
+                    <div class="row g-2">
+                        <div class="col-7"><label class="form-label" for="fl-name">Owner's name</label><input type="text" class="form-control" id="fl-name" name="name" maxlength="100" autocapitalize="words"></div>
+                        <div class="col-5"><label class="form-label" for="fl-contact">Phone</label><input type="tel" class="form-control" id="fl-contact" name="contact" inputmode="tel" placeholder="077…"></div>
+                    </div>
+                </div>
+                <fieldset class="fl-field">
+                    <legend>Wash bay</legend>
+                    <div class="fl-chips">
+                        {% for b in washbays %}<label class="fl-chip"><input type="radio" name="washbay_id" value="{{ b.id }}" {% if loop.first and not free_bays or (free_bays and b.id == free_bays[0].id) %}checked{% endif %} required><span>{{ b.name }}{% if b in free_bays %} <small>free</small>{% endif %}</span></label>{% endfor %}
+                    </div>
+                </fieldset>
+                <fieldset class="fl-field">
+                    <legend>Who will work on it</legend>
+                    <div class="fl-chips">
+                        {% for e in employees %}<label class="fl-chip"><input type="radio" name="employee_id" value="{{ e.id }}" required><span>{{ e.name }}{% if busy.get(e.id) %} <small>{{ busy[e.id] }} on</small>{% endif %}</span></label>{% endfor %}
+                    </div>
+                </fieldset>
+                <div class="fl-field">
+                    <label class="form-label" for="fl-km">Mileage now (km) <span class="text-muted">optional</span></label>
+                    <input type="text" class="form-control" id="fl-km" name="current_milage" inputmode="numeric" pattern="[0-9,]*">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" name="start" value="queue" class="btn btn-quiet flex-grow-1">Add to queue</button>
+                <button type="submit" name="start" value="now" class="btn btn-primary flex-grow-1">Start now</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/floor.js', v=ASSET_VERSION) }}"></script>{% endblock %}

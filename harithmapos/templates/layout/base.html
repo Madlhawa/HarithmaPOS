@@ -39,6 +39,7 @@
 
         <nav class="side-nav">
             {{ nav_link('dashboard_blueprint.dashboard', 'grid-1x2', 'Dashboard', ep == 'dashboard_blueprint.dashboard') }}
+            {{ nav_link('floor_blueprint.board', 'phone', 'Floor board', ep == 'floor_blueprint.board') }}
 
             <div class="side-group">Counter</div>
             {{ nav_link('invoice_blueprint.invoice_head', 'car-front', 'Service invoices', ep.startswith('invoice_blueprint.') and 'item_invoice' not in ep) }}
