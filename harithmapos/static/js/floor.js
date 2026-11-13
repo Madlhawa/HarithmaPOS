@@ -100,6 +100,9 @@
             .then(function (items) {
                 if (id !== requestId) { return; }
                 var typed = q.toUpperCase().replace(/\s+/g, ' ');
+                var bare = function (text) { return String(text || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+                // This box is for plates: drop rows that only matched on a name or phone digit.
+                items = items.filter(function (item) { return bare(item.number).indexOf(bare(q)) !== -1; });
                 var exact = items.filter(function (item) { return item.number === typed; })[0];
                 if (exact) { choose(exact); return; }
                 matches.innerHTML = '';
