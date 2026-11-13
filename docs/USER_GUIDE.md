@@ -108,6 +108,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 | **New service** | Opens the *New service* form (below) to start a job for a vehicle that is already registered. |
 | **New customer and vehicle** | Registers a first-time customer and their vehicle, then opens *New service* with that vehicle already chosen. |
 | **Item sale** | Starts a walk-in counter sale straight away (see [Item invoices](#6-item-invoices-counter-sales)). |
+| **Floor board** | Opens the [floor board](#floor-board-supervisors-phone), the phone-friendly page for the supervisor on the floor. |
 | **Record payment** | Records money in (or, for owners, out) that isn't from completing an invoice. Same form as on the [Payments](#8-payments) page. |
 
 ### Finish setting up
@@ -161,6 +162,50 @@ Each bay shows the vehicle in it and its stage, or **Free** with a **Start a ser
 | Make, Model, Year | Optional, e.g. Toyota, Axio, 2016. |
 
 **Save and start a service** saves both and opens *New service* with the vehicle filled in.
+
+### Floor board (supervisor's phone)
+
+*Menu → Floor board*, or **Floor board** on the dashboard. A full-screen page for the person running the floor, built for a phone held in one hand; on a tablet or computer it shows all four columns side by side. Any signed-in user can use it. It refreshes itself every 45 seconds (not while a sheet is open), and the **↻** button at the top right refreshes it at once. **‹** goes back to the dashboard.
+
+The top bar shows how many vehicles are in the station and how many bays are free. On a phone, four tabs switch between the sections; the number on each tab is how many vehicles it holds. The phone remembers the last tab you used.
+
+| Tab | What it shows |
+|---|---|
+| **Bays** | Each wash bay and the vehicle in it (vacuuming or washing). A free bay shows **Bring in** with the next waiting vehicle (one booked for that bay first, else the first in the queue), or **Start a vehicle here** when no one is waiting. |
+| **Queue** | Vehicles waiting, oldest first, with **Bring into** *bay*. |
+| **Polishing** | Vehicles being polished, with **Ready to collect**. |
+| **Ready** | Vehicles finished today, marked **To pay** or **Paid**. Tap one to open its invoice. |
+
+**Each vehicle card** shows the plate, the time it has been in its current stage (red after 20 minutes waiting or 45 minutes in any other stage), the owner and vehicle, the stage, the bay and who is working on it. The big button moves it to the next stage in one tap: **Bring into** *bay* → **Start washing** → **Start polishing** → **Ready to collect**.
+
+**Tap the card itself** (anywhere above the big button) to open the change sheet:
+
+| Field | What it does |
+|---|---|
+| **Stage** | Any stage, including going back one if a button was pressed by mistake. **Ready** means finished. |
+| **Wash bay** | Moves the vehicle to another bay. |
+| **Working on it** | Changes the employee. The small number is how many vehicles that person already has on the floor. |
+| **Open invoice** | Opens the full service invoice (to add services and items, bill and complete). |
+| **Save** | Saves the changes. |
+
+**Add vehicle** (the round button, bottom right) opens the add sheet:
+
+| Field | What it does |
+|---|---|
+| **Vehicle number** | Type the plate. Registered plates that match are listed: tap one. A plate typed in full is picked automatically. |
+| **Owner's name, Phone** | Appear when the plate is new. Fill in the name (the phone is optional) and the customer and vehicle are registered at the same time. |
+| **Wash bay** | The first free bay is chosen for you; **free** marks the empty ones. |
+| **Who will work on it** | Required. The number shows how many vehicles each person already has. |
+| **Mileage now (km)** | Optional. |
+| **Add to queue** | Puts it in the queue (Waiting). |
+| **Start now** | Puts it straight into the chosen bay (Vacuuming). Refused if that bay already has a vehicle. |
+
+Rules the board keeps:
+
+- A bay holds one vehicle at a time. Bringing a vehicle into a busy bay is refused with a message naming the vehicle already there; move that one on, or choose another bay.
+- A vehicle can only be on the floor once. Adding a plate that already has an open job shows where it is instead.
+- **Ready to collect** does not bill the customer. The invoice still has to be completed and paid at the counter, which is why the Ready tab marks it **To pay** until then.
+- The board never sends SMS. Texts go only from the buttons on the invoice screen.
 
 ---
 

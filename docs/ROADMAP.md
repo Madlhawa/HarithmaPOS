@@ -1,6 +1,6 @@
 # Harithma POS: improvement roadmap
 
-*Updated 12 November 2026.*
+*Updated 13 November 2026.*
 
 The site is now on HTTPS with nightly backups, and the owner has sales reporting and full staff payroll. What matters most next:
 
@@ -16,6 +16,8 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 13 Nov 2026 | **Floor board** (Menu → Floor board). A phone-first page for the floor supervisor: bays, queue, polishing and ready tabs; one-tap next-stage buttons; a sheet to change stage, bay or employee; add a vehicle to the queue or straight into a free bay, registering new plates and owners on the spot. |
+| 13 Nov 2026 | **Customer status page** shows subtotal and discounts; fixed coloured boxes behind some headings. |
 | 12 Nov 2026 | **Staff report** (Reports → Staff). Attendance rate, punctuality, lateness, absences, leave, short leaves, overtime, jobs and revenue per day worked, advances and staff cost, for everyone or one employee; who-was-in chart, arrival times, late by weekday, scorecard, leave used and staff cost by month. |
 | 12 Nov 2026 | **Staff attendance, leave and payroll.** Daily register (present, half day, leave by type, absent, day off; in/out times), automatic late, early and overtime minutes, short leaves, a month grid, leave balances, salary advances, monthly payroll with EPF/ETF, finalise, pay and print payslips. Lateness is tracked only. Employees gain pay type, EPF and a "working here" switch. |
 | 12 Nov 2026 | **Sales dashboard** (Reports → Sales). Revenue, gross profit, jobs, average job, collected, still owed, customers new vs returning, time per job and discounts against the previous period. Revenue chart, top services and items, payment mix, busy-hours heatmap, staff, bay, top customer and unpaid tables. |
@@ -29,7 +31,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 | 11 Nov 2026 | **Owner and counter-staff roles** and user management. |
 | 11 Nov 2026 | **Deploys through GitHub** with tracked database migrations and pre-deploy backups. |
 
-Tests: 128 automated tests cover billing, roles, settings, reports and payroll.
+Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 
 ---
 
@@ -44,7 +46,7 @@ Tests: 128 automated tests cover billing, roles, settings, reports and payroll.
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
 | Error tracking | Not started | Sentry (free tier) so failures are seen without reading server logs. | S |
-| Run tests before every deploy | Not started | A GitHub Actions job runs the 128 tests on each push and blocks a failing deploy. | S |
+| Run tests before every deploy | Not started | A GitHub Actions job runs the 144 tests on each push and blocks a failing deploy. | S |
 | Pin library versions | Not started | No version is pinned in `requirements.txt`, so a deploy can pull a breaking release. | S |
 | Zero-downtime deploys | Not started | Reload gunicorn instead of restarting; a 502 was seen during one restart. | S |
 | Two-step sign-in for owners | Not started | An authenticator-app code on top of the password. | M |
@@ -61,7 +63,7 @@ Tests: 128 automated tests cover billing, roles, settings, reports and payroll.
 | Discount limits for staff | Owner-set maximum discount, with a reason recorded. | S |
 | Configurable stages | Owner edits the floor stages (fixed today: Waiting, Vacuuming, Washing, Polishing, Done). | M |
 | Bookings | Time slots booked by staff or customers, shown beside walk-ins on the dashboard. | L |
-| Queue screen | A TV page for the waiting area showing which plates are at which stage. | S |
+| Queue screen | A TV page for the waiting area showing which plates are at which stage (read-only version of the floor board). | S |
 | Cash-up at closing | Count the till against what the system expects and record the difference. | M |
 | Longer plates | Vehicle numbers are limited to 8 characters; allow longer formats such as `WP CAB-1234`. | S |
 | Barcode scanning | Scan items at the counter. | S |
