@@ -22,6 +22,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
@@ -321,6 +322,10 @@ def github():
 
     try:
         data = get(f'https://api.github.com/repos/{REPO}/actions/runs?per_page=20')
+    except urllib.error.HTTPError as exc:
+        reason = ("GitHub's limit of 60 requests an hour from this server was reached"
+                  if exc.code in (403, 429) else f'GitHub answered {exc.code}')
+        return {'error': reason, 'runs': cache.get('runs', [])}
     except Exception as exc:
         return {'error': f'GitHub could not be reached: {exc.__class__.__name__}', 'runs': cache.get('runs', [])}
 
