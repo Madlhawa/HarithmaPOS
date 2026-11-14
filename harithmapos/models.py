@@ -266,6 +266,7 @@ class User(db.Model, UserMixin):
     ui_theme = db.Column(db.String(5), default='light')
     role = db.Column(db.String(10), nullable=False, default=config.ROLE_STAFF)
     active = db.Column(db.Boolean, nullable=False, default=True)
+    last_seen_dttm = db.Column(db.DateTime)      # UTC; updated at most once a minute
     create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
@@ -450,3 +451,24 @@ class SalaryAdvance(db.Model):
     @property
     def is_recovered(self):
         return self.payslip_id is not None
+
+
+class LoginEvent(db.Model):
+    """Every sign-in attempt and sign-out, for the developer page."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
+    email = db.Column(db.String(120))            # as typed, so failed attempts on unknown emails show too
+    outcome = db.Column(db.String(20), nullable=False)   # ok, bad_password, unknown_email, switched_off, logout
+    ip = db.Column(db.String(45))
+    user_agent = db.Column(db.String(200))
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    user = db.relationship('User')
+
+
+class UserActivityDay(db.Model):
+    """One row per user per (local) day they used the app: unique users per day."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    day = db.Column(db.Date, nullable=False, index=True)
+    requests = db.Column(db.Integer, nullable=False, default=1)
+    __table_args__ = (db.UniqueConstraint('user_id', 'day', name='uq_user_activity_day'),)

@@ -16,6 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 14 Nov 2026 | **Developer page** (Menu → Developer → Monitor, developers only). Deploys with test results, GitHub Actions runs, users online and sign-ins (failed ones too), unique users per day, traffic per hour with attack and scanner requests, SSH break-in attempts, app errors with tracebacks, 5xx responses and server health, with a "Needs attention" list. |
 | 14 Nov 2026 | **Tests before every deploy.** GitHub Actions runs the tests on every push and pull request; only a green run deploys, and it deploys that exact commit. Each deploy backs up the database, health-checks the site and puts the old version back if it fails. A one-click *Roll back* workflow. First automatic deploy from GitHub went live on 14 Nov. Library versions pinned to production's. The two broken workflows (pointing at the old server) were replaced. |
 | 13 Nov 2026 | **Floor board** (Menu → Floor board). A phone-first page for the floor supervisor: bays, queue, polishing and ready tabs; one-tap next-stage buttons; a sheet to change stage, bay or employee; add a vehicle to the queue or straight into a free bay, registering new plates and owners on the spot. |
 | 13 Nov 2026 | **Customer status page** shows subtotal and discounts; fixed coloured boxes behind some headings. |
@@ -45,7 +46,7 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 | RabbitMQ password | **Needs the owner** | The password equals the username. Change it on the RabbitMQ server, then on the Settings page. | S |
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
-| Error tracking | Not started | Sentry (free tier) so failures are seen without reading server logs. | S |
+| Error alerts | Partly done | Errors now show on the developer page. Still to do: an email or SMS to the developer when one happens, so nobody has to look. | S |
 | Zero-downtime deploys | Not started | Reload gunicorn instead of restarting; a 502 was seen during one restart. | S |
 | Two-step sign-in for owners | Not started | An authenticator-app code on top of the password. | M |
 

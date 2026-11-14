@@ -21,6 +21,11 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      passed: ${{ steps.summary.outputs.passed }}
+      failed: ${{ steps.summary.outputs.failed }}
+      skipped: ${{ steps.summary.outputs.skipped }}
+      seconds: ${{ steps.summary.outputs.seconds }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,7 +36,27 @@ jobs:
       - name: Install
         run: pip install -r requirements-dev.txt
       - name: Run the tests
-        run: python -m pytest -q tests
+        run: python -m pytest -q tests --junitxml=test-results.xml
+      - name: Summarise the results
+        id: summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, xml.etree.ElementTree as ET
+          try:
+              root = ET.parse('test-results.xml').getroot()
+              suite = root if root.tag == 'testsuite' else root.find('testsuite')
+              total, failed = int(suite.get('tests', 0)), int(suite.get('failures', 0)) + int(suite.get('errors', 0))
+              skipped, seconds = int(suite.get('skipped', 0)), round(float(suite.get('time', 0)), 1)
+          except Exception:
+              total = failed = skipped = 0
+              seconds = 0
+          passed = total - failed - skipped
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"passed={passed}\nfailed={failed}\nskipped={skipped}\nseconds={seconds}\n")
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write(f"### Tests\n{passed} passed, {failed} failed, {skipped} skipped in {seconds}s\n")
+          PY
 
   deploy:
     name: Deploy to harithma.lk
@@ -60,6 +85,6 @@ jobs:
           # The server's own key, so the connection cannot be intercepted.
           echo 'harithma.lk ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' > ~/.ssh/known_hosts
       - name: Deploy ${{ github.sha }}
-        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "deploy ${{ github.sha }}"
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "deploy ${{ github.sha }} ${{ needs.test.outputs.passed || 0 }} ${{ needs.test.outputs.failed || 0 }} ${{ needs.test.outputs.skipped || 0 }} ${{ needs.test.outputs.seconds || 0 }} ${{ github.run_id }}"
       - name: Check the live site
         run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors https://harithma.lk/app/login

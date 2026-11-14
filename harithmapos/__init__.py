@@ -42,6 +42,10 @@ def create_app(Config_class=Config):
     from harithmapos.template_helpers import register_template_helpers
     register_template_helpers(app)
 
+    from harithmapos.activity import configure_logging, touch_current_user
+    configure_logging(app)
+    app.before_request(touch_current_user)
+
     from harithmapos.views.error.handlers import error_blueprint
     from harithmapos.views.user.routes import user_blueprint
     from harithmapos.views.customer.routes import customer_blueprint
@@ -60,6 +64,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.reports.routes import reports_blueprint
     from harithmapos.views.staff.routes import staff_blueprint
     from harithmapos.views.floor.routes import floor_blueprint
+    from harithmapos.views.dev.routes import dev_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -79,5 +84,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(reports_blueprint)
     app.register_blueprint(staff_blueprint)
     app.register_blueprint(floor_blueprint)
+    app.register_blueprint(dev_blueprint)
 
     return app

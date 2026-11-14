@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 
 from harithmapos import db, bcrypt, config
 from harithmapos.models import User
+from harithmapos.activity import record_login
 from harithmapos.timeutils import utcnow
 from harithmapos.views.utils import save_image, send_reset_email, is_safe_redirect_target
 from harithmapos.views.user.forms import (
@@ -51,16 +52,20 @@ def login():
         return redirect(url_for('dashboard_blueprint.dashboard'))
     form = UserLoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.strip()).first()
+        typed_email = form.email.data.strip()
+        user = User.query.filter_by(email=typed_email).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             if not user.is_active:
+                record_login('switched_off', user)
                 flash('This account has been switched off. Ask an owner to switch it back on.', category='warning')
                 return render_template('user/login.html', title='Sign in', form=form)
             login_user(user, remember=form.remember.data)
+            record_login('ok', user)
             next_page = request.args.get('next')
             if is_safe_redirect_target(next_page):
                 return redirect(next_page)
             return redirect(url_for('dashboard_blueprint.dashboard'))
+        record_login('bad_password' if user else 'unknown_email', user, email=typed_email)
         flash('That email and password do not match. Please try again.', category='danger')
     return render_template('user/login.html', title='Sign in', form=form)
 
@@ -183,5 +188,6 @@ def reset_token(token):
 @user_blueprint.route("/app/logout", methods=['GET', 'POST'])
 @login_required
 def logout():
+    record_login('logout', current_user._get_current_object())
     logout_user()
     return redirect(url_for('user_blueprint.login'))

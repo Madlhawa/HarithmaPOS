@@ -1,0 +1,430 @@
+{% extends 'layout/base.html' %}
+
+{# Developer page. Reloads every two minutes; the collector refreshes its data every five. #}
+{% block body_attrs %}data-auto-refresh="120"{% endblock %}
+
+{% macro size(n) -%}
+{%- if n is none -%}–{%- elif n >= 1073741824 -%}{{ '%.1f'|format(n / 1073741824) }} GB{%- elif n >= 1048576 -%}{{ '%.1f'|format(n / 1048576) }} MB{%- elif n >= 1024 -%}{{ (n / 1024)|round|int }} KB{%- else -%}{{ n }} B{%- endif -%}
+{%- endmacro %}
+{% macro dur(s) -%}
+{%- if s is none or s == '' -%}–{%- else -%}{% set s = s|float %}{%- if s >= 3600 -%}{{ (s // 3600)|int }}h {{ ((s % 3600) // 60)|int }}m{%- elif s >= 60 -%}{{ (s // 60)|int }}m {{ (s % 60)|int }}s{%- else -%}{{ s|round(1) if s < 10 else s|int }}s{%- endif -%}{%- endif -%}
+{%- endmacro %}
+{% macro when(t) -%}
+{%- if t %}<time datetime="{{ t|iso_utc }}" title="{{ t|local_dt('%d %b %Y %H:%M:%S') }}">{{ t|local_dt('%d %b %H:%M') }}</time>{% else %}–{% endif -%}
+{%- endmacro %}
+{% macro ago(t) -%}
+{%- if t %}<span title="{{ t|local_dt('%d %b %Y %H:%M') }}">{{ t|elapsed or '0m' }} ago</span>{% else %}never{% endif -%}
+{%- endmacro %}
+{% macro pill(tone, label) -%}
+<span class="dv-pill is-{{ tone }}"><i class="bi bi-{{ {'good': 'check-circle-fill', 'bad': 'x-circle-fill', 'warn': 'exclamation-triangle-fill', 'info': 'info-circle-fill', 'run': 'arrow-repeat', 'muted': 'dash-circle'}[tone] }}" aria-hidden="true"></i>{{ label }}</span>
+{%- endmacro %}
+{% macro conclusion(c, status=none) -%}
+{%- if status and status != 'completed' %}{{ pill('run', status|replace('_', ' ')|capitalize) }}
+{%- elif c == 'success' %}{{ pill('good', 'Passed') }}
+{%- elif c == 'failure' %}{{ pill('bad', 'Failed') }}
+{%- elif c == 'skipped' %}{{ pill('muted', 'Skipped') }}
+{%- elif c == 'cancelled' %}{{ pill('muted', 'Cancelled') }}
+{%- elif c %}{{ pill('warn', c|capitalize) }}{% else %}–{% endif -%}
+{%- endmacro %}
+
+{% block body %}
+{% set s = snap or {} %}
+{% set web = s.web or {} %}
+{% set app = s.app or {} %}
+{% set srv = s.server or {} %}
+{% set ssh = s.ssh or {} %}
+{% set runs = (s.github or {}).runs or [] %}
+{% set deploys = s.deploys or [] %}
+{% set u = users %}
+
+<div class="page-head">
+    <div>
+        <h1>Developer</h1>
+        <p>{% if s.collected_at %}Server data collected {{ ago(s.collected_at) }} (every 5 minutes, took {{ dur(s.took_seconds) }}). Users and sign-ins are live.{% else %}Users and sign-ins are live.{% endif %}</p>
+    </div>
+    <nav class="dv-jump" aria-label="Sections">
+        <a href="#deploys">Deploys</a><a href="#users">Users</a><a href="#security">Security</a><a href="#errors">Errors</a><a href="#server">Server</a>
+    </nav>
+</div>
+
+{% if problem %}<div class="dv-alert is-bad mb-3"><i class="bi bi-x-circle-fill" aria-hidden="true"></i><span>{{ problem }}</span></div>{% endif %}
+
+{# ---- Needs attention ------------------------------------------------------- #}
+<section class="panel mb-4" aria-labelledby="attn-title">
+    <div class="panel-head"><h2 id="attn-title">Needs attention</h2>{% if not alerts %}{{ pill('good', 'All clear') }}{% endif %}</div>
+    {% if alerts %}
+    <ul class="dv-alerts">
+        {% for level, text in alerts %}
+        <li class="dv-alert is-{{ level }}"><i class="bi bi-{{ {'bad': 'x-circle-fill', 'warn': 'exclamation-triangle-fill', 'info': 'info-circle-fill'}[level] }}" aria-hidden="true"></i><span>{{ text }}</span></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="panel-body text-muted">Nothing needs a look right now.</div>
+    {% endif %}
+</section>
+
+{# ---- Headline figures ------------------------------------------------------ #}
+{% set last_run = (runs|selectattr('name', 'equalto', 'Test and deploy')|list or [none])[0] %}
+{% set last_deploy = (deploys or [none])[0] %}
+<section class="dv-kpis mb-4" aria-label="Headline figures">
+    <div class="kpi">
+        <div class="kpi-label">Last deploy</div>
+        <div class="kpi-value">{% if last_deploy %}{{ last_deploy.to[:7] }}{% else %}–{% endif %}</div>
+        <div class="kpi-sub">{% if last_deploy %}{{ conclusion('success' if last_deploy.result == 'success' else 'failure') }} {{ ago(last_deploy.time) }}{% else %}None recorded yet{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Tests (last pipeline run)</div>
+        {% set test_job = (last_run.jobs|selectattr('name', 'equalto', 'Tests')|list or [none])[0] if last_run else none %}
+        {% set d_tests = (deploys|selectattr('tests_passed')|list or [none])[0] %}
+        <div class="kpi-value">{% if d_tests and last_run and d_tests.run_id == last_run.id %}{{ d_tests.tests_passed }} passed{% elif test_job %}{{ test_job.conclusion|capitalize if test_job.conclusion else 'Running' }}{% else %}–{% endif %}</div>
+        <div class="kpi-sub">{% if last_run %}{{ conclusion(test_job.conclusion if test_job else last_run.conclusion, last_run.status) }} {{ last_run.sha }}{% else %}No runs found{% endif %}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">App errors, 24 h</div>
+        <div class="kpi-value {{ 'is-bad' if app.errors_24h }}">{{ app.errors_24h if app.errors_24h is not none else '–' }}</div>
+        <div class="kpi-sub">{{ app.warnings_24h or 0 }} warnings · {{ (web.status_24h or {}).get('5xx', 0) }} server errors (5xx)</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Online now</div>
+        <div class="kpi-value">{{ u.online }}</div>
+        <div class="kpi-sub">{{ u.active_today }} used the app today · {{ u.unique_30d }} in 30 days</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Website visitors, 24 h</div>
+        <div class="kpi-value">{{ web.visitors_24h if web.visitors_24h is not none else '–' }}</div>
+        <div class="kpi-sub">{{ web.unique_ips_24h or 0 }} addresses · {{ web.requests_24h or 0 }} requests</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Attack requests, 24 h</div>
+        <div class="kpi-value">{{ web.suspicious_24h if web.suspicious_24h is not none else '–' }}</div>
+        <div class="kpi-sub">from {{ web.suspicious_ips_24h or 0 }} addresses · {{ u.failed_7d }} failed sign-ins (7 d)</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">SSH break-in attempts, 24 h</div>
+        <div class="kpi-value">{{ ssh.failed_24h if ssh.failed_24h is not none else '–' }}</div>
+        <div class="kpi-sub">from {{ ssh.attacking_ips_24h or 0 }} addresses (password login is off)</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Server</div>
+        {% set down = (srv.services or {}).items()|rejectattr(1, 'equalto', 'active')|list %}
+        <div class="kpi-value">{{ 'All up' if srv.services and not down else (down|length ~ ' down' if srv.services else '–') }}</div>
+        <div class="kpi-sub">{% if srv.disk %}Disk {{ (srv.disk.used / srv.disk.total * 100)|round|int }}% · memory {{ ((1 - srv.memory.available / srv.memory.total) * 100)|round|int }}% used{% endif %}</div>
+    </div>
+</section>
+
+{# ---- Deploys and pipeline -------------------------------------------------- #}
+<section class="panel mb-4" id="deploys" aria-labelledby="deploys-title">
+    <div class="panel-head"><h2 id="deploys-title">Deploys</h2><span class="text-muted small">Each one backs up the database first</span></div>
+    {% if deploys %}
+    <div class="table-responsive">
+    <table class="table table-list dv-table">
+        <thead><tr><th>When</th><th>What</th><th>Result</th><th>Version</th><th class="num">Tests</th><th class="num">Took</th><th>From</th></tr></thead>
+        <tbody>
+        {% for d in deploys %}
+        <tr>
+            <td class="nowrap">{{ when(d.time) }}</td>
+            <td>{{ d.action|capitalize }}</td>
+            <td>{% if d.result == 'success' %}{{ pill('good', 'Done') }}{% elif d.result == 'refused' %}{{ pill('muted', 'Refused') }}{% else %}{{ pill('bad', 'Failed') }}{% endif %}{% if d.note %}<div class="dv-note">{{ d.note }}</div>{% endif %}</td>
+            <td><code>{{ d.from[:7] }}</code> → <code>{{ d.to[:7] }}</code><div class="dv-note">{{ d.subject }}</div></td>
+            <td class="num nowrap">{% if d.tests_passed is not none %}{{ d.tests_passed }} passed{% if d.tests_failed %}, {{ d.tests_failed }} failed{% endif %}<div class="dv-note">{{ dur(d.tests_seconds) }}</div>{% else %}–{% endif %}</td>
+            <td class="num">{{ dur(d.seconds) }}</td>
+            <td>{% if d.trigger == 'github' and d.run_id %}<a href="https://github.com/Madlhawa/HarithmaPOS/actions/runs/{{ d.run_id }}" target="_blank" rel="noopener">GitHub</a>{% elif d.trigger == 'github' %}GitHub{% else %}By hand{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body text-muted">No deploys recorded yet. They appear here from the next deploy on.</div>
+    {% endif %}
+</section>
+
+<section class="panel mb-4" aria-labelledby="runs-title">
+    <div class="panel-head"><h2 id="runs-title">GitHub Actions</h2>{% if (s.github or {}).error %}<span class="text-muted small">{{ s.github.error }} (showing the last list)</span>{% endif %}</div>
+    {% if runs %}
+    <div class="table-responsive">
+    <table class="table table-list dv-table">
+        <thead><tr><th>Started</th><th>Workflow</th><th>Commit</th><th>Tests</th><th>Deploy</th><th class="num">Took</th><th></th></tr></thead>
+        <tbody>
+        {% for r in runs %}
+        {% set jt = (r.jobs|selectattr('name', 'equalto', 'Tests')|list or [none])[0] %}
+        {% set jd = (r.jobs|rejectattr('name', 'equalto', 'Tests')|list or [none])[0] %}
+        <tr>
+            <td class="nowrap">{{ when(r.started) }}</td>
+            <td>{{ r.name }}{% if r.attempt > 1 %} <span class="dv-note">(attempt {{ r.attempt }})</span>{% endif %}<div class="dv-note">{{ r.event|replace('_', ' ') }}{% if r.actor %} by {{ r.actor }}{% endif %}</div></td>
+            <td><code>{{ r.sha }}</code><div class="dv-note">{{ r.message }}</div></td>
+            <td>{% if jt %}{{ conclusion(jt.conclusion, r.status) }}{% else %}–{% endif %}</td>
+            <td>{% if jd %}{{ conclusion(jd.conclusion, r.status) }}{% if jd.failed_step %}<div class="dv-note">at “{{ jd.failed_step }}”</div>{% endif %}{% elif r.status != 'completed' %}{{ conclusion(none, r.status) }}{% else %}{{ conclusion(r.conclusion) }}{% endif %}</td>
+            <td class="num">{% if r.started and r.updated and r.status == 'completed' %}{{ dur((r.updated - r.started).total_seconds()) }}{% else %}–{% endif %}</td>
+            <td><a href="{{ r.url }}" target="_blank" rel="noopener" aria-label="Open run on GitHub"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body text-muted">No workflow runs found.</div>
+    {% endif %}
+</section>
+
+{# ---- Users ----------------------------------------------------------------- #}
+<section class="panel mb-4" id="users" aria-labelledby="users-title">
+    <div class="panel-head"><h2 id="users-title">Users</h2><span class="text-muted small">{{ u.online }} online now (active in the last 5 minutes)</span></div>
+    <div class="table-responsive">
+    <table class="table table-list dv-table">
+        <thead><tr><th>User</th><th>Role</th><th>Last seen</th><th class="num">Sign-ins (7 d)</th><th class="num">Failed (7 d)</th><th>Last signed in from</th></tr></thead>
+        <tbody>
+        {% for r in u.rows %}
+        <tr>
+            <td>{% if r.online %}{{ pill('good', 'Online') }} {% endif %}{{ r.user.name }}<div class="dv-note">{{ r.user.email }}</div></td>
+            <td>{{ r.user.role_label }}{% if not r.user.active %} <span class="dv-note">(switched off)</span>{% endif %}</td>
+            <td class="nowrap">{{ ago(r.last_seen) }}</td>
+            <td class="num">{{ r.sign_ins_7d }}</td>
+            <td class="num {{ 'is-bad' if r.failed_7d }}">{{ r.failed_7d }}</td>
+            <td>{% if r.where %}{{ r.where[1] }}<div class="dv-note"><code>{{ r.where[0] }}</code></div>{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<div class="dv-two mb-4">
+    <section class="panel" aria-labelledby="uday-title">
+        <div class="panel-head"><h2 id="uday-title">Unique users per day</h2><span class="text-muted small">Last 30 days</span></div>
+        <div class="panel-body">
+            <div class="viz chart-timeline chart-short" data-stacked="dev-users"
+                 data-series='[{"key": "users", "label": "users", "cls": "fill-1", "key_cls": "key-1"}]'
+                 role="img" aria-label="How many different people used the app each day for the last 30 days. The table below has every value."></div>
+            <details class="chart-table">
+                <summary>Show as a table</summary>
+                <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Day</th><th class="num">Users</th></tr></thead><tbody>
+                {% for row in u.chart.rows|reverse %}<tr><td>{{ row.span }}</td><td class="num">{{ row.users }}</td></tr>{% endfor %}
+                </tbody></table></div>
+            </details>
+            <p class="form-hint mb-0">Counted from now on: days before this page existed show zero.</p>
+        </div>
+    </section>
+    <section class="panel" aria-labelledby="failed-title">
+        <div class="panel-head"><h2 id="failed-title">Failed sign-ins, 7 days</h2><span class="text-muted small">{{ u.failed_7d }} in all</span></div>
+        {% if u.failed_7d %}
+        <div class="panel-body dv-cols">
+            <div><h3 class="dv-h3">By address</h3><ol class="dv-rank">{% for ip, n in u.failed_ips %}<li><code>{{ ip or '?' }}</code><b>{{ n }}</b></li>{% endfor %}</ol></div>
+            <div><h3 class="dv-h3">By email typed</h3><ol class="dv-rank">{% for email, n in u.failed_emails %}<li><span>{{ email or '(blank)' }}</span><b>{{ n }}</b></li>{% endfor %}</ol></div>
+        </div>
+        {% else %}
+        <div class="panel-body text-muted">None. Sign-in is also limited to 10 tries a minute per address.</div>
+        {% endif %}
+    </section>
+</div>
+
+<section class="panel mb-4" aria-labelledby="events-title">
+    <div class="panel-head"><h2 id="events-title">Sign-in activity</h2><span class="text-muted small">Latest 40</span></div>
+    {% if u.recent %}
+    <div class="table-responsive">
+    <table class="table table-list dv-table">
+        <thead><tr><th>When</th><th>Who</th><th>What</th><th>Address</th><th>Device</th></tr></thead>
+        <tbody>
+        {% for row in u.recent %}{% set e = row.event %}
+        <tr>
+            <td class="nowrap">{{ when(e.created_dttm) }}</td>
+            <td>{{ e.user.name if e.user else (e.email or '–') }}{% if not e.user and e.email %} <span class="dv-note">(no such user)</span>{% endif %}</td>
+            <td>{{ pill(row.tone, row.label) }}</td>
+            <td><code>{{ e.ip or '–' }}</code></td>
+            <td>{{ row.device }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="panel-body text-muted">No sign-ins recorded yet. They appear from the next one on.</div>
+    {% endif %}
+</section>
+
+{# ---- Security -------------------------------------------------------------- #}
+<section class="panel mb-4" id="security" aria-labelledby="traffic-title">
+    <div class="panel-head">
+        <h2 id="traffic-title">Requests per hour, last 24 hours</h2>
+        <div class="chart-legend" aria-hidden="true">
+            <span><i class="key key-1"></i>Normal</span><span><i class="key key-3"></i>Not found / refused</span><span><i class="key key-2"></i>Attacks and scans</span><span><i class="key key-4"></i>Server errors</span>
+        </div>
+    </div>
+    <div class="panel-body">
+        {% if hours.rows %}
+        <div class="viz chart-timeline" data-stacked="dev-hours"
+             data-series='[{"key": "ok", "label": "normal", "cls": "fill-1", "key_cls": "key-1"}, {"key": "client_error", "label": "not found / refused", "cls": "fill-3", "key_cls": "key-3"}, {"key": "suspicious", "label": "attacks and scans", "cls": "fill-2", "key_cls": "key-2"}, {"key": "server_error", "label": "server errors", "cls": "fill-4", "key_cls": "key-4"}]'
+             role="img" aria-label="Requests to the website each hour, split into normal, not found, attacks and server errors. The table below has every value."></div>
+        <details class="chart-table">
+            <summary>Show as a table</summary>
+            <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Hour</th><th class="num">Normal</th><th class="num">Not found / refused</th><th class="num">Attacks</th><th class="num">Server errors</th></tr></thead><tbody>
+            {% for row in hours.rows|reverse %}<tr><td>{{ row.span }}</td><td class="num">{{ row.ok }}</td><td class="num">{{ row.client_error }}</td><td class="num">{{ row.suspicious }}</td><td class="num">{{ row.server_error }}</td></tr>{% endfor %}
+            </tbody></table></div>
+        </details>
+        {% else %}<p class="text-muted mb-0">No web server data yet.</p>{% endif %}
+    </div>
+</section>
+
+<div class="dv-two mb-4">
+    <section class="panel" aria-labelledby="kinds-title">
+        <div class="panel-head"><h2 id="kinds-title">What attackers tried, 24 h</h2></div>
+        {% if web.probe_kinds_24h %}
+        <div class="panel-body">
+            {% set top = web.probe_kinds_24h[0][1] %}
+            <ol class="dv-bars">
+            {% for kind, n in web.probe_kinds_24h %}
+                <li><span class="dv-bar-label">{{ kind }}</span><span class="dv-bar-track"><span class="dv-bar" style="width: {{ (n / top * 100)|round(1) }}%"></span></span><b>{{ n }}</b></li>
+            {% endfor %}
+            </ol>
+            <p class="form-hint mb-0">None of these paths exist in the app; they get "not found" or a redirect. Bots scan every public server like this.</p>
+        </div>
+        {% else %}<div class="panel-body text-muted">Nothing suspicious in the last 24 hours.</div>{% endif %}
+    </section>
+    <section class="panel" aria-labelledby="ips-title">
+        <div class="panel-head"><h2 id="ips-title">Busiest attacking addresses, 24 h</h2></div>
+        {% if web.top_probe_ips %}
+        <div class="table-responsive">
+        <table class="table table-list dv-table">
+            <thead><tr><th>Address</th><th class="num">Requests</th><th>Looking for</th><th>Last</th></tr></thead>
+            <tbody>
+            {% for p in web.top_probe_ips %}
+            <tr><td><code>{{ p.ip }}</code></td><td class="num">{{ p.count }}</td><td><span class="dv-note">{{ p.kinds|join(', ') }}</span></td><td class="nowrap">{{ when(p.last) }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
+    </section>
+</div>
+
+<section class="panel mb-4" aria-labelledby="probes-title">
+    <div class="panel-head"><h2 id="probes-title">Latest suspicious requests</h2><span class="text-muted small">Newest first</span></div>
+    {% if web.recent_probes %}
+    <div class="table-responsive dv-scroll">
+    <table class="table table-list dv-table">
+        <thead><tr><th>When</th><th>Address</th><th>Kind</th><th>Request</th><th class="num">Answer</th></tr></thead>
+        <tbody>
+        {% for p in web.recent_probes[:40] %}
+        <tr>
+            <td class="nowrap">{{ when(p.time) }}</td>
+            <td><code>{{ p.ip }}</code></td>
+            <td>{{ p.kind }}</td>
+            <td class="dv-path"><code>{{ p.method }} {{ p.path }}</code><div class="dv-note">{{ p.agent }}</div></td>
+            <td class="num">{{ p.status }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}<div class="panel-body text-muted">None in the last 24 hours.</div>{% endif %}
+</section>
+
+<div class="dv-two mb-4">
+    <section class="panel" aria-labelledby="ssh-title">
+        <div class="panel-head"><h2 id="ssh-title">SSH, 24 h</h2><span class="text-muted small">{{ ssh.failed_24h or 0 }} failed attempts</span></div>
+        <div class="panel-body dv-cols">
+            <div><h3 class="dv-h3">Busiest addresses</h3><ol class="dv-rank">{% for ip, n in ssh.top_ips or [] %}<li><code>{{ ip }}</code><b>{{ n }}</b></li>{% else %}<li class="text-muted">None</li>{% endfor %}</ol></div>
+            <div><h3 class="dv-h3">Usernames tried</h3><ol class="dv-rank">{% for name, n in ssh.top_users or [] %}<li><span>{{ name }}</span><b>{{ n }}</b></li>{% else %}<li class="text-muted">None</li>{% endfor %}</ol></div>
+        </div>
+    </section>
+    <section class="panel" aria-labelledby="sshok-title">
+        <div class="panel-head"><h2 id="sshok-title">Successful SSH logins, 24 h</h2></div>
+        {% if ssh.accepted_24h %}
+        <div class="table-responsive">
+        <table class="table table-list dv-table">
+            <thead><tr><th>When</th><th>User</th><th>Address</th><th>With</th></tr></thead>
+            <tbody>
+            {% for a in ssh.accepted_24h %}<tr><td class="nowrap">{{ when(a.time) }}</td><td>{{ a.user }}</td><td><code>{{ a.ip }}</code></td><td>{{ a.method }}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <p class="form-hint px-3 pb-3 mb-0">Check you recognise these. GitHub deploys come from Microsoft Azure addresses.</p>
+        {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
+    </section>
+</div>
+
+{# ---- Errors ---------------------------------------------------------------- #}
+<section class="panel mb-4" id="errors" aria-labelledby="errors-title">
+    <div class="panel-head"><h2 id="errors-title">App errors and warnings</h2><span class="text-muted small">Last 7 days · {{ app.errors_7d or 0 }} errors · {{ app.restarts_7d or 0 }} restarts</span></div>
+    {% if app.entries %}
+    <ul class="dv-log">
+        {% for e in app.entries %}
+        <li>
+            <details>
+                <summary>
+                    {{ pill('bad' if e.level in ('ERROR', 'CRITICAL') else 'warn', e.level|capitalize) }}
+                    <span class="dv-log-when">{{ when(e.time) }}</span>
+                    <span class="dv-log-msg">{{ e.message }}</span>
+                    {% if e.where and e.where != '-' %}<code class="dv-note">{{ e.where }}</code>{% endif %}
+                </summary>
+                <pre class="dv-pre">{{ e.source }}{% if e.where %} [{{ e.where }}]{% endif %}
+{{ e.message }}{% for line in e.lines %}
+{{ line }}{% endfor %}</pre>
+            </details>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="panel-body text-muted">No errors or warnings in the last 7 days.</div>
+    {% endif %}
+</section>
+
+<div class="dv-two mb-4">
+    <section class="panel" aria-labelledby="fivexx-title">
+        <div class="panel-head"><h2 id="fivexx-title">Server errors (5xx), 24 h</h2></div>
+        {% if web.server_errors_24h %}
+        <div class="table-responsive">
+        <table class="table table-list dv-table">
+            <thead><tr><th>When</th><th>Request</th><th class="num">Status</th></tr></thead>
+            <tbody>{% for r in web.server_errors_24h %}<tr><td class="nowrap">{{ when(r.time) }}</td><td class="dv-path"><code>{{ r.method }} {{ r.path }}</code></td><td class="num">{{ r.status }}</td></tr>{% endfor %}</tbody>
+        </table>
+        </div>
+        <p class="form-hint px-3 pb-3 mb-0">A 502 right after a deploy is the restart gap.</p>
+        {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
+    </section>
+    <section class="panel" aria-labelledby="nginx-title">
+        <div class="panel-head"><h2 id="nginx-title">Web server errors, 7 days</h2></div>
+        {% if s.web_errors %}
+        <ul class="dv-log">
+            {% for e in s.web_errors %}<li class="dv-log-row"><span class="dv-log-when">{{ when(e.time) }}</span> <span class="dv-log-msg">{{ e.message }}</span></li>{% endfor %}
+        </ul>
+        {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
+    </section>
+</div>
+
+<section class="panel mb-4" aria-labelledby="nf-title">
+    <div class="panel-head"><h2 id="nf-title">Most requested missing pages, 24 h</h2><span class="text-muted small">Not counting attacks</span></div>
+    {% if web.not_found_24h %}
+    <div class="panel-body"><ol class="dv-rank dv-rank-wide">{% for path, n in web.not_found_24h %}<li><code>{{ path }}</code><b>{{ n }}</b></li>{% endfor %}</ol></div>
+    {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
+</section>
+
+{# ---- Server ---------------------------------------------------------------- #}
+<section class="panel mb-4" id="server" aria-labelledby="server-title">
+    <div class="panel-head"><h2 id="server-title">Server</h2><span class="text-muted small">{{ srv.hostname }}</span></div>
+    {% if srv %}
+    <div class="panel-body">
+        <dl class="dv-facts">
+            <div><dt>Services</dt><dd>{% for name, state in (srv.services or {}).items() %}{{ pill('good' if state == 'active' else 'bad', name) }} {% endfor %}</dd></div>
+            <div><dt>Up for</dt><dd>{{ dur(srv.uptime_seconds) }}{% if srv.reboot_required %} · {{ pill('info', 'Restart wanted for updates') }}{% endif %}</dd></div>
+            <div><dt>Load (1 / 5 / 15 min)</dt><dd>{{ srv.load|map('round', 2)|join(' / ') }} on {{ srv.cpus }} CPU</dd></div>
+            <div><dt>Memory</dt><dd>{{ size(srv.memory.total - srv.memory.available) }} of {{ size(srv.memory.total) }} used · swap {{ size(srv.memory.swap_total - srv.memory.swap_free) }} of {{ size(srv.memory.swap_total) }}</dd></div>
+            <div><dt>Disk</dt><dd>{{ size(srv.disk.used) }} of {{ size(srv.disk.total) }} used ({{ size(srv.disk.free) }} free)</dd></div>
+            <div><dt>Database</dt><dd>{{ size(srv.db_size) }}</dd></div>
+            <div><dt>Nightly backup</dt><dd>{% if srv.nightly_backup %}{{ ago(srv.nightly_backup.time) }} · {{ size(srv.nightly_backup.size) }}{% else %}{{ pill('bad', 'None found') }}{% endif %} · {{ srv.predeploy_backups or 0 }} pre-deploy copies</dd></div>
+            <div><dt>HTTPS certificate</dt><dd>{% if srv.cert_days_left is not none %}{{ srv.cert_days_left }} days left (renews itself at 30){% else %}–{% endif %}</dd></div>
+            <div><dt>System updates</dt><dd>{% if srv.updates_pending is none %}–{% else %}{{ srv.updates_pending }} waiting{% if srv.security_updates %}, {{ srv.security_updates }} security{% endif %}{% endif %}</dd></div>
+            <div><dt>App started</dt><dd>{{ ago(app.last_start) }}</dd></div>
+        </dl>
+    </div>
+    {% else %}
+    <div class="panel-body text-muted">No server data yet.</div>
+    {% endif %}
+</section>
+
+<div class="chart-tip" id="chartTip" role="status" aria-live="polite" hidden></div>
+<script type="application/json" id="dev-users">{{ u.chart|tojson }}</script>
+<script type="application/json" id="dev-hours">{{ hours|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/reports.js', v=ASSET_VERSION) }}"></script>{% endblock %}

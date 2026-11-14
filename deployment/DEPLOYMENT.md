@@ -374,6 +374,21 @@ Changes only to `docs/` or Markdown files do not deploy.
 
 `update.sh` and `rollback.sh` in this folder call the same script, so a manual deploy gets the same backup, health check and automatic recovery.
 
+**Deploy history:** each deploy and rollback adds a line to `/var/lib/harithma-deploy/history.jsonl` (time, result, commits, test counts from GitHub, duration, backup file). The developer page shows it.
+
+### Developer page (monitoring)
+
+*Menu → Developer → Monitor* (`/app/dev`). Only for emails listed in `HARITHMA_DEVELOPER_EMAILS` in `/opt/harithma-pos/.env` (comma-separated); everyone else, owners included, gets "page not found". Restart the service after changing it.
+
+It shows deploys and GitHub Actions runs (with test counts), users online and their sign-ins (including failed ones), unique users per day, website traffic per hour with attack and scanner requests, SSH break-in attempts and successful SSH logins, app errors with tracebacks, 5xx responses, nginx errors and server health (services, disk, memory, backups, certificate, updates). A "Needs attention" list at the top picks out what matters.
+
+| Piece | Where |
+|---|---|
+| Collector (root-owned copy of `deployment/monitor-collect.py`) | `/usr/local/bin/harithma-monitor-collect`, run every 5 minutes by `/etc/cron.d/harithma-monitor`. Reinstall after changing it: `sudo install -o root -g root -m 755 deployment/monitor-collect.py /usr/local/bin/harithma-monitor-collect` |
+| Its output | `/var/lib/harithma-monitor/snapshot.json` (root:harithma, 640), log in `/var/log/harithma-monitor.log` |
+| Sign-ins and activity | In the database: `login_event`, `user_activity_day` and `user.last_seen_dttm` |
+| App errors | Warnings and errors go to the journal in one format (`time LEVEL logger [METHOD /path user=id] message`), which the collector reads back |
+
 **Library versions** are pinned in `requirements.txt` to what production runs. To upgrade, change a version, push, and let the tests pass before it is deployed.
 
 **RabbitMQ:**
