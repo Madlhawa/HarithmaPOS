@@ -16,7 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
-| 14 Nov 2026 | **Tests before every deploy.** GitHub Actions runs the tests on every push and pull request; only a green run deploys, and it deploys that exact commit. Each deploy backs up the database, health-checks the site and puts the old version back if it fails. A one-click *Roll back* workflow. Library versions pinned to production's. The two broken workflows (pointing at the old server) were replaced. |
+| 14 Nov 2026 | **Tests before every deploy.** GitHub Actions runs the tests on every push and pull request; only a green run deploys, and it deploys that exact commit. Each deploy backs up the database, health-checks the site and puts the old version back if it fails. A one-click *Roll back* workflow. First automatic deploy from GitHub went live on 14 Nov. Library versions pinned to production's. The two broken workflows (pointing at the old server) were replaced. |
 | 13 Nov 2026 | **Floor board** (Menu → Floor board). A phone-first page for the floor supervisor: bays, queue, polishing and ready tabs; one-tap next-stage buttons; a sheet to change stage, bay or employee; add a vehicle to the queue or straight into a free bay, registering new plates and owners on the spot. |
 | 13 Nov 2026 | **Customer status page** shows subtotal and discounts; fixed coloured boxes behind some headings. |
 | 12 Nov 2026 | **Staff report** (Reports → Staff). Attendance rate, punctuality, lateness, absences, leave, short leaves, overtime, jobs and revenue per day worked, advances and staff cost, for everyone or one employee; who-was-in chart, arrival times, late by weekday, scorecard, leave used and staff cost by month. |
@@ -42,7 +42,6 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 |---|---|---|---|
 | Off-server backup copy | **Needs the owner** | Nightly backups are still on the droplet itself. Choose a destination: DigitalOcean droplet backups (switch on in the DigitalOcean account), DigitalOcean Spaces, or Google Drive. | S |
 | Uptime alerts | **Needs the owner** | Create a free UptimeRobot or Better Stack account and point it at https://harithma.lk. | S |
-| GitHub Actions deploy key | **Needs the owner** | Add the `DEPLOY_SSH_KEY` secret on GitHub and delete the old `SERVER_IP`, `SERVER_USER` and `SERVER_SSH_KEY` secrets. Until then the tests run but the deploy step stops with a message. | S |
 | RabbitMQ password | **Needs the owner** | The password equals the username. Change it on the RabbitMQ server, then on the Settings page. | S |
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
@@ -161,7 +160,7 @@ Attendance and payroll are live. Possible follow-ups:
 
 | Phase | Items |
 |---|---|
-| **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, GitHub deploy key, RabbitMQ password, GitHub cache purge. |
+| **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, RabbitMQ password, GitHub cache purge. |
 | **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export, stock movement log. |
 | **Later** | Packages and vehicle-type pricing, split payments and cash-up, staff clock-in and leave requests, loyalty and feedback, bookings and queue screen. |
 
