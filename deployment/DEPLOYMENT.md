@@ -341,14 +341,40 @@ sudo systemctl restart harithma-pos
 # Check status
 sudo systemctl status harithma-pos
 
-# Update application
-cd /opt/harithma-pos
-source venv/bin/activate
-git pull
-pip install -r requirements.txt
-flask db upgrade
-sudo systemctl restart harithma-pos
+# Update application by hand (normally GitHub Actions does this; see below)
+sudo bash /opt/harithma-pos/deployment/update.sh
 ```
+
+### Continuous deployment (GitHub Actions)
+
+Pushing to `main` runs `.github/workflows/ci.yaml`:
+
+1. **Tests** run on GitHub (Python 3.10, the pinned `requirements-dev.txt`). Pull requests run them too.
+2. If they pass, **Deploy** connects to the server over SSH and runs `deploy <commit>`. The server then:
+   - checks the commit exists (nothing changes if not);
+   - backs up the database to `/root/backups/predeploy/` (the last 20 are kept);
+   - checks out that exact commit, installs requirements and runs `flask db upgrade`;
+   - restarts the service and checks `http://127.0.0.1:8080/app/login` for up to 40 seconds;
+   - if anything fails, puts the previous commit back and restarts. Database changes are not undone; restore the backup if needed.
+3. The workflow then checks https://harithma.lk answers.
+
+Changes only to `docs/` or Markdown files do not deploy.
+
+**Rolling back:** Actions → *Roll back* → *Run workflow*. Leave the commit empty for the version before the last deploy, or enter one. On the server: `sudo bash /opt/harithma-pos/deployment/rollback.sh [commit]`.
+
+**How the server side is set up** (all done once; repeat only to rebuild the server):
+
+| Piece | Where |
+|---|---|
+| Deploy script (root-owned copy of `deployment/ci-deploy.sh`) | `/usr/local/bin/harithma-ci-deploy`. After changing the script in the repository, reinstall it: `sudo install -o root -g root -m 755 deployment/ci-deploy.sh /usr/local/bin/harithma-ci-deploy` |
+| Deploy key | `/root/.ssh/github_actions_deploy` (private) and a line in `/root/.ssh/authorized_keys` starting `restrict,command="/usr/local/bin/harithma-ci-deploy"`, so the key can only deploy or roll back |
+| GitHub secret | `DEPLOY_SSH_KEY` = the private key above (Settings → Secrets and variables → Actions) |
+| Server host key | Pinned in both workflow files. Update them if the server is rebuilt (`ssh-keyscan -t ed25519 harithma.lk`) |
+| Log | `/var/log/harithma-deploy.log` |
+
+`update.sh` and `rollback.sh` in this folder call the same script, so a manual deploy gets the same backup, health check and automatic recovery.
+
+**Library versions** are pinned in `requirements.txt` to what production runs. To upgrade, change a version, push, and let the tests pass before it is deployed.
 
 **RabbitMQ:**
 ```bash

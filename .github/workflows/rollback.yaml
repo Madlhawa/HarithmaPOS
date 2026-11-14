@@ -1,18 +1,54 @@
-name: Manual Rollback
+# Puts the previous version back on harithma.lk (or a commit you name).
+# Actions → Roll back → Run workflow.
+name: Roll back
 
-on: 
-  workflow_dispatch: # This allows you to click a button in GitHub UI
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Commit to go back to (leave empty for the version before the last deploy)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
 
 jobs:
   rollback:
+    name: Roll back harithma.lk
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://harithma.lk
     steps:
-      - name: Execute Rollback on Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            sudo chmod +x /opt/harithma-pos/deployment/rollback.sh
-            sudo /opt/harithma-pos/deployment/rollback.sh
+      - name: Check the commit
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          if [ -n "$COMMIT" ] && ! [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "::error::Give a commit id (7 to 40 characters, 0-9 and a-f), or leave it empty."
+            exit 1
+          fi
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::The DEPLOY_SSH_KEY secret is missing."
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo 'harithma.lk ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' > ~/.ssh/known_hosts
+      - name: Roll back
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "rollback $COMMIT"
+      - name: Check the live site
+        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors https://harithma.lk/app/login

@@ -1,0 +1,65 @@
+# Tests every push and pull request. On main, a green run deploys that exact commit.
+#
+# Needs one repository secret: DEPLOY_SSH_KEY (Settings → Secrets and variables → Actions).
+# Its public half is in /root/.ssh/authorized_keys on the server, locked to
+# /usr/local/bin/harithma-ci-deploy, so the key can only deploy or roll back.
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'      # same as the server
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Run the tests
+        run: python -m pytest -q tests
+
+  deploy:
+    name: Deploy to harithma.lk
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://harithma.lk
+    steps:
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::The DEPLOY_SSH_KEY secret is missing. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # The server's own key, so the connection cannot be intercepted.
+          echo 'harithma.lk ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' > ~/.ssh/known_hosts
+      - name: Deploy ${{ github.sha }}
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "deploy ${{ github.sha }}"
+      - name: Check the live site
+        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors https://harithma.lk/app/login
