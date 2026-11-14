@@ -29,7 +29,7 @@ def snapshot(tmp_path, monkeypatch):
                 'not_found_24h': [['/favicon.ico', 3]], 'server_errors_24h': [{'time': iso(40), 'ip': '1.2.3.4', 'method': 'GET', 'path': '/app/x', 'status': 502}],
                 'hourly': [{'hour': iso(60 * (23 - i)), 'ok': i, 'client_error': 1, 'suspicious': 2, 'server_error': 0} for i in range(24)],
                 'daily': []},
-        'web_errors': [{'time': iso(50), 'level': 'error', 'message': 'connect() failed while connecting to upstream'}],
+        'web_errors': {'entries': [{'time': iso(50), 'level': 'error', 'message': 'connect() failed while connecting to upstream'}], 'tls_noise_7d': 12},
         'ssh': {'failed_24h': 300, 'attacking_ips_24h': 40, 'top_ips': [['198.51.100.7', 90]], 'top_users': [['root', 200]],
                 'accepted_24h': [{'time': iso(10), 'method': 'publickey', 'user': 'root', 'ip': '192.0.2.1'}]},
         'app': {'entries': [{'time': iso(20), 'level': 'ERROR', 'source': 'harithmapos.views.invoice.routes',
@@ -73,7 +73,7 @@ def test_page_for_the_developer(app, snapshot):
                  '/wp-login.php', '203.0.113.9', 'Could not save service invoice 5', 'ValueError: boom',
                  'Successful SSH logins', 'connect() failed', 'Olivia Owner'):
         assert text in html, text
-    assert '1 app errors in the last 24 hours.' in html
+    assert '1 app error in the last 24 hours.' in html
     assert '/app/dev' in client.get('/app/dashboard').get_data(as_text=True)
 
 

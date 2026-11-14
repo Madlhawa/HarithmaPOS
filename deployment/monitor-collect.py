@@ -180,17 +180,25 @@ def nginx():
     }
 
 
+# Broken or hostile clients failing the TLS handshake: counted, not listed.
+TLS_NOISE = re.compile(r'while SSL handshaking|SSL_do_handshake\(\) failed')
+
+
 def nginx_errors():
-    out = []
+    out, tls_noise = [], 0
     for line in read_lines('/var/log/nginx/error.log'):
         m = re.match(r'^(\d{4}/\d\d/\d\d \d\d:\d\d:\d\d) \[(\w+)\] \d+#\d+: (?:\*\d+ )?(.*)$', line)
         if not m:
             continue
         ts = datetime.strptime(m[1], '%Y/%m/%d %H:%M:%S').replace(tzinfo=UTC)
-        if ts >= WEEK and m[2] in ('error', 'crit', 'alert', 'emerg'):
-            msg = re.sub(r', client: [^,]+', '', m[3])
-            out.append({'time': ts.isoformat(), 'level': m[2], 'message': msg[:300]})
-    return out[-20:][::-1]
+        if ts < WEEK or m[2] not in ('error', 'crit', 'alert', 'emerg'):
+            continue
+        if TLS_NOISE.search(m[3]):
+            tls_noise += 1
+            continue
+        msg = re.sub(r', client: [^,]+', '', m[3])
+        out.append({'time': ts.isoformat(), 'level': m[2], 'message': msg[:300]})
+    return {'entries': out[-20:][::-1], 'tls_noise_7d': tls_noise}
 
 
 def ssh():

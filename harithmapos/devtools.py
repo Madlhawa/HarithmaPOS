@@ -197,7 +197,7 @@ def alerts(snap, users, now=None):
     elif isinstance(nb_time, datetime) and now - nb_time > timedelta(hours=26):
         out.append(('bad', f'The last nightly backup is {int((now - nb_time).total_seconds() // 3600)} hours old.'))
     if srv.get('security_updates'):
-        out.append(('warn', f"{srv['security_updates']} security updates are waiting: run apt upgrade."))
+        out.append(('warn', f"{srv['security_updates']} security update(s) waiting: run apt upgrade."))
     if srv.get('reboot_required'):
         out.append(('info', 'The server wants a restart to finish installing updates.'))
 
@@ -214,10 +214,12 @@ def alerts(snap, users, now=None):
 
     app = snap.get('app') or {}
     if app.get('errors_24h'):
-        out.append(('bad', f"{app['errors_24h']} app errors in the last 24 hours."))
+        n = app['errors_24h']
+        out.append(('bad', f"{n} app error{'s' if n != 1 else ''} in the last 24 hours."))
     web = snap.get('web') or {}
     if (web.get('status_24h') or {}).get('5xx'):
-        out.append(('warn', f"{web['status_24h']['5xx']} requests failed with a server error (5xx) in 24 hours."))
+        n = web['status_24h']['5xx']
+        out.append(('warn', f"{n} request{'s' if n != 1 else ''} failed with a server error (5xx) in 24 hours."))
     if users and users['failed_7d'] >= 10:
         out.append(('warn', f"{users['failed_7d']} failed sign-ins in 7 days."))
     order = {'bad': 0, 'warn': 1, 'info': 2}

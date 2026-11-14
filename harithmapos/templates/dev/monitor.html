@@ -33,7 +33,8 @@
 {% set app = s.app or {} %}
 {% set srv = s.server or {} %}
 {% set ssh = s.ssh or {} %}
-{% set runs = (s.github or {}).runs or [] %}
+{% set all_runs = (s.github or {}).runs or [] %}
+{% set runs = all_runs|selectattr('name', 'in', ['Test and deploy', 'Roll back'])|list %}
 {% set deploys = s.deploys or [] %}
 {% set u = users %}
 
@@ -70,7 +71,7 @@
     <div class="kpi">
         <div class="kpi-label">Last deploy</div>
         <div class="kpi-value">{% if last_deploy %}{{ last_deploy.to[:7] }}{% else %}–{% endif %}</div>
-        <div class="kpi-sub">{% if last_deploy %}{{ conclusion('success' if last_deploy.result == 'success' else 'failure') }} {{ ago(last_deploy.time) }}{% else %}None recorded yet{% endif %}</div>
+        <div class="kpi-sub">{% if last_deploy %}{% if last_deploy.result == 'success' %}{{ pill('good', 'Done') }}{% else %}{{ pill('bad', last_deploy.result|capitalize) }}{% endif %} {{ ago(last_deploy.time) }}{% else %}None recorded yet{% endif %}</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Tests (last pipeline run)</div>
@@ -140,7 +141,7 @@
 </section>
 
 <section class="panel mb-4" aria-labelledby="runs-title">
-    <div class="panel-head"><h2 id="runs-title">GitHub Actions</h2>{% if (s.github or {}).error %}<span class="text-muted small">{{ s.github.error }} (showing the last list)</span>{% endif %}</div>
+    <div class="panel-head"><h2 id="runs-title">GitHub Actions</h2>{% if all_runs|length > runs|length %}<span class="text-muted small">{{ all_runs|length - runs|length }} runs of removed workflows not shown</span>{% endif %}{% if (s.github or {}).error %}<span class="text-muted small">{{ s.github.error }} (showing the last list)</span>{% endif %}</div>
     {% if runs %}
     <div class="table-responsive">
     <table class="table table-list dv-table">
@@ -288,7 +289,7 @@
             <thead><tr><th>Address</th><th class="num">Requests</th><th>Looking for</th><th>Last</th></tr></thead>
             <tbody>
             {% for p in web.top_probe_ips %}
-            <tr><td><code>{{ p.ip }}</code></td><td class="num">{{ p.count }}</td><td><span class="dv-note">{{ p.kinds|join(', ') }}</span></td><td class="nowrap">{{ when(p.last) }}</td></tr>
+            <tr><td class="nowrap"><code>{{ p.ip }}</code></td><td class="num">{{ p.count }}</td><td><span class="dv-note">{{ p.kinds|join(', ') }}</span></td><td class="nowrap">{{ when(p.last) }}</td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -307,7 +308,7 @@
         {% for p in web.recent_probes[:40] %}
         <tr>
             <td class="nowrap">{{ when(p.time) }}</td>
-            <td><code>{{ p.ip }}</code></td>
+            <td class="nowrap"><code>{{ p.ip }}</code></td>
             <td>{{ p.kind }}</td>
             <td class="dv-path"><code>{{ p.method }} {{ p.path }}</code><div class="dv-note">{{ p.agent }}</div></td>
             <td class="num">{{ p.status }}</td>
@@ -383,10 +384,11 @@
         {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
     </section>
     <section class="panel" aria-labelledby="nginx-title">
-        <div class="panel-head"><h2 id="nginx-title">Web server errors, 7 days</h2></div>
-        {% if s.web_errors %}
+        {% set we = s.web_errors if s.web_errors is mapping else {'entries': s.web_errors or [], 'tls_noise_7d': 0} %}
+        <div class="panel-head"><h2 id="nginx-title">Web server errors, 7 days</h2>{% if we.tls_noise_7d %}<span class="text-muted small">{{ we.tls_noise_7d }} failed TLS handshakes from bad clients not shown</span>{% endif %}</div>
+        {% if we.entries %}
         <ul class="dv-log">
-            {% for e in s.web_errors %}<li class="dv-log-row"><span class="dv-log-when">{{ when(e.time) }}</span> <span class="dv-log-msg">{{ e.message }}</span></li>{% endfor %}
+            {% for e in we.entries %}<li class="dv-log-row"><span class="dv-log-when">{{ when(e.time) }}</span> <span class="dv-log-msg">{{ e.message }}</span></li>{% endfor %}
         </ul>
         {% else %}<div class="panel-body text-muted">None.</div>{% endif %}
     </section>
