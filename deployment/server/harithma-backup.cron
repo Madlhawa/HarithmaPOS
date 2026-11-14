@@ -1,0 +1,2 @@
+# Nightly database backup at 02:30 Sri Lanka time (21:00 UTC).
+0 21 * * * root /usr/local/bin/harithma-backup >> /var/log/harithma-backup.log 2>&1

@@ -1,66 +1,73 @@
 # 🚀 Complete Ubuntu Server Deployment Guide
 
-## Prerequisites
-- Ubuntu 20.04+ server with SSH access
-- Root or sudo privileges
-- Domain name (optional, can use IP address)
+## Setting up a new server
 
----
+`deployment/deploy.sh` builds a server that matches production in one run. It is safe
+to run again: it never deletes the app folder, the database or `.env`.
 
-## ⚡ Quick Start (Automated - 10 Minutes)
+### What you need
+- A fresh **Ubuntu 22.04** server (1 GB memory works; 2 GB gives more headroom), with root SSH access.
+- The domain name, if the site should have HTTPS (it can point at the new server later).
+- To move existing data: a fresh backup from the old server, taken just before the move:
+  ```bash
+  sudo -u postgres pg_dump -Fc harithma_pos > /root/harithma_pos_move.dump
+  ```
+  Copy it to the new server (for example with `scp`). Stop the old app first
+  (`systemctl stop harithma-pos`) so no sales are made after the backup.
+- The public half of the GitHub deploy key. It is on the old server in
+  `/root/.ssh/github_actions_deploy.pub`, or in `/root/.ssh/authorized_keys` on the
+  line starting `restrict,command="/usr/local/bin/harithma-ci-deploy"` (copy the part
+  from `ssh-ed25519` on).
 
-### Complete Deployment (Application + RabbitMQ)
-
-1. **SSH into your server:**
+### Steps
+1. **Get the script and run it** on the new server as root:
    ```bash
-   ssh root@your-server
+   curl -fsSLo deploy.sh https://raw.githubusercontent.com/Madlhawa/HarithmaPOS/main/deployment/deploy.sh
+   sudo bash deploy.sh --domain harithma.lk --developer you@example.com \
+       --restore /root/harithma_pos_move.dump --deploy-key "ssh-ed25519 AAAA... github-actions"
    ```
+   Leave out `--restore` to start with an empty database. `--email you@example.com` adds
+   a contact address for certificate expiry notices. `sudo bash deploy.sh --help` lists the options.
+2. **Fill in `.env`.** The script writes `/opt/harithma-pos/.env` with a new database
+   password and secret key. Copy the email, SMS (`NOTIFYLK_*`) and RabbitMQ values
+   from the old server's `.env`, then `systemctl restart harithma-pos`.
+3. **New, empty database only:** create the first owner account with the command the
+   script prints at the end (`flask create-user`).
+4. **Point DNS at the new server.** Until it does, the site is served over plain
+   HTTP by IP address. Once it does, run the script again with the same `--domain`:
+   it gets the HTTPS certificate, switches nginx to HTTPS and turns on secure cookies.
+5. **Point GitHub's deploys at the new server.** In the repository, Settings → Secrets
+   and variables → Actions → **Variables**, set the two values the script printed:
+   - `DEPLOY_HOST`: the domain (for example `harithma.lk`).
+   - `DEPLOY_HOST_KEY`: the new server's SSH key (`ssh-ed25519 AAAA...`).
 
-2. **Run the deployment script:**
-   ```bash
-   # Clone the repository
-   git clone https://github.com/Madlhawa/HarithmaPOS.git /tmp/harithma-pos
-   cd /tmp/harithma-pos/deployment
-   
-   # Make executable and run
-   chmod +x deploy.sh
-   sudo ./deploy.sh
-   ```
+   The `DEPLOY_SSH_KEY` secret stays the same. Without these variables the workflows
+   use the current server's values, so deploys are refused (safely) until they are set.
+6. **Check:** open the site and sign in, open *Developer → Monitor*, and push a small
+   change (or run *Test and deploy* by hand from the Actions tab) to see a deploy succeed.
+   Keep the old server for a few days before deleting it.
 
-3. **Follow the prompts:**
-   - Script will deploy the application
-   - Optionally set up Nginx
-   - Optionally set up RabbitMQ
+### What the script sets up
 
-4. **Create admin user:**
-   ```bash
-   cd /opt/harithma-pos
-   source venv/bin/activate
-   export $(grep -v '^#' .env | grep -v '^$' | xargs)
-   flask create-user
-   ```
+| Piece | Details | Source in the repository |
+|---|---|---|
+| System | Package updates, automatic security updates, firewall (SSH, 80, 443 only), 2 GB swap | `deploy.sh` |
+| App | `harithma` user, code in `/opt/harithma-pos`, Python venv, `.env` | `deploy.sh` |
+| Database | PostgreSQL database `harithma_pos` owned by `harithma_user`; restore or `flask db upgrade` | `deploy.sh` |
+| Service | `harithma-pos` (gunicorn on 127.0.0.1:8080), starts on boot | `server/harithma-pos.service` |
+| Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, and sign-in limited to 10 posts a minute per address | `server/nginx-http.conf`, `server/nginx-https.conf`, `server/429.html` |
+| HTTPS | Let's Encrypt certificate, renewed automatically by certbot's timer | `deploy.sh` |
+| Nightly backup | 21:00 UTC (02:30 Sri Lanka) to `/root/backups/nightly`, kept 14 days | `server/harithma-backup.sh`, `server/harithma-backup.cron` |
+| Deploys | `/usr/local/bin/harithma-ci-deploy` and the restricted GitHub key | `ci-deploy.sh` |
+| Developer page | Collector every 5 minutes | `monitor-collect.py`, `server/harithma-monitor.cron` |
 
-5. **Done!** Access at `http://your-server-ip` or your domain
+The root-owned scripts in `/usr/local/bin` are copies. After changing one in the
+repository, run `deploy.sh` again or reinstall that file with `install -o root -g root -m 755`.
 
-### What the Scripts Do
+Backups stay on the same server. Copy them somewhere else as well (see Security Recommendations).
 
-**Main Deployment Script (`deploy.sh`):**
-✅ Clones code from GitHub repository  
-✅ Installs Python, PostgreSQL, Nginx  
-✅ Creates database and user with proper permissions  
-✅ Sets up virtual environment  
-✅ Installs dependencies  
-✅ Creates systemd service (auto-start on boot)  
-✅ Optionally configures Nginx reverse proxy  
-✅ Generates secure passwords and keys  
-✅ Optionally runs RabbitMQ setup  
-
-**RabbitMQ Setup Script (`setup_rabbitmq.sh`):**
-✅ Installs RabbitMQ server using official repositories  
-✅ Creates dedicated user with secure password  
-✅ Sets up required queues  
-✅ Updates .env file with credentials  
-✅ Enables management web UI  
+**RabbitMQ** (receipt printing queue) is not set up by `deploy.sh`; run
+`sudo bash /opt/harithma-pos/deployment/setup_rabbitmq.sh` if you need it.
 
 ---
 
@@ -356,7 +363,7 @@ Pushing to `main` runs `.github/workflows/ci.yaml`:
    - checks out that exact commit, installs requirements and runs `flask db upgrade`;
    - restarts the service and checks `http://127.0.0.1:8080/app/login` for up to 40 seconds;
    - if anything fails, puts the previous commit back and restarts. Database changes are not undone; restore the backup if needed.
-3. The workflow then checks https://harithma.lk answers.
+3. The workflow then checks the live site answers.
 
 Changes only to `docs/` or Markdown files do not deploy.
 
@@ -367,9 +374,9 @@ Changes only to `docs/` or Markdown files do not deploy.
 | Piece | Where |
 |---|---|
 | Deploy script (root-owned copy of `deployment/ci-deploy.sh`) | `/usr/local/bin/harithma-ci-deploy`. After changing the script in the repository, reinstall it: `sudo install -o root -g root -m 755 deployment/ci-deploy.sh /usr/local/bin/harithma-ci-deploy` |
-| Deploy key | `/root/.ssh/github_actions_deploy` (private) and a line in `/root/.ssh/authorized_keys` starting `restrict,command="/usr/local/bin/harithma-ci-deploy"`, so the key can only deploy or roll back |
+| Deploy key | A line in `/root/.ssh/authorized_keys` starting `restrict,command="/usr/local/bin/harithma-ci-deploy"`, so the key can only deploy or roll back. The private half is only in the GitHub secret |
 | GitHub secret | `DEPLOY_SSH_KEY` = the private key above (Settings → Secrets and variables → Actions) |
-| Server host key | Pinned in both workflow files. Update them if the server is rebuilt (`ssh-keyscan -t ed25519 harithma.lk`) |
+| Server name and host key | Repository variables `DEPLOY_HOST` and `DEPLOY_HOST_KEY`; the workflow files fall back to the current server's values. Set them when moving to a new server (`deploy.sh` prints both) |
 | Log | `/var/log/harithma-deploy.log` |
 
 `update.sh` and `rollback.sh` in this folder call the same script, so a manual deploy gets the same backup, health check and automatic recovery.

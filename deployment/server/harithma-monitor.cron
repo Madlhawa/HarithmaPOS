@@ -1,0 +1,2 @@
+# Developer page data: logs, GitHub Actions and server health (see deployment/monitor-collect.py)
+*/5 * * * * root /usr/local/bin/harithma-monitor-collect >> /var/log/harithma-monitor.log 2>&1

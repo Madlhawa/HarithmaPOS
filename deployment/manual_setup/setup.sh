@@ -1,23 +1,12 @@
 # installing rabbit MQ
     # https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith
 
-# deploying the application
-    curl -o deploy.sh https://raw.githubusercontent.com/Madlhawa/HarithmaPOS/main/deployment/deploy.sh
-    chmod +x deploy.sh
-    ./deploy.sh
+# deploying the application and github actions
+    # see "Setting up a new server" in deployment/DEPLOYMENT.md (sudo bash deployment/deploy.sh --help)
 
 # inserting sample items
     cd /opt/harithma-pos
     sudo -u postgres psql -d harithma_pos -f deployment/manual_setup/sample_items_insert.sql
-
-# setting up github actions
-    #run this in local to generate the ssh key
-    ssh-keygen -t ed25519 -C "github-actions"
-    #add the public key to the ubuntu server .ssh/authorized_keys
-    #add the private key to the github actions secret with following secrets
-        # SERVER_SSH_KEY: <private key>
-        # SERVER_USER: <ubuntu user>
-        # SERVER_IP: <ubuntu server ip>
 
 # installing postgresql server
     sudo apt update

@@ -16,6 +16,13 @@ on:
 permissions:
   contents: read
 
+# The server. To move to a new one, set the repository variables DEPLOY_HOST and
+# DEPLOY_HOST_KEY (Settings → Secrets and variables → Actions → Variables);
+# deployment/deploy.sh prints both. Without them, these defaults are used.
+env:
+  DEPLOY_HOST: ${{ vars.DEPLOY_HOST || 'harithma.lk' }}
+  DEPLOY_HOST_KEY: ${{ vars.DEPLOY_HOST_KEY || 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' }}
+
 jobs:
   test:
     name: Tests
@@ -69,7 +76,7 @@ jobs:
       cancel-in-progress: false
     environment:
       name: production
-      url: https://harithma.lk
+      url: https://${{ vars.DEPLOY_HOST || 'harithma.lk' }}
     steps:
       - name: Set up SSH
         env:
@@ -83,8 +90,8 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           # The server's own key, so the connection cannot be intercepted.
-          echo 'harithma.lk ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' > ~/.ssh/known_hosts
+          printf '%s %s\n' "$DEPLOY_HOST" "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
       - name: Deploy ${{ github.sha }}
-        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "deploy ${{ github.sha }} ${{ needs.test.outputs.passed || 0 }} ${{ needs.test.outputs.failed || 0 }} ${{ needs.test.outputs.skipped || 0 }} ${{ needs.test.outputs.seconds || 0 }} ${{ github.run_id }}"
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@"$DEPLOY_HOST" "deploy ${{ github.sha }} ${{ needs.test.outputs.passed || 0 }} ${{ needs.test.outputs.failed || 0 }} ${{ needs.test.outputs.skipped || 0 }} ${{ needs.test.outputs.seconds || 0 }} ${{ github.run_id }}"
       - name: Check the live site
-        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors https://harithma.lk/app/login
+        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors "https://$DEPLOY_HOST/app/login"

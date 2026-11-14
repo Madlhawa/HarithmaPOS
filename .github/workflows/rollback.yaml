@@ -17,6 +17,13 @@ concurrency:
   group: production
   cancel-in-progress: false
 
+# The server. To move to a new one, set the repository variables DEPLOY_HOST and
+# DEPLOY_HOST_KEY (Settings → Secrets and variables → Actions → Variables);
+# deployment/deploy.sh prints both. Without them, these defaults are used.
+env:
+  DEPLOY_HOST: ${{ vars.DEPLOY_HOST || 'harithma.lk' }}
+  DEPLOY_HOST_KEY: ${{ vars.DEPLOY_HOST_KEY || 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' }}
+
 jobs:
   rollback:
     name: Roll back harithma.lk
@@ -24,7 +31,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: production
-      url: https://harithma.lk
+      url: https://${{ vars.DEPLOY_HOST || 'harithma.lk' }}
     steps:
       - name: Check the commit
         env:
@@ -45,10 +52,10 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo 'harithma.lk ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILfzZScVYup44d+NZhn0cc244I9+BcHma+tJR6VBZZbu' > ~/.ssh/known_hosts
+          printf '%s %s\n' "$DEPLOY_HOST" "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
       - name: Roll back
         env:
           COMMIT: ${{ inputs.commit }}
-        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@harithma.lk "rollback $COMMIT"
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@"$DEPLOY_HOST" "rollback $COMMIT"
       - name: Check the live site
-        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors https://harithma.lk/app/login
+        run: curl -fsS -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors "https://$DEPLOY_HOST/app/login"
