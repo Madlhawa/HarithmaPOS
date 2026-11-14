@@ -14,17 +14,36 @@ to run again: it never deletes the app folder, the database or `.env`.
   ```
   Copy it to the new server (for example with `scp`). Stop the old app first
   (`systemctl stop harithma-pos`) so no sales are made after the backup.
-- The public half of the GitHub deploy key. It is on the old server in
-  `/root/.ssh/github_actions_deploy.pub`, or in `/root/.ssh/authorized_keys` on the
-  line starting `restrict,command="/usr/local/bin/harithma-ci-deploy"` (copy the part
-  from `ssh-ed25519` on).
+- The public half of the GitHub deploy key, for `--deploy-key` (see below).
+
+### GitHub deploy key
+
+GitHub Actions deploys by logging in to the server with this key. Pass its public
+half to `--deploy-key`, in quotes:
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItRF0RcRzYO0X43G/sliz8rIh2XWzcEtsiAC1Dv9Og7 github-actions-deploy harithma.lk
+```
+
+- **It is safe to publish.** A public key only lets in whoever holds the matching
+  private key. The private half is only in GitHub's `DEPLOY_SSH_KEY` secret; it is
+  never written to the server or to this repository.
+- **It can only deploy.** `deploy.sh` adds it to `/root/.ssh/authorized_keys` with
+  `restrict,command="/usr/local/bin/harithma-ci-deploy"`: no shell, no port forwarding,
+  only "deploy a commit" or "roll back", and the script checks its arguments.
+- **If the private key leaks** (or you want to replace it): make a new pair with
+  `ssh-keygen -t ed25519 -N "" -C github-actions-deploy -f deploy_key`, put the
+  contents of `deploy_key` in the `DEPLOY_SSH_KEY` secret, run `deploy.sh` again with
+  `--deploy-key "$(cat deploy_key.pub)"`, delete the old line from
+  `/root/.ssh/authorized_keys`, delete the `deploy_key` file, and update the key above.
 
 ### Steps
 1. **Get the script and run it** on the new server as root:
    ```bash
    curl -fsSLo deploy.sh https://raw.githubusercontent.com/Madlhawa/HarithmaPOS/main/deployment/deploy.sh
    sudo bash deploy.sh --domain harithma.lk --developer you@example.com \
-       --restore /root/harithma_pos_move.dump --deploy-key "ssh-ed25519 AAAA... github-actions"
+       --restore /root/harithma_pos_move.dump \
+       --deploy-key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItRF0RcRzYO0X43G/sliz8rIh2XWzcEtsiAC1Dv9Og7 github-actions-deploy harithma.lk"
    ```
    Leave out `--restore` to start with an empty database. `--email you@example.com` adds
    a contact address for certificate expiry notices. `sudo bash deploy.sh --help` lists the options.
@@ -51,15 +70,15 @@ to run again: it never deletes the app folder, the database or `.env`.
 
 | Piece | Details | Source in the repository |
 |---|---|---|
-| System | Package updates, automatic security updates, firewall (SSH, 80, 443 only), 2 GB swap | `deploy.sh` |
-| App | `harithma` user, code in `/opt/harithma-pos`, Python venv, `.env` | `deploy.sh` |
-| Database | PostgreSQL database `harithma_pos` owned by `harithma_user`; restore or `flask db upgrade` | `deploy.sh` |
-| Service | `harithma-pos` (gunicorn on 127.0.0.1:8080), starts on boot | `server/harithma-pos.service` |
-| Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, and sign-in limited to 10 posts a minute per address | `server/nginx-http.conf`, `server/nginx-https.conf`, `server/429.html` |
-| HTTPS | Let's Encrypt certificate, renewed automatically by certbot's timer | `deploy.sh` |
-| Nightly backup | 21:00 UTC (02:30 Sri Lanka) to `/root/backups/nightly`, kept 14 days | `server/harithma-backup.sh`, `server/harithma-backup.cron` |
-| Deploys | `/usr/local/bin/harithma-ci-deploy` and the restricted GitHub key | `ci-deploy.sh` |
-| Developer page | Collector every 5 minutes | `monitor-collect.py`, `server/harithma-monitor.cron` |
+| System | Package updates, automatic security updates, firewall (SSH, 80, 443 only), 2 GB swap | `deployment/deploy.sh` |
+| App | `harithma` user, code in `/opt/harithma-pos`, Python venv, `.env` | `deployment/deploy.sh` |
+| Database | PostgreSQL database `harithma_pos` owned by `harithma_user`; restore or `flask db upgrade` | `deployment/deploy.sh` |
+| Service | `harithma-pos` (gunicorn on 127.0.0.1:8080), starts on boot | `deployment/server/harithma-pos.service` |
+| Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, and sign-in limited to 10 posts a minute per address | `deployment/server/nginx-http.conf`, `deployment/server/nginx-https.conf`, `deployment/server/429.html` |
+| HTTPS | Let's Encrypt certificate, renewed automatically by certbot's timer | `deployment/deploy.sh` |
+| Nightly backup | 21:00 UTC (02:30 Sri Lanka) to `/root/backups/nightly`, kept 14 days | `deployment/server/harithma-backup.sh`, `deployment/server/harithma-backup.cron` |
+| Deploys | `/usr/local/bin/harithma-ci-deploy` and the restricted GitHub key | `deployment/ci-deploy.sh` |
+| Developer page | Collector every 5 minutes | `deployment/monitor-collect.py`, `deployment/server/harithma-monitor.cron` |
 
 The root-owned scripts in `/usr/local/bin` are copies. After changing one in the
 repository, run `deploy.sh` again or reinstall that file with `install -o root -g root -m 755`.

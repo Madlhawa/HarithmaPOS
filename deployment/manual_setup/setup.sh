@@ -2,7 +2,7 @@
     # https://www.rabbitmq.com/docs/install-debian#apt-quick-start-cloudsmith
 
 # deploying the application and github actions
-    # see "Setting up a new server" in deployment/DEPLOYMENT.md (sudo bash deployment/deploy.sh --help)
+    # see "Setting up a new server" in docs/DEPLOYMENT.md (sudo bash deployment/deploy.sh --help)
 
 # inserting sample items
     cd /opt/harithma-pos
