@@ -72,10 +72,11 @@
                     {% else %}
                     <div class="row g-3 mt-1">
                         <div class="col-6">{{ field('discount_pct', 'Discount %', prefix='pob', kind='money', value=po.discount_pct|qty if po.discount_pct else '', placeholder='0', wrap='') }}</div>
-                        <div class="col-6">{{ field('paid_amount', 'Amount paid', prefix='pob', kind='money', value=po.paid_amount|money if po.paid_amount else '', placeholder='0.00', wrap='') }}</div>
+                        <div class="col-6">{{ field('paid_now', 'Paid now', prefix='pob', kind='money', placeholder='0.00', wrap='') }}</div>
                     </div>
                     <label class="form-label mt-3">Paid by</label>
-                    {{ payment_choice(po.payment_method, prefix='popm') }}
+                    {{ payment_choice('bt', prefix='popm') }}
+                    <div class="form-hint">Recorded when you press Complete.</div>
                     {% endif %}
                 </div>
                 <div class="panel-body border-top d-grid gap-2">
@@ -91,5 +92,5 @@
         </form>
     </div>
 </div>
-{{ pay_modal(po, 'payOrder', url_for('payment_blueprint.pay_purchase_order', purchase_order_head_id=po.id), title='Pay supplier for order #' ~ po.id, verb='Record payment') }}
+{{ pay_modal(po, 'payOrder', url_for('payment_blueprint.pay_purchase_order', purchase_order_head_id=po.id), title='Pay supplier for order #' ~ po.id, verb='Record payment', refund_action=url_for('payment_blueprint.refund_purchase_order', purchase_order_head_id=po.id)) }}
 {% endblock %}

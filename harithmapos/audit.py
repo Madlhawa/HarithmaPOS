@@ -82,7 +82,11 @@ def _payment_label(p):
 def _payment_summary(p):
     direction = {'in': 'in', 'out': 'out'}.get(p.payment_direction, p.payment_direction or '')
     method = dict(models.config.PAYMENT_METHOD_FORM_LIST).get(p.payment_method, p.payment_method or '')
-    return f"{models.config.CURRENCY} {_money(p.payment_amount)} {direction}, {method}".strip(', ')
+    kind = dict(models.config.PAYMENT_TYPE_FORM_LIST).get(p.payment_type, p.payment_type or '')
+    text = f"{models.config.CURRENCY} {_money(p.payment_amount)} {direction}, {method}, {kind}"
+    if p.reverses_id:
+        text += f", reverses #{p.reverses_id}"
+    return text
 
 
 def _line_summary(line):

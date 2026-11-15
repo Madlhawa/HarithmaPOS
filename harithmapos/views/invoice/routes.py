@@ -7,8 +7,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from harithmapos import db, config
 from harithmapos import settings as app_settings
 from harithmapos import job_requests
-from harithmapos.billing import invoice_totals, line_amounts, to_decimal
-from harithmapos.timeutils import local_today, utcnow
+from harithmapos.billing import invoice_totals, line_amounts, money, to_decimal
+from harithmapos.timeutils import utcnow
 from harithmapos.models import (
     InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle,
     WashBay, Employee, Item, Payment, InvoiceStatusLog, InvoiceRequest,
@@ -17,7 +17,7 @@ from harithmapos.views.invoice.forms import (
     InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm,
     ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm, InvoiceStatusForm,
 )
-from harithmapos.views.ledger import sync_document_payment
+from harithmapos import ledger
 from harithmapos.permissions import owner_required, user_is_owner, OWNER_ONLY_MESSAGE
 
 import harithmapos.views.utils as utils
@@ -146,8 +146,6 @@ def insert_invoice_head():
             current_milage=form.current_milage.data,
             next_milage=form.current_milage.data,
             service_status=config.SERVICE_STATUS_WAITING,
-            payment_method='cash',
-            remaining_amount=0,
         )
         _log_status(invoice, previous_log_id=None)
     except Exception:
@@ -178,7 +176,7 @@ def insert_item_invoice_head():
 
     try:
         item_invoice = safe_insert_with_sequence_check(
-            ItemInvoiceHead, customer_id=customer.id, payment_method='cash', remaining_amount=0)
+            ItemInvoiceHead, customer_id=customer.id)
     except Exception:
         logger.exception("Could not create item invoice")
         flash("The invoice could not be created. Please try again.", category='danger')
@@ -201,7 +199,7 @@ def create_quick_item_invoice():
                 address="Walk-in customer",
             )
         item_invoice = safe_insert_with_sequence_check(
-            ItemInvoiceHead, customer_id=general_customer.id, payment_method='cash', remaining_amount=0)
+            ItemInvoiceHead, customer_id=general_customer.id)
     except Exception:
         logger.exception("Could not create quick item invoice")
         flash("The invoice could not be created. Please try again.", category='danger')
@@ -247,12 +245,12 @@ def invoice_head_detail(invoice_head_id):
             _notify_customer(invoice_head, started=False)
         elif form.complete_invoice.data:
             _complete_documents(
-                invoice_head, 'invoice_id',
+                invoice_head, form,
                 url_for('invoice_blueprint.print_invoice_head', invoice_head_id=invoice_head.id),
                 f"Invoice #{invoice_head.id} completed.")
             return redirect(url_for('dashboard_blueprint.dashboard'))
         else:
-            flash("Invoice saved.", category='success')
+            _saved_message(form)
         return redirect(here)
 
     # Recalculate on every view so totals can never drift from the lines.
@@ -389,17 +387,11 @@ def item_invoice_head_detail(item_invoice_head_id):
                 customer = db.session.get(Customer, form.customer_id.data)
                 if customer:
                     item_invoice_head.customer_id = customer.id
-            # Once completed, money is taken with "Record payment", so the paid box is not on the page.
-            if not item_invoice_head.is_completed:
-                item_invoice_head.payment_method = form.payment_method.data
-                item_invoice_head.paid_amount = form.paid_amount.data or 0
             item_invoice_head.discount_amount = form.discount_amount.data or 0
             item_invoice_head.update_dttm = utcnow()
             if form.complete_item_invoice.data and not item_invoice_head.is_completed:
                 item_invoice_head.completed_dttm = utcnow()
             _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-            if item_invoice_head.paid_amount:
-                item_invoice_head.last_payment_date = local_today(config.APP_TIMEZONE)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -409,12 +401,12 @@ def item_invoice_head_detail(item_invoice_head_id):
 
         if form.complete_item_invoice.data:
             _complete_documents(
-                item_invoice_head, 'item_invoice_id',
+                item_invoice_head, form,
                 url_for('invoice_blueprint.print_item_invoice_head', item_invoice_head_id=item_invoice_head.id),
                 f"Item invoice #{item_invoice_head.id} completed.")
             return redirect(url_for('dashboard_blueprint.dashboard'))
 
-        flash("Invoice saved.", category='success')
+        _saved_message(form)
         return redirect(here)
 
     item_invoice_details = _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
@@ -459,7 +451,7 @@ def delete_invoice_head(invoice_head_id):
 def delete_item_invoice_head(item_invoice_head_id):
     item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
     if Payment.query.filter(Payment.item_invoice_id == item_invoice_head.id).count():
-        flash("This invoice has payments recorded against it. Delete those on the Payments page first.",
+        flash("Money has been recorded against this invoice, so it cannot be deleted. Payments stay in the ledger; reversing them does not remove them.",
               category='warning')
         return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id))
     try:
@@ -556,13 +548,12 @@ def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
 def _recalculate(head, detail_model, head_column):
     """Recompute the head totals from its lines. Returns the lines. Does not commit."""
     details = detail_model.query.filter(head_column == head.id).order_by(detail_model.id).all()
-    totals = invoice_totals(details, bill_discount=head.discount_amount, paid=head.paid_amount)
+    totals = invoice_totals(details, bill_discount=head.discount_amount)
     head.total_cost = totals['total_cost']
     head.total_price = totals['total_price']
     head.total_discount = totals['total_discount']
     head.discount_amount = totals['discount_amount']
     head.gross_price = totals['gross_price']
-    head.remaining_amount = totals['remaining_amount']
     return details
 
 
@@ -741,10 +732,6 @@ def _save_service_invoice(invoice_head, form):
     else:
         invoice_head.next_milage = current
 
-    # Once completed, money is taken with "Record payment", so the paid box is not on the page.
-    if not invoice_head.is_completed:
-        invoice_head.payment_method = form.payment_method.data
-        invoice_head.paid_amount = form.paid_amount.data or 0
     invoice_head.discount_amount = form.discount_amount.data or 0
     invoice_head.update_dttm = utcnow()
 
@@ -752,28 +739,45 @@ def _save_service_invoice(invoice_head, form):
     status_changed = _change_status(invoice_head, new_status)
 
     _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    if invoice_head.paid_amount:
-        invoice_head.last_payment_date = local_today(config.APP_TIMEZONE)
     db.session.commit()
 
     if status_changed:
         _log_status(invoice_head)
 
 
-def _complete_documents(head, link_field, print_url, success_message):
-    """After a successful save: record the payment and open the print window on the next page."""
+def _complete_documents(head, form, print_url, success_message):
+    """After a successful save: record the money handed over, then open the print window on the next page."""
+    method = form.payment_method.data if form.payment_method.data in ledger.METHODS else 'cash'
     try:
-        sync_document_payment(head, link_field)
+        entry, change = ledger.take_on_completion(head, form.received_amount.data or 0, method, current_user)
+        db.session.commit()
+    except ledger.LedgerError as exc:
+        db.session.rollback()
+        flash(f"{success_message} The payment was not recorded: {exc} Use Record payment on the bill.", category='warning')
+        return
     except Exception:
         db.session.rollback()
-        logger.exception("Could not record payment for %s %s", link_field, head.id)
-        flash("The invoice is saved, but its payment could not be recorded. Press Complete again.",
+        logger.exception("Could not record the payment for %s #%s", type(head).__name__, head.id)
+        flash(f"{success_message} The payment could not be recorded: use Record payment on the bill.",
               category='danger')
         return
 
-    flash(success_message, category='success')
+    message = success_message
+    if change > 0:
+        message += f" Give back {config.CURRENCY} {change:,.2f} change."
+    if head.balance > 0:
+        message += f" Still to pay: {config.CURRENCY} {money(head.balance):,.2f}."
+    flash(message, category='success')
     if app_settings.get('print_on_complete'):
         session['print_after'] = print_url
+
+
+def _saved_message(form):
+    """Save does not take money: say so if an amount was typed."""
+    if form.received_amount.data:
+        flash("Saved. The amount received is recorded only when you press Complete.", category='info')
+    else:
+        flash("Invoice saved.", category='success')
 
 
 def _notify_customer(invoice_head, started):
@@ -808,7 +812,7 @@ def _notify_customer(invoice_head, started):
 def _delete_service_invoice(invoice_head):
     """Delete a service invoice, returning its items to stock. Returns True on success."""
     if Payment.query.filter(Payment.invoice_id == invoice_head.id).count():
-        flash("This invoice has payments recorded against it. Delete those on the Payments page first.",
+        flash("Money has been recorded against this invoice, so it cannot be deleted. Payments stay in the ledger; reversing them does not remove them.",
               category='warning')
         return False
     try:

@@ -3,7 +3,9 @@ from datetime import datetime
 from decimal import Decimal
 from flask_login import UserMixin
 from flask import current_app
+from sqlalchemy import CheckConstraint, case, func, select, type_coerce
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import column_property
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
@@ -19,8 +21,8 @@ def load_user(user_id):
 
 
 def _balance(document):
-    """What is still owed on an invoice or purchase order (negative = change due)."""
-    return (document.gross_price or Decimal('0')) - (document.paid_amount or Decimal('0'))
+    """What is still owed on an invoice or purchase order (negative = paid too much: refund due)."""
+    return Decimal(str(document.gross_price or 0)) - Decimal(str(document.paid_amount or 0))
 
 class InvoiceRequest(db.Model):
     """One thing the customer asked for when the vehicle came in, ticked off when it is done."""
@@ -47,19 +49,63 @@ class InvoiceStatusLog(db.Model):
     previous_invoice_status = db.relationship('InvoiceStatusLog', remote_side=[id], backref='next_invoice_status')
 
 class Payment(db.Model):
-    id =  db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
-    item_invoice_id = db.Column(db.Integer, db.ForeignKey('item_invoice_head.id'))
-    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_order_head.id'))
+    """One entry in the money ledger: money that came in or went out.
+
+    Entries are never changed or deleted (the app refuses, and on PostgreSQL a
+    trigger refuses too). A mistake is undone by a reversal: a new entry for
+    the same amount in the other direction, with the same type and links,
+    pointing back at the one it cancels. Whatever an invoice, sale or
+    purchase order has been paid is worked out from these entries.
+    See harithmapos/ledger.py.
+    """
+    __table_args__ = (
+        CheckConstraint('payment_amount > 0', name='ck_payment_amount_positive'),
+        CheckConstraint("payment_direction IN ('in', 'out')", name='ck_payment_direction'),
+        CheckConstraint('tendered_amount IS NULL OR tendered_amount >= payment_amount', name='ck_payment_tendered'),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'), index=True)
+    item_invoice_id = db.Column(db.Integer, db.ForeignKey('item_invoice_head.id'), index=True)
+    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_order_head.id'), index=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
-    payment_method = db.Column(db.String(10))
-    payment_direction = db.Column(db.String(10))
-    payment_amount = db.Column(db.Numeric(10,2), default=0)
-    payment_type = db.Column(db.String(10))
+    payment_type = db.Column(db.String(20), nullable=False)       # see ledger.TYPES
+    payment_direction = db.Column(db.String(3), nullable=False)   # in / out
+    payment_method = db.Column(db.String(10), nullable=False)     # cash, card, bt, qr
+    payment_amount = db.Column(db.Numeric(10, 2), nullable=False)
+    tendered_amount = db.Column(db.Numeric(10, 2))                # cash handed over, when there was change
     remarks = db.Column(db.String(255))
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    reverses_id = db.Column(db.Integer, db.ForeignKey('payment.id'), unique=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    reverses = db.relationship('Payment', remote_side=[id], backref=db.backref('reversed_by', uselist=False))
+    created_by = db.relationship('User')
+
+    @property
+    def is_reversal(self):
+        return self.reverses_id is not None
+
+    @property
+    def is_reversed(self):
+        return self.reversed_by is not None
+
+    @property
+    def change_given(self):
+        if self.tendered_amount is None:
+            return Decimal('0')
+        return Decimal(str(self.tendered_amount)) - Decimal(str(self.payment_amount))
+
+
+def _paid_column(document_id, link, paying_direction):
+    """What a document has been paid, summed from the ledger (refunds and reversals count down)."""
+    signed = case((Payment.payment_direction == paying_direction, Payment.payment_amount),
+                  else_=-Payment.payment_amount)
+    return column_property(
+        select(type_coerce(func.coalesce(func.sum(signed), 0), db.Numeric(12, 2)))
+        .where(Payment.__table__.c[link] == document_id)
+        .correlate_except(Payment)
+        .scalar_subquery()
+    )
 
 class PurchaseOrderHead(db.Model):
     id =  db.Column(db.Integer, primary_key=True)
@@ -68,15 +114,12 @@ class PurchaseOrderHead(db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     discount_pct = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    payment_method = db.Column(db.String(10))
-    paid_amount = db.Column(db.Numeric(10,2), default=0)
-    remaining_amount = db.Column(db.Numeric(10,2))
-    last_payment_date = db.Column(db.Date())
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
     completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
-    payments = db.relationship('Payment', backref='purchase_order', lazy=True)
+    payments = db.relationship('Payment', backref='purchase_order', lazy=True, order_by='Payment.id')
+    paid_amount = _paid_column(id, 'purchase_order_id', 'out')
 
     @property
     def balance(self):
@@ -118,15 +161,12 @@ class ItemInvoiceHead(db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     total_discount = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    payment_method = db.Column(db.String(10))
-    paid_amount = db.Column(db.Numeric(10,2), default=0)
-    remaining_amount = db.Column(db.Numeric(10,2))
-    last_payment_date = db.Column(db.Date())
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
     completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
-    payments = db.relationship('Payment', backref='item_invoice', lazy=True)
+    payments = db.relationship('Payment', backref='item_invoice', lazy=True, order_by='Payment.id')
+    paid_amount = _paid_column(id, 'item_invoice_id', 'in')
 
     @property
     def balance(self):
@@ -166,14 +206,11 @@ class InvoiceHead(db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     total_discount = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    payment_method = db.Column(db.String(10))
-    paid_amount = db.Column(db.Numeric(10,2), default=0)
-    remaining_amount = db.Column(db.Numeric(10,2))
-    last_payment_date = db.Column(db.Date())
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
-    payments = db.relationship('Payment', backref='invoice', lazy=True)
+    payments = db.relationship('Payment', backref='invoice', lazy=True, order_by='Payment.id')
+    paid_amount = _paid_column(id, 'invoice_id', 'in')
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='invoice', lazy=True)
     requests = db.relationship('InvoiceRequest', backref='invoice', lazy=True,
                                order_by='InvoiceRequest.id', cascade='all, delete-orphan')

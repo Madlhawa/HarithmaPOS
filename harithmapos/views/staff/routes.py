@@ -7,9 +7,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 
-from harithmapos import db, config, payroll
+from harithmapos import db, config, ledger, payroll
 from harithmapos.models import (
-    Employee, AttendanceDay, ShortLeave, SalaryAdvance, PayrollRun, Payslip, Payment,
+    Employee, AttendanceDay, ShortLeave, SalaryAdvance, PayrollRun, Payslip,
 )
 from harithmapos.permissions import owner_required
 from harithmapos.timeutils import utcnow, local_today
@@ -20,7 +20,7 @@ staff_blueprint = Blueprint('staff_blueprint', __name__)
 
 STATUS_LABELS = dict(config.ATTENDANCE_STATUSES)
 LEAVE_LABELS = dict(config.LEAVE_TYPES)
-METHODS = [m for m in config.PAYMENT_METHOD_FORM_LIST if m[0] != 'credit']
+METHODS = config.PAYMENT_METHOD_FORM_LIST
 
 
 def today():
@@ -256,11 +256,9 @@ def add_advance():
         flash("The date can't be in the future.", category='danger')
     else:
         note = (request.form.get('note') or '').strip()[:255] or None
-        payment = Payment(employee_id=employee.id, payment_method=method if method in dict(METHODS) else 'cash',
-                          payment_direction='out', payment_amount=amount, payment_type='advance',
-                          remarks=f'Salary advance: {employee.name}' + (f' ({note})' if note else ''))
-        db.session.add(payment)
-        db.session.flush()
+        payment = ledger.post('advance', amount, method if method in dict(METHODS) else 'cash', user=current_user,
+                              employee_id=employee.id,
+                              remarks=f'Salary advance: {employee.name}' + (f' ({note})' if note else ''))
         db.session.add(SalaryAdvance(employee_id=employee.id, advance_date=when, amount=amount, note=note,
                                      payment_id=payment.id, created_by_id=current_user.id))
         db.session.commit()
@@ -275,13 +273,19 @@ def delete_advance(advance_id):
     adv = db.get_or_404(SalaryAdvance, advance_id)
     if adv.is_recovered:
         flash('This advance has already been taken back on a payslip, so it cannot be deleted.', category='danger')
+    elif adv.payment is not None and not adv.payment.is_reversed:
+        # The money did go out: the ledger keeps it, with a reversal that cancels it.
+        try:
+            ledger.reverse(adv.payment, 'Salary advance deleted', current_user)
+            db.session.commit()
+            flash('Advance deleted. Its payment is reversed on the Payments page.', category='success')
+        except ledger.LedgerError as exc:
+            db.session.rollback()
+            flash(str(exc), category='danger')
     else:
-        payment = adv.payment
         db.session.delete(adv)
-        if payment is not None:
-            db.session.delete(payment)
         db.session.commit()
-        flash('Advance deleted, with its payment.', category='success')
+        flash('Advance deleted.', category='success')
     return redirect(request.form.get('next') or url_for('staff_blueprint.advances'))
 
 
@@ -420,7 +424,7 @@ def reopen_payroll(run_id):
     run = db.get_or_404(PayrollRun, run_id)
     back = url_for('staff_blueprint.payroll_page', month=run.month.strftime('%Y-%m'))
     if any(p.is_paid for p in run.payslips):
-        flash('Some payslips are already paid. Undo those payments first (Payments page), then reopen.',
+        flash('Some payslips are already paid. Reverse those wage payments first (Payments page), then reopen.',
               category='danger')
         return redirect(back)
     for p in run.payslips:
@@ -440,12 +444,12 @@ def pay_payslip(slip_id):
     if slip.is_paid:
         flash(f'{slip.employee.name} is already paid for this month.', category='warning')
         return redirect(back)
+    if (slip.net_pay or 0) <= 0:
+        flash(f'Nothing to pay {slip.employee.name} this month.', category='info')
+        return redirect(back)
     method = request.form.get('method') or 'cash'
-    payment = Payment(employee_id=slip.employee_id, payment_method=method if method in dict(METHODS) else 'cash',
-                      payment_direction='out', payment_amount=slip.net_pay, payment_type='wage',
-                      remarks=f'{slip.run.month:%B %Y} salary: {slip.employee.name}')
-    db.session.add(payment)
-    db.session.flush()
+    payment = ledger.post('wage', slip.net_pay, method if method in dict(METHODS) else 'cash', user=current_user,
+                          employee_id=slip.employee_id, remarks=f'{slip.run.month:%B %Y} salary: {slip.employee.name}')
     slip.payment_id = payment.id
     db.session.commit()
     flash(f'{slip.employee.name} paid {config.CURRENCY} {slip.net_pay:,.2f}. It is on the Payments page as money out.',

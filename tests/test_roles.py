@@ -81,8 +81,8 @@ def test_staff_cannot_change_items(app, staff):
 
 
 def payment_form(direction):
-    return {'payment_direction': direction, 'payment_amount': '500', 'payment_method': 'cash',
-            'payment_type': config.PAYMENT_TYPE_FORM_LIST[0][0], 'remarks': 'test'}
+    return {'payment_type': 'income' if direction == 'in' else 'expense', 'payment_amount': '500',
+            'payment_method': 'cash', 'remarks': 'test'}
 
 
 def test_staff_can_take_money_in_but_not_pay_out(app, staff, owner):
@@ -97,21 +97,23 @@ def test_staff_can_take_money_in_but_not_pay_out(app, staff, owner):
 
 def test_staff_payment_list_shows_money_in_only(app, staff):
     with app.app_context():
-        db.session.add(Payment(payment_direction='out', payment_amount=777, remarks='owner drawing'))
+        db.session.add(Payment(payment_type='withdrawal', payment_direction='out', payment_method='cash',
+                               payment_amount=777, remarks='owner drawing'))
         db.session.commit()
     page = staff.get('/app/payment?direction=out').get_data(as_text=True)
     assert 'owner drawing' not in page
 
 
-def test_staff_cannot_edit_or_delete_payments(app, staff):
+def test_staff_cannot_reverse_payments(app, staff):
     with app.app_context():
-        payment = Payment(payment_direction='in', payment_amount=500, payment_method='cash', remarks='x')
+        payment = Payment(payment_type='income', payment_direction='in', payment_amount=500, payment_method='cash',
+                          remarks='x')
         db.session.add(payment)
         db.session.commit()
         payment_id = payment.id
-    staff.post(f'/app/payment/{payment_id}/delete')
+    staff.post(f'/app/payment/{payment_id}/reverse', data={'reason': 'mistake'})
     with app.app_context():
-        assert db.session.get(Payment, payment_id) is not None
+        assert Payment.query.count() == 1
 
 
 # --- user management ---------------------------------------------------------

@@ -121,6 +121,7 @@ def register_template_helpers(app):
         PAYMENT_DIRECTIONS=config.PAYMENT_DIRECTION_FORM_LIST,
         PAYMENT_TYPES=config.PAYMENT_TYPE_FORM_LIST,
         PAYMENT_TYPE_LABELS=dict(config.PAYMENT_TYPE_FORM_LIST),
+        MANUAL_PAYMENT_TYPES=config.MANUAL_PAYMENT_TYPES,
         UOM_CHOICES=config.UOM_FORM_LIST,
         UI_THEMES=config.UI_THEME_FORM_LIST,
         CURRENCY=config.CURRENCY,
@@ -130,7 +131,7 @@ def register_template_helpers(app):
         is_owner=user_is_owner,
         is_developer=user_is_developer,
         # Change this when app.css / app.js change so browsers fetch the new files.
-        ASSET_VERSION='25',
+        ASSET_VERSION='26',
     )
 
     @app.context_processor

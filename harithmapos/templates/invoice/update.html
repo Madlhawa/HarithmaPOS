@@ -113,10 +113,11 @@
                 {% else %}
                 <div class="row g-3 mt-1">
                     <div class="col-6">{{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='') }}</div>
-                    <div class="col-6">{{ field('paid_amount', 'Amount paid', prefix='bill', kind='money', value=inv.paid_amount|money if inv.paid_amount else '', placeholder='0.00', wrap='') }}</div>
+                    <div class="col-6">{{ field('received_amount', 'Received now', prefix='bill', kind='money', placeholder='0.00', wrap='') }}</div>
                 </div>
                 <label class="form-label mt-3">Paid by</label>
-                {{ payment_choice(inv.payment_method) }}
+                {{ payment_choice('cash') }}
+                    <div class="form-hint">Recorded when you press Complete. More than the bill? The change to give back is shown.</div>
                 {% endif %}
             </div>
             <div class="panel-body border-top d-grid gap-2">
@@ -133,5 +134,5 @@
         </div>
     </form>
 </div>
-{{ pay_modal(inv, 'payInvoice', url_for('payment_blueprint.pay_invoice', invoice_head_id=inv.id), title='Payment for invoice #' ~ inv.id) }}
+{{ pay_modal(inv, 'payInvoice', url_for('payment_blueprint.pay_invoice', invoice_head_id=inv.id), title='Payment for invoice #' ~ inv.id, refund_action=url_for('payment_blueprint.refund_invoice', invoice_head_id=inv.id)) }}
 {% endblock %}

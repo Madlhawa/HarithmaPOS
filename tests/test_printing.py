@@ -25,13 +25,13 @@ def _complete_service(client, ids):
     client.post(f"/app/invoice/detail/add/{ids['inv']}", data={'item_id': ids['item'], 'quantity': '2'})
     return client.post(f"/app/invoice/head/{ids['inv']}", data={
         'service_status': config.SERVICE_STATUS_WASHING, 'employee_id': ids['emp'], 'washbay_id': ids['bay'],
-        'payment_method': 'cash', 'paid_amount': '1000', 'complete_invoice': '1'}, follow_redirects=True)
+        'payment_method': 'cash', 'received_amount': '1000', 'complete_invoice': '1'}, follow_redirects=True)
 
 
 def _complete_sale(client, ids):
     client.post(f"/app/item_invoice/detail/add/{ids['sale']}", data={'item_id': ids['item'], 'quantity': '1'})
     return client.post(f"/app/item_invoice/head/{ids['sale']}", data={
-        'payment_method': 'cash', 'paid_amount': '0', 'complete_item_invoice': '1'}, follow_redirects=True)
+        'payment_method': 'cash', 'received_amount': '0', 'complete_item_invoice': '1'}, follow_redirects=True)
 
 
 def test_service_invoice_prints_on_the_dot_matrix_layout(staff, ids):
@@ -80,7 +80,7 @@ def test_saving_without_completing_does_not_print(staff, ids):
     staff.post(f"/app/invoice/detail/add/{ids['inv']}", data={'item_id': ids['item'], 'quantity': '1'})
     html = staff.post(f"/app/invoice/head/{ids['inv']}", data={
         'service_status': config.SERVICE_STATUS_WASHING, 'employee_id': ids['emp'], 'washbay_id': ids['bay'],
-        'payment_method': 'cash', 'paid_amount': '0', 'update_invoice': '1'}, follow_redirects=True).get_data(as_text=True)
+        'payment_method': 'cash', 'received_amount': '0', 'update_invoice': '1'}, follow_redirects=True).get_data(as_text=True)
     assert 'data-print-now' not in html
 
 

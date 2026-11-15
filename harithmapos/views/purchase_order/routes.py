@@ -2,12 +2,13 @@ import logging
 
 from sqlalchemy import or_
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import current_user
 
 from harithmapos import db, config
 from harithmapos.billing import money, purchase_totals, to_decimal
-from harithmapos.timeutils import local_today, utcnow
+from harithmapos.timeutils import utcnow
 from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Item, Payment
-from harithmapos.views.ledger import sync_document_payment
+from harithmapos import ledger
 from harithmapos.views.purchase_order.forms import (
     PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm,
 )
@@ -70,8 +71,6 @@ def insert_purchase_order_head():
             PurchaseOrderHead,
             supplier_id=supplier.id,
             supplier_invoice_id=form.supplier_invoice_id.data,
-            payment_method='cash',
-            remaining_amount=0,
         )
     except Exception:
         logger.exception("Could not create purchase order")
@@ -100,17 +99,11 @@ def purchase_order_head_detail(purchase_order_head_id):
                 if supplier:
                     purchase_order_head.supplier_id = supplier.id
             purchase_order_head.supplier_invoice_id = form.supplier_invoice_id.data
-            # Once completed, money is paid with "Record payment", so the paid box is not on the page.
-            if not purchase_order_head.is_completed:
-                purchase_order_head.payment_method = form.payment_method.data
-                purchase_order_head.paid_amount = form.paid_amount.data or 0
             purchase_order_head.discount_pct = form.discount_pct.data or 0
             purchase_order_head.update_dttm = utcnow()
             if form.complete_purchase_order.data and not purchase_order_head.is_completed:
                 purchase_order_head.completed_dttm = utcnow()
             _recalculate(purchase_order_head)
-            if purchase_order_head.paid_amount:
-                purchase_order_head.last_payment_date = local_today(config.APP_TIMEZONE)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -119,18 +112,13 @@ def purchase_order_head_detail(purchase_order_head_id):
             return redirect(here)
 
         if form.complete_purchase_order.data:
-            try:
-                sync_document_payment(purchase_order_head, 'purchase_order_id', remarks='Purchase order payment')
-                flash(f"Purchase order #{purchase_order_head.id} completed.", category='success')
-            except Exception:
-                db.session.rollback()
-                logger.exception("Could not record payment for purchase order %s", purchase_order_head_id)
-                flash("The purchase order is saved, but its payment could not be recorded. Press Complete again.",
-                      category='danger')
-                return redirect(here)
+            _pay_on_completion(purchase_order_head, form)
             return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
 
-        flash("Purchase order saved.", category='success')
+        if form.paid_now.data:
+            flash("Saved. The amount paid is recorded only when you press Complete.", category='info')
+        else:
+            flash("Purchase order saved.", category='success')
         return redirect(here)
 
     purchase_order_details = _recalculate(purchase_order_head)
@@ -148,7 +136,7 @@ def purchase_order_head_detail(purchase_order_head_id):
 def delete_purchase_order_head(purchase_order_head_id):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
     if Payment.query.filter(Payment.purchase_order_id == purchase_order_head.id).count():
-        flash("This purchase order has payments recorded against it. Delete those on the Payments page first.",
+        flash("Money has been recorded against this purchase order, so it cannot be deleted. Payments stay in the ledger.",
               category='warning')
         return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
                                 purchase_order_head_id=purchase_order_head.id))
@@ -284,6 +272,30 @@ def _change_line_quantity(purchase_order_detail_id, step):
     return here
 
 
+def _pay_on_completion(order, form):
+    """Record what was paid to the supplier when the order was completed."""
+    paid = money(to_decimal(form.paid_now.data or 0))
+    label = f"Purchase order #{order.id} completed."
+    if paid <= 0:
+        flash(label, category='success')
+        return
+    method = form.payment_method.data if form.payment_method.data in ledger.METHODS else 'cash'
+    try:
+        ledger.pay_document(order, paid, method, user=current_user)
+        db.session.commit()
+    except ledger.LedgerError as exc:
+        db.session.rollback()
+        flash(f"{label} The payment was not recorded: {exc} Use Pay supplier on the order.", category='warning')
+        return
+    except Exception:
+        db.session.rollback()
+        logger.exception("Could not record the payment for purchase order %s", order.id)
+        flash(f"{label} The payment could not be recorded: use Pay supplier on the order.", category='danger')
+        return
+    left = money(order.balance)
+    flash(label + (f" Still to pay: {config.CURRENCY} {left:,.2f}." if left > 0 else " Paid in full."), category='success')
+
+
 def _recalculate(purchase_order_head):
     """Recompute the head totals from its lines. Returns the lines. Does not commit."""
     details = (
@@ -292,12 +304,11 @@ def _recalculate(purchase_order_head):
         .order_by(PurchaseOrderDetail.id)
         .all()
     )
-    totals = purchase_totals(details, purchase_order_head.discount_pct, purchase_order_head.paid_amount)
+    totals = purchase_totals(details, purchase_order_head.discount_pct)
     # total_cost is not a column on the head; it is set here for the screen to show.
     purchase_order_head.total_cost = totals['total_cost']
     purchase_order_head.total_price = totals['total_price']
     purchase_order_head.gross_price = totals['gross_price']
-    purchase_order_head.remaining_amount = totals['remaining_amount']
     return details
 
 

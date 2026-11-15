@@ -140,4 +140,4 @@ def employee_detail(employee_id):
                            summary=summary, recent=recent, advances=advances, open_total=open_total, slips=slips,
                            today=today, fmt=payroll.fmt_minutes, pay_labels=dict(config.PAY_TYPE_FORM_LIST),
                            status_labels=dict(config.ATTENDANCE_STATUSES), leave_labels=dict(config.LEAVE_TYPES),
-                           methods=[m for m in config.PAYMENT_METHOD_FORM_LIST if m[0] != 'credit'])
+                           methods=config.PAYMENT_METHOD_FORM_LIST)

@@ -46,22 +46,16 @@ def test_saving_without_changes_records_nothing(app, owner, item_id):
     assert _log(app) == []
 
 
-def test_payments_added_edited_and_deleted(app, owner):
-    owner.post('/app/payment/create', data={'payment_direction': 'out', 'payment_amount': '5000',
-                                            'payment_method': 'cash', 'payment_type': 'general', 'remarks': 'Electricity'})
+def test_payments_and_their_reversals_are_recorded(app, owner):
+    owner.post('/app/payment/create', data={'payment_type': 'expense', 'payment_amount': '5000',
+                                            'payment_method': 'cash', 'remarks': 'Electricity'})
     with app.app_context():
         pid = Payment.query.one().id
-    owner.post(f'/app/payment/{pid}/update', data={'payment_direction': 'out', 'payment_amount': '4800',
-                                                   'payment_method': 'bt', 'payment_type': 'general', 'remarks': 'Electricity'})
-    owner.post(f'/app/payment/{pid}/delete')
+    owner.post(f'/app/payment/{pid}/reverse', data={'reason': 'Entered twice'})
     rows = _log(app, entity='payment')
-    assert [r[0] for r in rows] == ['created', 'changed', 'changed', 'deleted']
-    assert rows[0][4].startswith('Rs. 5,000.00 out')
-    assert ('Amount', '5,000.00', '4,800.00') in [(r[2], r[3], r[4]) for r in rows]
-    assert ('Paid by', 'Cash', 'Bank Transfer') in [(r[2], r[3], r[4]) for r in rows]
-    assert rows[-1][3].startswith('Rs. 4,800.00 out')
-    with app.app_context():
-        assert AuditLog.query.filter_by(action='deleted').one().category == 'deletions'
+    assert [r[0] for r in rows] == ['created', 'created']
+    assert rows[0][4] == 'Rs. 5,000.00 out, Cash, Expense' and rows[0][5] == 'Olivia Owner'
+    assert rows[1][4] == f'Rs. 5,000.00 in, Cash, Expense, reverses #{pid}'
 
 
 def test_bill_and_line_discounts_and_deleted_lines(app, staff, item_id):

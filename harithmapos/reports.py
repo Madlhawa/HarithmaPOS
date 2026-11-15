@@ -132,11 +132,16 @@ def _load(period):
              .filter(ItemInvoiceHead.created_dttm >= lo, ItemInvoiceHead.created_dttm < hi)
              .filter(ItemInvoiceHead.gross_price > 0)
              .all())
+    # Money from customers for invoices and sales: payments count up, refunds and reversals down.
     payments_in = (Payment.query
                    .filter(Payment.created_dttm >= lo, Payment.created_dttm < hi)
-                   .filter(Payment.payment_direction == 'in')
+                   .filter(Payment.payment_type.in_(('sale', 'sale_refund')))
                    .all())
     return services, sales, payments_in
+
+
+def _signed(p):
+    return _d(p.payment_amount) if p.payment_direction == 'in' else -_d(p.payment_amount)
 
 
 def _kpis(period, services, sales, payments_in, with_customers=True):
@@ -146,7 +151,7 @@ def _kpis(period, services, sales, payments_in, with_customers=True):
     cost = sum((_d(s.total_cost) for s in services), ZERO) + sum((_d(s.total_cost) for s in sales), ZERO)
     discounts = sum((_d(s.total_discount) for s in services), ZERO) + sum((_d(s.total_discount) for s in sales), ZERO)
     outstanding = sum((max(_d(s.gross_price) - _d(s.paid_amount), ZERO) for s in list(services) + list(sales)), ZERO)
-    collected = sum((_d(p.payment_amount) for p in payments_in), ZERO)
+    collected = sum((_signed(p) for p in payments_in), ZERO)
     jobs = len(services)
 
     kpis = {
@@ -309,8 +314,8 @@ def _by_method(payments_in):
     totals = defaultdict(lambda: ZERO)
     counts = defaultdict(int)
     for p in payments_in:
-        totals[p.payment_method or 'cash'] += _d(p.payment_amount)
-        counts[p.payment_method or 'cash'] += 1
+        totals[p.payment_method] += _signed(p)
+        counts[p.payment_method] += 1 if p.payment_direction == 'in' else -1
     total = sum(totals.values(), ZERO)
     rows = [{'method': METHOD_LABELS.get(m, m.title()), 'amount': float(a), 'count': counts[m],
              'share': float(a / total * 100) if total else 0} for m, a in totals.items()]

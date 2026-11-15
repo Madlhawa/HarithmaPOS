@@ -21,8 +21,9 @@ class PurchaseOrderHeadUpdateForm(FlaskForm):
     supplier_id = id_field("Supplier", required=False)
     supplier_invoice_id = text_field("Supplier invoice no.", max_length=255)
     discount_pct = percent_field("Discount %")
-    payment_method = SelectField("Payment method", choices=config.PAYMENT_METHOD_FORM_LIST)
-    paid_amount = money_field("Paid amount")
+    # Paid to the supplier now. Recorded in the ledger only when the order is completed.
+    payment_method = SelectField("Paid by", choices=config.PAYMENT_METHOD_FORM_LIST, validate_choice=False)
+    paid_now = money_field("Paid now")
     update_purchase_order = SubmitField('Save')
     complete_purchase_order = SubmitField('Complete')
 

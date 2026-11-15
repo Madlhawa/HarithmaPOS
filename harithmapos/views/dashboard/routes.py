@@ -2,11 +2,11 @@ from sqlalchemy import and_, func, or_
 from flask_login import login_required
 from flask import Blueprint, render_template, request
 
-from harithmapos import db, config
+from harithmapos import db, config, ledger
 from harithmapos import settings as app_settings
 from harithmapos.timeutils import local_day_bounds_utc
 from harithmapos.models import (
-    Employee, InvoiceHead, InvoiceDetail, InvoiceStatusLog, Item, Payment, Vehicle, WashBay,
+    Employee, InvoiceHead, InvoiceDetail, InvoiceStatusLog, Item, Vehicle, WashBay,
 )
 from harithmapos.template_helpers import SERVICE_STATUS_META
 
@@ -57,13 +57,6 @@ def dashboard():
     washbays = WashBay.query.order_by(WashBay.name).all()
     bays = [{'bay': washbay, 'invoice': in_bay.get(washbay.id)} for washbay in washbays]
 
-    def payments_today(direction):
-        return db.session.query(func.coalesce(func.sum(Payment.payment_amount), 0)).filter(
-            Payment.payment_direction == direction,
-            Payment.created_dttm >= day_start,
-            Payment.created_dttm < day_end,
-        ).scalar()
-
     unpaid_total = db.session.query(
         func.coalesce(func.sum(InvoiceHead.gross_price - func.coalesce(InvoiceHead.paid_amount, 0)), 0)
     ).filter(
@@ -74,8 +67,8 @@ def dashboard():
     summary = {
         'in_station': len(open_invoices),
         'done_today': len(done_invoices),
-        'collected_today': payments_today('in'),
-        'paid_out_today': payments_today('out'),
+        'collected_today': ledger.collected(day_start, day_end),
+        'paid_out_today': ledger.paid_out(day_start, day_end),
         'unpaid_total': unpaid_total,
         'low_stock': Item.query.filter(
             Item.quantity.isnot(None), Item.quantity <= app_settings.low_stock_threshold()).count(),

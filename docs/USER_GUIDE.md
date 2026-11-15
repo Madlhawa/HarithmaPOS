@@ -91,7 +91,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 4. **Add what you will charge for**: type "body wash", pick it from the list, press **Add**. Repeat for every service or item.
 5. **Text the customer** (optional): **Text: started** sends them a link to follow the job.
 6. **Move the car along** on the dashboard: **Start vacuuming → Start washing → Start polishing**.
-7. **When it's finished:** click **Bill and finish** (or open the invoice), enter the **Amount paid** and **Paid by**, and press **Complete and print receipt**. Press **Text: ready** first if you want to tell the customer.
+7. **When it's finished:** click **Bill and finish** (or open the invoice), enter what the customer handed over in **Received now** and choose **Paid by**, and press **Complete and print receipt**. Press **Text: ready** first if you want to tell the customer.
 8. **Counter sales** (a bottle of shampoo, no service): **Item sale** on the dashboard.
 9. **Owners, end of day:** mark the **Attendance register**, glance at **Sales**, check **Items running low**.
 
@@ -264,25 +264,27 @@ The SMS buttons are greyed out if the customer has no phone number or that text 
 | Field / button | What it does |
 |---|---|
 | Subtotal / Discounts / Total | Worked out from the lines and the bill discount. |
-| Paid / Balance to collect / Change to give back | What is still owed or the change due. *Settled* means paid exactly. |
+| Paid / Balance to collect / Overpaid | Paid is the total of the payments recorded on the invoice. *Settled* means paid exactly; *Overpaid* means a refund is due (owners can refund it). |
 | Bill discount | An amount off the whole bill. |
-| Amount paid | What the customer handed over. If they give Rs. 5,000 for a Rs. 4,300 bill, type 5000: the app records 4,300 and shows Rs. 700 change. |
-| Paid by | Cash, Card, Bank Transfer, Credit or QR. Use *Credit* when the customer will pay later. |
-| **Complete and print receipt** | Marks the job Done, records the payment on the Payments page, and returns you to the dashboard with the print window open for the invoice. Choose the LQ-350 and print. Returns you to the dashboard. |
+| Received now | What the customer hands over. Recorded only when you press **Complete**: if they give Rs. 5,000 for a Rs. 4,300 bill, type 5000 and the app records Rs. 4,300, notes the 5,000 handed over and tells you to give back Rs. 700 change. Leave it empty if they will pay later. **Save** never records money. |
+| Paid by | Cash, Card, Bank Transfer or QR. (There is no *Credit*: an unpaid bill simply has a balance.) |
+| **Complete and print receipt** | Marks the job Done, records the money received on the Payments page, and returns you to the dashboard with the print window open for the invoice (choose the LQ-350 and print). The message says how much change to give and anything still to pay. |
 | **Save** | Saves the job and bill panels without completing. |
 | **Cancel invoice** *(owners)* | Deletes the invoice after asking; its items go back into stock. |
 
 ### Taking a payment later
 
-Once an invoice is completed (its job is **Done**), the **Amount paid** and **Paid by** boxes and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
+Once an invoice is completed (its job is **Done**), the **Received now** box and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
 
 1. Press **Record payment**. The amount is filled in with the balance; change it for a part payment.
-2. Choose **Paid by** (Credit is not offered: this is money actually received) and, if you like, add a **Note** (a cheque number, say).
+2. Choose **Paid by** and, if you like, add a **Note** (a cheque number, say).
 3. Press **Record payment**. The payment appears in the list, on the Payments page and in today's figures, and the balance goes down. When nothing is left, the bill shows *Settled* and the button goes away.
 
-You cannot pay more than the balance. While a job is still in progress there is no **Record payment** button: type what was paid in **Amount paid** instead.
+You cannot pay more than the balance: give change from the till. While a job is still in progress there is no **Record payment** button: enter the money in **Received now** and press **Complete**.
 
-You can still open a completed invoice to correct the job details or the bill discount, and press **Save**.
+You can still open a completed invoice to correct the job details or the bill discount, and press **Save**; what was paid never changes. If a later discount means the customer paid too much, the bill shows **Overpaid** and an owner sees **Refund**: it records the money given back (money out) against the invoice.
+
+A payment recorded by mistake is put right on the Payments page with **Reverse** (owners).
 
 ---
 
@@ -319,7 +321,7 @@ The same **Add a service or item / Quantity / Extra discount / Add** row and lin
 | Field / button | What it does |
 |---|---|
 | Customer | Optional. Pick a customer or leave empty for a walk-in. |
-| Bill discount, Amount paid, Paid by | As on a service invoice. |
+| Bill discount, Received now, Paid by | As on a service invoice. |
 | **Complete and print receipt** | Records the payment and opens the print window for the 80 mm receipt. |
 | **Record payment** | On a completed sale with money still owed: take the rest, in full or in part. See [taking a payment later](#taking-a-payment-later). |
 | **Save** | Saves without completing. |
@@ -349,32 +351,30 @@ The special customer *Walk-in* is used for anonymous counter sales and cannot be
 
 ## 8. Payments
 
-*Menu → Payments.* Every rupee in and out. Counter staff see money in only.
+*Menu → Payments.* The money ledger: every rupee in and out, newest first. Counter staff see customer payments and other income only.
 
-Most payments are created automatically: completing an invoice records money in; paying a payslip or giving a salary advance records money out. Use **Record payment** for anything else, such as the electricity bill, a customer paying an old balance, or a refund.
+Most entries are made for you: completing or paying an invoice, item sale or purchase order; paying a payslip; giving a salary advance. Each entry shows when and who recorded it, what it was for, its type and how it was paid. Cash handed over with change is shown under the entry.
+
+**Entries are never edited or deleted.** A mistake is put right with a reversal: a new entry for the same amount the other way, so both stay on record and cancel out. Then record the right payment if needed.
 
 | Control | What it does |
 |---|---|
-| **Record payment** | Opens the payment form. |
-| **All / Money in / Money out** *(owners)* | Filters the list. |
-| Pencil / bin *(owners)* | Edit or delete a payment. Deleting a payment linked to an invoice makes that invoice owe the money again. |
+| **Record money in or out** (staff: **Record other income**) | For money that isn't an invoice, order or wage: see below. |
+| **All / Money in / Money out**, **Every type** *(owners)* | Filter the list. |
+| **Reverse** *(owners)* | Asks why, then adds the reversing entry. The original shows *Reversed by #…* and the reversal *Reverses #…*. If it was for an invoice or order, its balance goes back up; a reversed wage payment makes the payslip unpaid again; a reversed salary advance removes the advance (refused once payroll has taken it back: reopen that month first). A reversal can't itself be reversed. |
 
-### Payment form
+### Record money in or out
 
 | Field | What to enter |
 |---|---|
-| Direction *(owners)* | *Money in* or *Money out*. Staff can only record money in. |
-| Amount (Rs.) | Required. |
-| Paid by | Cash, Card, Bank Transfer, Credit or QR. |
-| Type | General, Employee Wage, Owner Withdrawal or Salary Advance. |
-| What was it for? | A short note, e.g. "electricity bill". |
-| Service invoice | Optional link. Its balance updates automatically. |
-| Item invoice no. / Purchase order no. | Optional links by number; balances update automatically. |
-| Customer / Employee | Optional, to show who it was from or to. |
+| What kind | *Expense* (money out, e.g. the electricity bill), *Other income* (money in that isn't a sale), *Owner withdrawal* or *Owner deposit*. Staff can record *Other income* only. |
+| Amount (Rs.) | Required, above 0. |
+| Paid by | Cash, Card, Bank Transfer or QR. |
+| What was it for? | Required. |
 
-> **Salary advances and wages:** use **Staff → Salary advances** and **Staff → Payroll** rather than this form, so they are tracked and taken back on payroll. A payment typed in here as "Salary Advance" is only an expense line; payroll will not take it back.
+Customer payments are taken on the invoice (**Complete**, **Record payment**), supplier payments on the purchase order, wages and advances under **Staff**, so balances, payslips and advances stay right.
 
-Deleting a payment that came from a payslip marks the payslip unpaid again. Deleting a salary advance's payment also removes the advance, unless payroll has already taken it back (then you are told to reopen that month's payroll first).
+**Types in the ledger:** Customer payment, Refund to customer, Supplier payment, Refund from supplier, Wages, Salary advance, Expense, Other income, Owner withdrawal, Owner deposit. *Collected* on the dashboard and in Sales is customer payments less refunds and reversals; *Paid out* is suppliers, wages, advances, expenses and withdrawals, less their refunds and reversals.
 
 ---
 
@@ -426,8 +426,8 @@ Stock changes automatically: down when added to an invoice or sale, back up when
 | Supplier, Supplier's invoice no. | Can be changed. |
 | Cost of items / Discount / To pay / Paid / Balance | The bill from the supplier. |
 | Discount % | A discount the supplier gave on the whole order. |
-| Amount paid, Paid by | What you have paid the supplier. |
-| **Complete** | Saves and records the payment to the supplier as money out. |
+| Paid now, Paid by | What you are paying the supplier now. Recorded only when you press **Complete**, and never more than the order total. |
+| **Complete** | Saves and records **Paid now** as a supplier payment (money out). |
 | **Pay supplier** | On a completed order with money still owed: shows the payments made so far and records another one (money out), in full or in part. It works like [taking a payment later](#taking-a-payment-later) on an invoice. |
 | **Save** | Saves without recording payment. |
 | **Delete this purchase order** | Deletes it after asking; its items come off stock. |
@@ -522,7 +522,7 @@ Warnings at the top tell you if register days are **not marked** (unmarked days 
 | **Payslip** | Opens the printable A5 payslip in a new tab. |
 | **Reopen as draft** | Only while nobody is paid: removes the payslips so you can change and finalise again. Advances it took back become open again. |
 
-To change a month after paying someone: delete their wage payment on the Payments page (the payslip becomes unpaid), then reopen.
+To change a month after paying someone: reverse their wage payment on the Payments page (the payslip becomes unpaid), then reopen.
 
 Who is on a month's payroll: employees marked *Working here* who have a salary or day rate set (or have register entries), and who had joined by the end of that month.
 
@@ -703,7 +703,7 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 |---|---|
 | **Prices** | An item's price, cost, discount % or name changed; items added (with their price) or deleted. |
 | **Discounts** | Bill discounts on service invoices and item sales, discount % on purchase orders, and extra discounts on lines (when added or changed). |
-| **Payments** | Payments added, and any change to their amount, method, direction, type, link or note. |
+| **Payments** | Every payment and reversal added, with its amount, direction, method and type (payments can't be changed or deleted). |
 | **Deletions** | Anything deleted: invoices, item sales, purchase orders, their lines, payments, items, employees, users and salary advances, with what they held. |
 | **Staff and pay** | An employee's pay rate, monthly/daily, EPF or active status; salary advances; allowances and other deductions on payslips. |
 | **Users and settings** | User roles, active status and email; every Settings change. Passwords and API keys show only as *(hidden)*. |
@@ -734,8 +734,9 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 **Invoice totals**
 - Line amount = quantity × unit price − the item's automatic discount % − any extra discount.
 - **Total** = sum of lines − bill discount.
-- **Balance** = total − amount paid. Positive means still to collect; negative means change to give back.
-- When an invoice is completed, the amount recorded as money in is the amount paid, but never more than the total (the rest is change).
+- **Paid** = the invoice's payments, less refunds and reversals. Nothing else changes it.
+- **Balance** = total − paid. Positive means still to collect; negative means overpaid (refund due).
+- Money handed over above the balance is change: only the balance is recorded, and the amount handed over is noted on the payment.
 
 **Stock**
 - Goes down when a stock item is added to an invoice or sale, and back up when removed or cancelled.
@@ -755,7 +756,9 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 
 ## 18. Common tasks and questions
 
-**A customer will pay later.** Complete the invoice with **Paid by: Credit** and the amount paid (0 or a part). It shows under *Unpaid on finished jobs* and in **Service invoices → Unpaid**. When they pay, open the invoice, enter the new total paid and press **Complete** again, or use **Record payment** linked to the invoice.
+**A customer will pay later.** Complete the invoice with **Received now** empty (or what they paid now). It shows under *Unpaid on finished jobs* and in **Service invoices → Unpaid**. When they pay, open the invoice and press **Record payment**.
+
+**A payment was entered wrongly.** Owners: Payments → **Reverse** on that entry, say why, then record the right one.
 
 **I added the wrong item.** Use the bin on that line, or **−** to reduce the quantity. Stock is put back.
 

@@ -134,7 +134,7 @@ def test_short_leave(app, owner, team):
         assert leave.minutes == 75
 
 
-def test_advance_creates_and_deletes_its_payment(app, owner, team):
+def test_advance_creates_its_payment_and_deleting_reverses_it(app, owner, team):
     owner.post('/app/advances', data={'employee_id': team['a'], 'amount': '5,000', 'advance_date': '2026-10-10',
                                       'method': 'cash'})
     with app.app_context():
@@ -143,7 +143,10 @@ def test_advance_creates_and_deletes_its_payment(app, owner, team):
         adv_id = adv.id
     owner.post(f'/app/advances/{adv_id}/delete')
     with app.app_context():
-        assert SalaryAdvance.query.count() == 0 and Payment.query.count() == 0
+        assert SalaryAdvance.query.count() == 0
+        out, back = Payment.query.order_by(Payment.id).all()       # the ledger keeps both, which cancel out
+        assert (out.payment_direction, back.payment_direction, back.reverses_id) == ('out', 'in', out.id)
+        assert back.payment_type == 'advance' and back.payment_amount == out.payment_amount
 
 
 def mark_october(owner, team, days=range(1, 32)):
@@ -191,11 +194,11 @@ def test_payroll_from_draft_to_paid(app, owner, team):
         assert slip.is_paid and slip.payment.payment_type == 'wage' and slip.payment.payment_amount == slip.net_pay
         payment_id = slip.payment_id
 
-    # Paid payslips block reopening; deleting the payment makes it unpaid again, then reopening works.
+    # Paid payslips block reopening; reversing the payment makes it unpaid again, then reopening works.
     owner.post(f'/app/payroll/{run_id}/reopen')
     with app.app_context():
         assert PayrollRun.query.count() == 1
-    owner.post(f'/app/payment/{payment_id}/delete')
+    owner.post(f'/app/payment/{payment_id}/reverse', data={'reason': 'Paid the wrong amount'})
     owner.post(f'/app/payroll/{run_id}/reopen')
     with app.app_context():
         assert PayrollRun.query.count() == 0 and Payslip.query.count() == 0
@@ -209,10 +212,10 @@ def test_a_taken_back_advance_cannot_be_deleted(app, owner, team):
         adv_id, payment_id = adv.id, adv.payment_id
     owner.post('/app/payroll/finalise', data={'month': '2026-10', 'action': 'finalise', f"adv_{team['a']}": str(adv_id)})
     owner.post(f'/app/advances/{adv_id}/delete')
-    owner.post(f'/app/payment/{payment_id}/delete')
+    owner.post(f'/app/payment/{payment_id}/reverse', data={'reason': 'mistake'})
     with app.app_context():
         assert db.session.get(SalaryAdvance, adv_id) is not None
-        assert db.session.get(Payment, payment_id) is not None
+        assert Payment.query.count() == 1                    # nothing reversed
 
 
 def test_pay_cannot_go_negative(app, owner, team):

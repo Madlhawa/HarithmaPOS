@@ -25,8 +25,9 @@ class InvoiceHeadUpdateForm(FlaskForm):
     next_milage_in = mileage_field("Next service in")
     service_status = RadioField("Status", choices=config.SERVICE_STATUS_FORM_LIST, coerce=int)
     discount_amount = money_field("Bill discount")
-    payment_method = SelectField("Payment method", choices=config.PAYMENT_METHOD_FORM_LIST)
-    paid_amount = money_field("Paid amount")
+    # Money handed over now. Recorded in the ledger only when the bill is completed.
+    payment_method = SelectField("Paid by", choices=config.PAYMENT_METHOD_FORM_LIST, validate_choice=False)
+    received_amount = money_field("Received now")
     update_invoice = SubmitField('Save')
     complete_invoice = SubmitField('Complete')
     cancel_invoice = SubmitField('Cancel invoice')
@@ -54,8 +55,9 @@ class ItemInvoiceHeadUpdateForm(FlaskForm):
     customer = StringField("Customer", validators=[Optional()])
     customer_id = id_field("Customer", required=False)
     discount_amount = money_field("Bill discount")
-    payment_method = SelectField("Payment method", choices=config.PAYMENT_METHOD_FORM_LIST)
-    paid_amount = money_field("Paid amount")
+    # Money handed over now. Recorded in the ledger only when the bill is completed.
+    payment_method = SelectField("Paid by", choices=config.PAYMENT_METHOD_FORM_LIST, validate_choice=False)
+    received_amount = money_field("Received now")
     update_item_invoice = SubmitField('Save')
     complete_item_invoice = SubmitField('Complete')
 

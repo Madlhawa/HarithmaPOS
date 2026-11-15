@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal as D
 from types import SimpleNamespace as Line
 
-from harithmapos.billing import amount_to_record, invoice_totals, line_amounts, money, purchase_totals
+from harithmapos.billing import invoice_totals, line_amounts, money, purchase_totals
 from harithmapos.textutils import format_phone, normalize_phone, normalize_plate
 from harithmapos.timeutils import elapsed_text, local_day_bounds_utc, to_local
 
@@ -33,12 +33,12 @@ def _lines():
             Line(total_cost=D('2000'), total_price=D('2500'), discount_amount=D('0'), gross_price=D('2500'))]
 
 
-def test_invoice_totals_with_bill_discount_and_part_payment():
-    t = invoice_totals(_lines(), bill_discount=400, paid=1000)
+def test_invoice_totals_with_bill_discount():
+    t = invoice_totals(_lines(), bill_discount=400)
     assert t['total_price'] == D('3500.00')
     assert t['total_discount'] == D('500.00')
     assert t['gross_price'] == D('3000.00')
-    assert t['remaining_amount'] == D('2000.00')
+    assert 'remaining_amount' not in t                # what is paid comes from the ledger
 
 
 def test_bill_discount_is_capped_at_the_bill():
@@ -47,23 +47,15 @@ def test_bill_discount_is_capped_at_the_bill():
     assert t['discount_amount'] == D('3400.00')
 
 
-def test_overpayment_shows_as_change_and_only_the_bill_is_recorded():
-    t = invoice_totals(_lines(), paid=5000)
-    assert t['remaining_amount'] == D('-1600.00')
-    assert amount_to_record(5000, t['gross_price']) == D('3400.00')
-    assert amount_to_record(1000, t['gross_price']) == D('1000.00')
-
-
 def test_empty_invoice_is_zero():
-    t = invoice_totals([], bill_discount=None, paid=None)
-    assert t['gross_price'] == D('0.00') and t['remaining_amount'] == D('0.00')
+    t = invoice_totals([], bill_discount=None)
+    assert t['gross_price'] == D('0.00')
 
 
 def test_purchase_orders_are_owed_at_cost_not_selling_price():
-    t = purchase_totals(_lines(), discount_pct=10, paid=500)
+    t = purchase_totals(_lines(), discount_pct=10)
     assert t['total_cost'] == D('2300.00')
     assert t['gross_price'] == D('2070.00')
-    assert t['remaining_amount'] == D('1570.00')
 
 
 def test_money_rounds_half_up():

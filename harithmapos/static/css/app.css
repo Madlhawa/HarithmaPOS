@@ -1321,3 +1321,9 @@ code.dv-note { display: inline; }
 .audit-tag.is-new { background: var(--h-green-soft); color: var(--h-green); }
 .audit-tag.is-gone { background: var(--h-red-soft); color: var(--h-red); }
 
+
+/* ---- Money ledger ---- */
+.ledger-tag { display: inline-block; margin-top: 0.2rem; font-size: 0.75rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--h-surface-2); color: var(--h-muted); border: 1px solid var(--h-line); }
+.ledger-tag.is-gone { background: var(--h-red-soft); color: var(--h-red); border-color: transparent; }
+tr.is-reversed td { color: var(--h-muted); }
+tr.is-reversed td.num, .history li.is-reversed .num { text-decoration: line-through; }

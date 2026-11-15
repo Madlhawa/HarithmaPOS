@@ -239,8 +239,6 @@ def add():
             current_milage=mileage,
             next_milage=mileage,
             service_status=config.SERVICE_STATUS_VACUUMING if start_now else WAITING,
-            payment_method='cash',
-            remaining_amount=0,
         )
         _log_status(invoice, previous_log_id=None)
     except Exception:

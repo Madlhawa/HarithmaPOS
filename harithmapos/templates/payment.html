@@ -1,18 +1,26 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, modal, pager, post_button, rs, payment_fields %}
+{% from 'layout/macros.html' import csrf, modal, pager, rs, payment_fields, field %}
 {% block body %}
 {% set here = request.full_path %}
 <div class="page-head">
-    <div><h1>Payments</h1><p>{% if is_owner() %}Every rupee in and out: invoice payments, supplier payments, wages and expenses.{% else %}Money taken in at the counter.{% endif %}</p></div>
-    <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#payNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Record payment</button></div>
+    <div><h1>Payments</h1><p>{% if is_owner() %}The money ledger: every rupee in and out. Entries are never edited or deleted; a mistake is put right with a reversal.{% else %}Money taken in at the counter.{% endif %}</p></div>
+    <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#payNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Record {{ 'money in or out' if is_owner() else 'other income' }}</button></div>
 </div>
 {% if is_owner() %}
 <div class="toolbar">
     <div class="filter-tabs">
-        <a href="{{ url_for('payment_blueprint.payment') }}" class="{{ 'active' if not direction }}">All</a>
-        <a href="{{ url_for('payment_blueprint.payment', direction='in') }}" class="{{ 'active' if direction == 'in' }}">Money in</a>
-        <a href="{{ url_for('payment_blueprint.payment', direction='out') }}" class="{{ 'active' if direction == 'out' }}">Money out</a>
+        <a href="{{ url_for('payment_blueprint.payment', type=kind or none) }}" class="{{ 'active' if not direction }}">All</a>
+        <a href="{{ url_for('payment_blueprint.payment', direction='in', type=kind or none) }}" class="{{ 'active' if direction == 'in' }}">Money in</a>
+        <a href="{{ url_for('payment_blueprint.payment', direction='out', type=kind or none) }}" class="{{ 'active' if direction == 'out' }}">Money out</a>
     </div>
+    <form method="get" class="audit-user">
+        {% if direction %}<input type="hidden" name="direction" value="{{ direction }}">{% endif %}
+        <label class="visually-hidden" for="pay-type">Type</label>
+        <select class="form-select" id="pay-type" name="type" onchange="this.form.submit()">
+            <option value="">Every type</option>
+            {% for key, label in type_labels.items() %}<option value="{{ key }}" {{ 'selected' if kind == key }}>{{ label }}</option>{% endfor %}
+        </select>
+    </form>
 </div>
 {% endif %}
 <div class="panel">
@@ -22,8 +30,8 @@
         <thead><tr><th>When</th><th>For</th><th>Type</th><th>Paid by</th><th class="num">In</th><th class="num">Out</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
         {% for p in payments.items %}
-        <tr>
-            <td class="nowrap">{{ p.created_dttm|local_dt('%d %b, %I:%M %p') }}</td>
+        <tr class="{{ 'is-reversed' if p.is_reversed }}">
+            <td class="nowrap">{{ p.created_dttm|local_dt('%d %b, %I:%M %p') }}<div class="cell-sub">#{{ p.id }}{% if p.created_by %} · {{ p.created_by.name }}{% endif %}</div></td>
             <td>
                 <div class="cell-main">
                     {% if p.invoice_id %}<a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=p.invoice_id) }}">Service invoice #{{ p.invoice_id }}</a>{% if p.invoice %} <span class="plate plate-sm">{{ p.invoice.vehicle.number }}</span>{% endif %}
@@ -34,21 +42,19 @@
                     {% else %}{{ p.remarks or '-' }}{% endif %}
                 </div>
                 {% if p.remarks and (p.invoice_id or p.item_invoice_id or p.purchase_order_id or p.employee or p.customer) %}<div class="cell-sub">{{ p.remarks }}</div>{% endif %}
+                {% if p.tendered_amount %}<div class="cell-sub">Handed over {{ p.tendered_amount|money }}, change {{ p.change_given|money }}</div>{% endif %}
+                {% if p.is_reversal %}<span class="ledger-tag">Reverses #{{ p.reverses_id }}</span>{% endif %}
+                {% if p.is_reversed %}<span class="ledger-tag is-gone">Reversed by #{{ p.reversed_by.id }}</span>{% endif %}
             </td>
-            <td>{{ PAYMENT_TYPE_LABELS.get(p.payment_type, p.payment_type or '-') }}</td>
-            <td>{{ PAYMENT_METHOD_LABELS.get(p.payment_method, p.payment_method or '-') }}</td>
+            <td>{{ type_labels.get(p.payment_type, p.payment_type) }}</td>
+            <td>{{ PAYMENT_METHOD_LABELS.get(p.payment_method, p.payment_method) }}</td>
             <td class="num text-success fw-semibold">{{ p.payment_amount|money if p.payment_direction == 'in' else '' }}</td>
             <td class="num fw-semibold">{{ p.payment_amount|money if p.payment_direction == 'out' else '' }}</td>
             <td class="cell-actions">
-                {% if is_owner() %}
-                <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit payment" aria-label="Edit payment" data-edit-modal="#payModal"
-                    data-action="{{ url_for('payment_blueprint.update_payment', payment_id=p.id) }}"
-                    data-values='{{ {"payment_direction": p.payment_direction, "payment_amount": p.payment_amount|money, "payment_method": p.payment_method, "payment_type": p.payment_type, "remarks": p.remarks,
-                        "invoice": ("#" ~ p.invoice_id ~ " " ~ p.invoice.vehicle.number) if p.invoice else "", "invoice_id": p.invoice_id,
-                        "item_invoice_id": p.item_invoice_id, "purchase_order_id": p.purchase_order_id,
-                        "customer": p.customer.name if p.customer else "", "customer_id": p.customer_id,
-                        "employee": p.employee.name if p.employee else "", "employee_id": p.employee_id}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                {{ post_button(url_for('payment_blueprint.delete_payment', payment_id=p.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete payment', confirm='Delete this payment of ' ~ CURRENCY ~ ' ' ~ p.payment_amount|money ~ '? Any linked invoice goes back to owing it.', next=here) }}
+                {% if is_owner() and not p.is_reversal and not p.is_reversed %}
+                <button type="button" class="btn btn-quiet btn-sm" title="Reverse payment #{{ p.id }}" data-edit-modal="#reverseModal"
+                    data-action="{{ url_for('payment_blueprint.reverse_payment', payment_id=p.id) }}"
+                    data-values='{{ {"reason": "", "summary": "#" ~ p.id ~ " · " ~ type_labels.get(p.payment_type, p.payment_type) ~ " · " ~ CURRENCY ~ " " ~ p.payment_amount|money}|tojson|forceescape }}'>Reverse</button>
                 {% endif %}
             </td>
         </tr>
@@ -56,21 +62,27 @@
         </tbody>
     </table>
     </div>
-    {{ pager(payments, 'payment_blueprint.payment', 'payments', direction=direction or none) }}
+    {{ pager(payments, 'payment_blueprint.payment', 'entries', direction=direction or none, type=kind or none) }}
     {% else %}
-    <div class="empty"><i class="bi bi-cash-coin" aria-hidden="true"></i><h3>No payments yet</h3><p>Payments appear here when invoices are completed, or when you record one.</p></div>
+    <div class="empty"><i class="bi bi-cash-coin" aria-hidden="true"></i><h3>No payments yet</h3><p>Payments appear here when invoices and orders are paid, wages and advances are paid, or when you record one.</p></div>
     {% endif %}
 </div>
-{% call modal('payNewModal', 'Record a payment', size='modal-lg') %}
+{% call modal('payNewModal', 'Record money in or out' if is_owner() else 'Record other income') %}
 <form method="post" action="{{ url_for('payment_blueprint.insert_payment') }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
     <div class="modal-body">{{ payment_fields(prefix='pn') }}</div>
-    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Record payment</button></div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Record</button></div>
 </form>
 {% endcall %}
-{% call modal('payModal', 'Edit payment', size='modal-lg') %}
+{% if is_owner() %}
+{% call modal('reverseModal', 'Reverse a payment') %}
 <form method="post" action="#">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}">
-    <div class="modal-body">{{ payment_fields(prefix='pe') }}</div>
-    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save payment</button></div>
+    <div class="modal-body">
+        <input class="form-control-plaintext fw-semibold" name="summary" readonly tabindex="-1" aria-label="Payment">
+        <p class="form-hint">A new entry for the same amount the other way is added, and both stay in the ledger. If it was for an invoice or order, its balance goes back up. Record the right payment afterwards if needed.</p>
+        {{ field('reason', 'Why is it being reversed?', prefix='rv', required=true, attrs={'maxlength': 200}, placeholder='For example: entered twice, wrong amount') }}
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reverse it</button></div>
 </form>
 {% endcall %}
+{% endif %}
 {% endblock %}

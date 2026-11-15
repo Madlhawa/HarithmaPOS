@@ -74,12 +74,12 @@ SERVICE_STATUS_FORM_LIST = [
     (4, 'Done')
 ]
 
+# How money changed hands. "Credit" is not a method: an unpaid bill simply has a balance.
 PAYMENT_METHOD_FORM_LIST = [
     ('cash', 'Cash'),
     ('card', 'Card'),
     ('bt', 'Bank Transfer'),
-    ('credit', 'Credit'),
-    ('qr', 'QR')
+    ('qr', 'QR'),
 ]
 
 PAYMENT_DIRECTION_FORM_LIST = [
@@ -87,12 +87,23 @@ PAYMENT_DIRECTION_FORM_LIST = [
     ('out', 'Money out'),
 ]
 
-PAYMENT_TYPE_FORM_LIST = [
-    ('general', 'General'),
-    ('wage', 'Employee Wage'),
-    ('withdraw', 'Owner Withdrawal'),
-    ('advance', 'Salary Advance'),
+# Ledger entry types: (key, label, direction). The direction is fixed by the type;
+# a reversal has the same type and the opposite direction. See harithmapos/ledger.py.
+PAYMENT_TYPES = [
+    ('sale', 'Customer payment', 'in'),
+    ('sale_refund', 'Refund to customer', 'out'),
+    ('supplier', 'Supplier payment', 'out'),
+    ('supplier_refund', 'Refund from supplier', 'in'),
+    ('wage', 'Wages', 'out'),
+    ('advance', 'Salary advance', 'out'),
+    ('expense', 'Expense', 'out'),
+    ('income', 'Other income', 'in'),
+    ('withdrawal', 'Owner withdrawal', 'out'),
+    ('deposit', 'Owner deposit', 'in'),
 ]
+PAYMENT_TYPE_FORM_LIST = [(key, label) for key, label, _ in PAYMENT_TYPES]
+# Recorded by hand on the Payments page; the rest come from invoices, orders and payroll.
+MANUAL_PAYMENT_TYPES = ['expense', 'income', 'withdrawal', 'deposit']
 
 UI_THEME_FORM_LIST = [
     ('light', 'Light'),

@@ -81,9 +81,14 @@
             <tr><td>Subtotal</td><td class="n">{{ head.total_price|money }}</td></tr>
             {% if (head.total_discount or 0) > 0 %}<tr><td>Discounts</td><td class="n">-{{ head.total_discount|money }}</td></tr>{% endif %}
             <tr class="tot"><td>Total {{ CURRENCY }}</td><td class="n">{{ head.gross_price|money }}</td></tr>
-            <tr><td>Paid ({{ PAYMENT_METHOD_LABELS.get(head.payment_method, head.payment_method or 'Cash') }})</td><td class="n">{{ head.paid_amount|money }}</td></tr>
+            {% for p in head.payments %}
+            <tr><td>{{ 'Reversed' if p.is_reversal else ('Refund' if p.payment_direction == 'out' else 'Paid') }} ({{ PAYMENT_METHOD_LABELS.get(p.payment_method, p.payment_method) }})</td><td class="n">{{ '-' if p.payment_direction == 'out' }}{{ p.payment_amount|money }}</td></tr>
+            {% if p.tendered_amount %}<tr><td>&nbsp;&nbsp;Handed over</td><td class="n">{{ p.tendered_amount|money }}</td></tr><tr><td>&nbsp;&nbsp;Change</td><td class="n">{{ p.change_given|money }}</td></tr>{% endif %}
+            {% else %}
+            <tr><td>Paid</td><td class="n">0.00</td></tr>
+            {% endfor %}
             {% if head.balance > 0 %}<tr><td><b>Balance due</b></td><td class="n"><b>{{ head.balance|money }}</b></td></tr>
-            {% elif head.balance < 0 %}<tr><td>Change</td><td class="n">{{ (0 - head.balance)|money }}</td></tr>{% endif %}
+            {% elif head.balance < 0 %}<tr><td>Overpaid</td><td class="n">{{ (0 - head.balance)|money }}</td></tr>{% endif %}
         </table>
     </div>
 </div>

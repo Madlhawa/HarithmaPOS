@@ -40,6 +40,7 @@ def create_app(Config_class=Config):
     csrf.init_app(app)
 
     import harithmapos.audit  # noqa: F401  (records price, discount, payment and similar changes)
+    import harithmapos.ledger  # noqa: F401  (payments are append-only)
 
     from harithmapos.template_helpers import register_template_helpers
     register_template_helpers(app)

@@ -73,7 +73,7 @@ def shop(app):
 
         def job(customer, vehicle, when, lines, paid, status=config.SERVICE_STATUS_DONE, minutes=40):
             head = InvoiceHead(customer_id=customer.id, vehicle_id=vehicle.id, washbay_id=bay.id, employee_id=staff.id,
-                               service_status=status, created_dttm=when, payment_method='cash')
+                               service_status=status, created_dttm=when)
             db.session.add(head)
             db.session.flush()
             gross = cost = Decimal(0)
@@ -83,14 +83,15 @@ def shop(app):
                                              discount_amount=0, gross_price=item.unit_price))
                 gross += Decimal(item.unit_price)
                 cost += Decimal(item.unit_cost)
-            head.gross_price, head.total_price, head.total_cost, head.paid_amount = gross, gross, cost, Decimal(paid)
+            head.gross_price, head.total_price, head.total_cost = gross, gross, cost
             head.total_discount = 0
             if status == config.SERVICE_STATUS_DONE:
                 db.session.add(InvoiceStatusLog(invoice_id=head.id, service_status=4, employee_id=staff.id,
                                                 created_dttm=when + timedelta(minutes=minutes)))
             if paid:
                 db.session.add(Payment(invoice_id=head.id, customer_id=customer.id, payment_method='cash',
-                                       payment_direction='in', payment_amount=paid, created_dttm=when))
+                                       payment_type='sale', payment_direction='in', payment_amount=paid,
+                                       created_dttm=when))
             return head
 
         job(old, v_old, at(date(2026, 10, 25), 9), [wash], 1500)                    # October: previous period
@@ -98,13 +99,13 @@ def shop(app):
         job(new, v_new, at(date(2026, 11, 4), 15), [wash], 0, minutes=20)            # November, unpaid
         job(new, v_new, at(date(2026, 11, 5), 11), [wax], 0, status=2)               # still in the bay: not a sale
         sale = ItemInvoiceHead(customer_id=None, created_dttm=at(date(2026, 11, 4), 12), gross_price=1600,
-                               total_price=1600, total_cost=1000, total_discount=0, paid_amount=1600, payment_method='card')
+                               total_price=1600, total_cost=1000, total_discount=0)
         db.session.add(sale)
         db.session.flush()
         db.session.add(ItemInvoiceDetail(item_invoice_head_id=sale.id, item_id=oil.id, quantity=1, total_cost=1000,
                                          total_price=1600, discount_amount=0, gross_price=1600))
-        db.session.add(Payment(item_invoice_id=sale.id, payment_method='card', payment_direction='in',
-                               payment_amount=1600, created_dttm=sale.created_dttm))
+        db.session.add(Payment(item_invoice_id=sale.id, payment_method='card', payment_type='sale',
+                               payment_direction='in', payment_amount=1600, created_dttm=sale.created_dttm))
         db.session.commit()
     return app
 

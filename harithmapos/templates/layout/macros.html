@@ -182,35 +182,29 @@
     {% if head.balance > 0 %}
     <div class="is-due"><dt>Balance to collect</dt><dd>{{ head.balance|money }}</dd></div>
     {% elif head.balance < 0 %}
-    <div><dt>Change to give back</dt><dd>{{ (0 - head.balance)|money }}</dd></div>
+    <div class="is-due"><dt>Overpaid (refund due)</dt><dd>{{ (0 - head.balance)|money }}</dd></div>
     {% else %}
     <div class="is-clear"><dt>Balance</dt><dd>Settled</dd></div>
     {% endif %}
 </dl>
 {% endmacro %}
 
-{# The body of the payment form, shared by the dashboard and the Payments page. #}
+{# Money recorded by hand (expenses, other income, the owner's own money), shared by the dashboard and the
+   Payments page. Customer, supplier and staff payments are taken on their own pages. #}
 {% macro payment_fields(prefix='pay') %}
+{% set types = MANUAL_PAYMENT_TYPES if is_owner() else ['income'] %}
 <div class="row g-3">
-    {% if is_owner() %}
-    <div class="col-sm-4">{{ select('payment_direction', 'Direction', PAYMENT_DIRECTIONS, prefix=prefix, wrap='') }}</div>
-    {% else %}
-    <input type="hidden" name="payment_direction" value="in">
-    <div class="col-sm-4"><label class="form-label">Direction</label><div class="form-control-plaintext">Money in</div></div>
-    {% endif %}
-    <div class="col-sm-4">{{ field('payment_amount', 'Amount (' ~ CURRENCY ~ ')', prefix=prefix, kind='money', required=true, wrap='') }}</div>
-    <div class="col-sm-4">{{ select('payment_method', 'Paid by', PAYMENT_METHODS, prefix=prefix, wrap='') }}</div>
-    <div class="col-sm-4">{{ select('payment_type', 'Type', PAYMENT_TYPES, prefix=prefix, wrap='') }}</div>
-    <div class="col-sm-8">{{ field('remarks', 'What was it for?', prefix=prefix, wrap='', placeholder='For example: electricity bill, advance for Kasun') }}</div>
+    <div class="col-sm-6">
+        <label class="form-label" for="{{ prefix }}-payment_type">What kind</label>
+        <select class="form-select" id="{{ prefix }}-payment_type" name="payment_type">
+            {% for key in types %}<option value="{{ key }}">{{ PAYMENT_TYPE_LABELS[key] }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-sm-6">{{ field('payment_amount', 'Amount (' ~ CURRENCY ~ ')', prefix=prefix, kind='money', required=true, wrap='') }}</div>
+    <div class="col-sm-6">{{ select('payment_method', 'Paid by', PAYMENT_METHODS, prefix=prefix, wrap='') }}</div>
+    <div class="col-sm-6">{{ field('remarks', 'What was it for?', prefix=prefix, required=true, wrap='', placeholder='For example: electricity bill', attrs={'maxlength': 255}) }}</div>
 </div>
-<p class="form-hint mt-3 mb-2">Link the payment to a record if there is one. Linked invoices and purchase orders update their balance automatically.</p>
-<div class="row g-3">
-    <div class="col-sm-6">{{ autocomplete('invoice', 'Service invoice', url_for('search_blueprint.search_invoices'), prefix=prefix, optional=true, placeholder='Vehicle number, customer or invoice no.', wrap='') }}</div>
-    <div class="col-sm-3">{{ field('item_invoice_id', 'Item invoice no.', prefix=prefix, kind='whole', wrap='') }}</div>
-    <div class="col-sm-3">{{ field('purchase_order_id', 'Purchase order no.', prefix=prefix, kind='whole', wrap='') }}</div>
-    <div class="col-sm-6">{{ autocomplete('customer', 'Customer', url_for('search_blueprint.search_customers'), prefix=prefix, optional=true, placeholder='Name or phone', wrap='') }}</div>
-    <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix=prefix, optional=true, show_all=true, placeholder='For wages and advances', wrap='') }}</div>
-</div>
+<p class="form-hint mt-3 mb-0">Payments for invoices and sales are taken on the invoice; supplier payments on the purchase order; wages and advances under Staff.</p>
 {% endmacro %}
 
 
@@ -222,19 +216,17 @@
 </span>
 {%- endmacro %}
 
-{# Payments on a completed invoice or purchase order: what was paid, and a button to take more.
-   Goes inside the bill panel; pay_modal() goes outside any form. #}
+{# Payments on a completed invoice or purchase order: what was paid, and a button to take more
+   (or, when it was overpaid, to refund). Goes inside the bill panel; pay_modal() goes outside any form. #}
 {% macro paid_history(head, modal_id, paying='in', verb='Record payment') %}
-<input type="hidden" name="payment_method" value="{{ head.payment_method or 'cash' }}">
-{% set paid = head.payments|sort(attribute='created_dttm') %}
 <div class="paid-list">
     <div class="form-label mb-1">Payments</div>
-    {% if paid %}
+    {% if head.payments %}
     <ul class="history">
-        {% for p in paid %}
-        <li>
+        {% for p in head.payments %}
+        <li class="{{ 'is-reversed' if p.is_reversed or p.is_reversal }}">
             <span>{{ p.created_dttm|local_date }}</span>
-            <span class="text-muted">{{ PAYMENT_METHODS|selectattr(0, 'equalto', p.payment_method)|map(attribute=1)|first|default(p.payment_method or '') }}{% if p.remarks and p.remarks not in ('Invoice payment', 'Purchase order payment', 'Balance payment') %} · {{ p.remarks }}{% endif %}</span>
+            <span class="text-muted">{{ PAYMENT_METHOD_LABELS.get(p.payment_method, p.payment_method) }}{% if p.is_reversal %} · reversal of #{{ p.reverses_id }}{% elif p.is_reversed %} · reversed{% elif p.payment_direction != paying %} · refund{% endif %}{% if p.tendered_amount %} · {{ p.tendered_amount|money }} handed over{% endif %}{% if p.remarks and not p.is_reversal %} · {{ p.remarks }}{% endif %}</span>
             <span class="num">{% if p.payment_direction != paying %}&minus; {% endif %}{{ p.payment_amount|money }}</span>
         </li>
         {% endfor %}
@@ -247,10 +239,15 @@
 <button type="button" class="btn btn-finish btn-lg w-100 mt-3" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}">
     <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>{{ verb }}
 </button>
+{% elif head.balance < 0 and is_owner() %}
+<button type="button" class="btn btn-quiet w-100 mt-3" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}-refund">
+    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Refund {{ rs(0 - head.balance) }}
+</button>
 {% endif %}
 {% endmacro %}
 
-{% macro pay_modal(head, modal_id, action, title='Record payment', verb='Record payment') %}
+{# The pop-ups behind paid_history(): take a payment, or refund an overpayment (owners). #}
+{% macro pay_modal(head, modal_id, action, title='Record payment', verb='Record payment', refund_action=none) %}
 {% if head.is_completed and head.balance > 0 %}
 {% call modal(modal_id, title) %}
 <form method="post" action="{{ action }}">
@@ -258,15 +255,31 @@
     <div class="modal-body">
         <p class="mb-3">Balance: <strong>{{ rs(head.balance) }}</strong></p>
         {{ field('payment_amount', 'Amount', prefix=modal_id, kind='money', value=head.balance|money, required=true,
-                 hint='The full balance, or part of it.' ) }}
+                 hint='The full balance, or part of it. No more than the balance: give change from the till.' ) }}
         <label class="form-label">Paid by</label>
-        {# Money actually changing hands: "Credit" (pay later) is not offered here. #}
-        {{ payment_choice(head.payment_method if head.payment_method != 'credit' else 'cash', prefix=modal_id ~ '-pm', exclude=('credit',)) }}
+        {{ payment_choice('cash', prefix=modal_id ~ '-pm') }}
         {{ field('remarks', 'Note (optional)', prefix=modal_id, wrap='mt-3', placeholder='e.g. cheque number', attrs={'maxlength': 255}) }}
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-primary">{{ verb }}</button>
+    </div>
+</form>
+{% endcall %}
+{% elif head.is_completed and head.balance < 0 and refund_action and is_owner() %}
+{% call modal(modal_id ~ '-refund', 'Refund the overpayment') %}
+<form method="post" action="{{ refund_action }}">
+    {{ csrf() }}
+    <div class="modal-body">
+        <p class="mb-3">Paid {{ rs(head.paid_amount) }} against a total of {{ rs(head.gross_price) }}: <strong>{{ rs(0 - head.balance) }}</strong> overpaid.</p>
+        {{ field('payment_amount', 'Amount', prefix=modal_id ~ '-rf', kind='money', value=(0 - head.balance)|money, required=true) }}
+        <label class="form-label">Given back by</label>
+        {{ payment_choice('cash', prefix=modal_id ~ '-rfm') }}
+        {{ field('remarks', 'Note (optional)', prefix=modal_id ~ '-rf', wrap='mt-3', attrs={'maxlength': 255}) }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Record refund</button>
     </div>
 </form>
 {% endcall %}

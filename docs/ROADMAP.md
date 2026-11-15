@@ -16,6 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 15 Nov 2026 | **Payment ledger.** Payments are an append-only ledger (enforced by the database): mistakes are reversed, never edited or deleted. Invoices, sales and orders no longer store what was paid; it is summed from their payments. Change is noted on the payment, refunds for overpaid bills, typed entries for expenses, income and the owner's money; *Credit* is gone. |
 | 15 Nov 2026 | **Live boards and in-page updates.** The dashboard and floor board update within seconds of any change (server-sent events) instead of reloading every 45–60 s; invoice and order lines, customer requests, stage buttons and the floor sheets update just their part of the page (htmx). gunicorn now runs threaded workers. |
 | 15 Nov 2026 | **Audit log** (Setup → Audit log, owners). Every change to prices, discounts, payments, pay, roles and settings, and every deletion, with who, when and the old and new value. Recorded for every save, whichever page made it. |
 | 15 Nov 2026 | **What the customer asked for.** The supervisor notes the customer's requests when starting a job (dashboard, New service page or floor board); they become a checklist on the invoice and in the floor board's sheet, and Complete or Ready to collect asks first if any are not ticked off. |
