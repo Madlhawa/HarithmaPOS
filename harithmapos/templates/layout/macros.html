@@ -159,9 +159,9 @@
 </div>
 {% endmacro %}
 
-{% macro payment_choice(current, prefix='pm') %}
+{% macro payment_choice(current, prefix='pm', exclude=()) %}
 <div class="choice" role="radiogroup" aria-label="Payment method">
-    {% for method_key, method_label in PAYMENT_METHODS %}
+    {% for method_key, method_label in PAYMENT_METHODS if method_key not in exclude %}
     <input type="radio" name="payment_method" id="{{ prefix }}-{{ method_key }}" value="{{ method_key }}" {% if (current or 'cash') == method_key %}checked{% endif %}>
     <label for="{{ prefix }}-{{ method_key }}">{{ method_label }}</label>
     {% endfor %}
@@ -258,7 +258,8 @@
         {{ field('payment_amount', 'Amount', prefix=modal_id, kind='money', value=head.balance|money, required=true,
                  hint='The full balance, or part of it.' ) }}
         <label class="form-label">Paid by</label>
-        {{ payment_choice(head.payment_method, prefix=modal_id ~ '-pm') }}
+        {# Money actually changing hands: "Credit" (pay later) is not offered here. #}
+        {{ payment_choice(head.payment_method if head.payment_method != 'credit' else 'cash', prefix=modal_id ~ '-pm', exclude=('credit',)) }}
         {{ field('remarks', 'Note (optional)', prefix=modal_id, wrap='mt-3', placeholder='e.g. cheque number', attrs={'maxlength': 255}) }}
     </div>
     <div class="modal-footer">

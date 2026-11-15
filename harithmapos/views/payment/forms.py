@@ -50,6 +50,7 @@ class DocumentPaymentForm(FlaskForm):
         InputRequired(message='Enter the amount.'),
         NumberRange(min=Decimal('0.01'), max=MAX_AMOUNT, message='Enter an amount above 0.'),
     ])
-    payment_method = SelectField("Paid by", choices=config.PAYMENT_METHOD_FORM_LIST)
+    # Money actually changing hands, so "Credit" (pay later) is not a choice here.
+    payment_method = SelectField("Paid by", choices=[c for c in config.PAYMENT_METHOD_FORM_LIST if c[0] != 'credit'])
     remarks = text_field("Note", max_length=255)
     submit = SubmitField('Record payment')

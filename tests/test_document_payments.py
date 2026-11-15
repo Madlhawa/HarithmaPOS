@@ -195,3 +195,19 @@ def test_staff_cannot_pay_suppliers(app, owner, staff, ids):
     assert response.status_code in (302, 403)
     _, payments = _get(app, PurchaseOrderHead, ids['po'])
     assert payments == []
+
+
+def test_credit_is_not_a_way_to_pay_a_balance(app, staff, ids):
+    """Credit means "pay later": it cannot settle what is owed."""
+    client = staff
+    client.post(f"/app/invoice/detail/add/{ids['inv']}", data={'item_id': ids['item'], 'quantity': '2'})
+    client.post(f"/app/invoice/head/{ids['inv']}", data={
+        'service_status': config.SERVICE_STATUS_WASHING, 'payment_method': 'credit', 'paid_amount': '0',
+        'complete_invoice': '1'})
+    html = client.get(f"/app/invoice/head/{ids['inv']}").get_data(as_text=True)
+    modal = html[html.index('id="payInvoice"'):]
+    assert 'value="credit"' not in modal
+    assert 'id="payInvoice-pm-cash" value="cash" checked' in modal
+    client.post(f"/app/invoice/head/{ids['inv']}/pay", data={'payment_amount': '4000', 'payment_method': 'credit'})
+    doc, payments = _get(app, InvoiceHead, ids['inv'])
+    assert payments == [] and doc.balance == Decimal('4000')

@@ -261,7 +261,7 @@ The SMS buttons are greyed out if the customer has no phone number or that text 
 Once an invoice is completed (its job is **Done**), the **Amount paid** and **Paid by** boxes and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
 
 1. Press **Record payment**. The amount is filled in with the balance; change it for a part payment.
-2. Choose **Paid by** and, if you like, add a **Note** (a cheque number, say).
+2. Choose **Paid by** (Credit is not offered: this is money actually received) and, if you like, add a **Note** (a cheque number, say).
 3. Press **Record payment**. The payment appears in the list, on the Payments page and in today's figures, and the balance goes down. When nothing is left, the bill shows *Settled* and the button goes away.
 
 You cannot pay more than the balance. While a job is still in progress there is no **Record payment** button: type what was paid in **Amount paid** instead.
