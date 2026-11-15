@@ -9,16 +9,17 @@ from harithmapos import settings as app_settings
 from harithmapos import job_requests
 from harithmapos.billing import invoice_totals, line_amounts, money, to_decimal
 from harithmapos.timeutils import utcnow
+from harithmapos.models import DOC_COMPLETED, DOC_DRAFT, DOC_VOID
 from harithmapos.models import (
     InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle,
-    WashBay, Employee, Item, Payment, InvoiceStatusLog, InvoiceRequest,
+    WashBay, Employee, Item, InvoiceStatusLog, InvoiceRequest,
 )
 from harithmapos.views.invoice.forms import (
     InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm,
     ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm, InvoiceStatusForm,
 )
-from harithmapos import ledger
-from harithmapos.permissions import owner_required, user_is_owner, OWNER_ONLY_MESSAGE
+from harithmapos import documents, ledger
+from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
 from utils.database import safe_insert_with_sequence_check
@@ -54,14 +55,20 @@ def invoice_head():
             .join(Customer, InvoiceHead.customer_id == Customer.id)
             .filter(or_(*conditions))
         )
-    if status == 'open':
-        invoices = invoices.filter(InvoiceHead.service_status < config.SERVICE_STATUS_DONE)
+    done = config.SERVICE_STATUS_DONE
+    if status == 'open':        # job still on the floor
+        invoices = invoices.filter(InvoiceHead.doc_status == DOC_DRAFT, InvoiceHead.service_status < done)
+    elif status == 'tobill':    # job finished, bill not completed yet
+        invoices = invoices.filter(InvoiceHead.doc_status == DOC_DRAFT, InvoiceHead.service_status == done)
     elif status == 'done':
-        invoices = invoices.filter(InvoiceHead.service_status == config.SERVICE_STATUS_DONE)
+        invoices = invoices.filter(InvoiceHead.doc_status == DOC_COMPLETED)
     elif status == 'unpaid':
         invoices = invoices.filter(
-            func.coalesce(InvoiceHead.gross_price, 0) > func.coalesce(InvoiceHead.paid_amount, 0)
+            InvoiceHead.doc_status == DOC_COMPLETED,
+            func.coalesce(InvoiceHead.gross_price, 0) > func.coalesce(InvoiceHead.paid_amount, 0),
         )
+    elif status == 'void':
+        invoices = invoices.filter(InvoiceHead.doc_status == DOC_VOID)
 
     invoice_heads = invoices.order_by(InvoiceHead.id.desc()).paginate(page=page, per_page=PER_PAGE)
     return render_template(
@@ -130,6 +137,7 @@ def insert_invoice_head():
 
     open_invoice = InvoiceHead.query.filter(
         InvoiceHead.vehicle_id == vehicle.id,
+        InvoiceHead.is_live,
         InvoiceHead.service_status < config.SERVICE_STATUS_DONE,
     ).first()
     if open_invoice:
@@ -223,12 +231,8 @@ def invoice_head_detail(invoice_head_id):
             utils.flash_form_errors(form)
             return redirect(here)
 
-        if form.cancel_invoice.data:
-            if not user_is_owner():
-                flash(OWNER_ONLY_MESSAGE, category='warning')
-                return redirect(here)
-            if _delete_service_invoice(invoice_head):
-                return redirect(url_for('invoice_blueprint.invoice_head'))
+        if invoice_head.is_void:
+            flash(f"Invoice #{invoice_head.id} is void and cannot be changed.", category='warning')
             return redirect(here)
 
         try:
@@ -244,6 +248,8 @@ def invoice_head_detail(invoice_head_id):
         elif form.send_service_complete_msg.data:
             _notify_customer(invoice_head, started=False)
         elif form.complete_invoice.data:
+            if not _complete(invoice_head):
+                return redirect(here)
             _complete_documents(
                 invoice_head, form,
                 url_for('invoice_blueprint.print_invoice_head', invoice_head_id=invoice_head.id),
@@ -253,13 +259,18 @@ def invoice_head_detail(invoice_head_id):
             _saved_message(form)
         return redirect(here)
 
-    # Recalculate on every view so totals can never drift from the lines.
-    invoice_details = _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    db.session.commit()
+    # A draft is recalculated on every view so its totals can never drift from the lines;
+    # a completed or void bill is fixed.
+    if invoice_head.is_draft:
+        invoice_details = _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
+        db.session.commit()
+    else:
+        invoice_details = documents.lines_of(invoice_head)
 
     previous_visits = (
         InvoiceHead.query
-        .filter(InvoiceHead.vehicle_id == invoice_head.vehicle_id, InvoiceHead.id != invoice_head.id)
+        .filter(InvoiceHead.vehicle_id == invoice_head.vehicle_id, InvoiceHead.id != invoice_head.id,
+                InvoiceHead.is_live)
         .order_by(InvoiceHead.created_dttm.desc())
         .limit(5)
         .all()
@@ -279,7 +290,10 @@ def set_invoice_status(invoice_head_id):
     """One-tap status change from the dashboard."""
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
     form = InvoiceStatusForm()
-    if form.validate_on_submit():
+    if not invoice_head.is_draft:
+        flash(f"Invoice #{invoice_head.id} is {invoice_head.status_label.lower()}: its job can no longer move.",
+              category='warning')
+    elif form.validate_on_submit():
         try:
             changed = _change_status(invoice_head, form.status.data)
             invoice_head.update_dttm = utcnow()
@@ -382,6 +396,12 @@ def item_invoice_head_detail(item_invoice_head_id):
             utils.flash_form_errors(form)
             return redirect(here)
 
+        if not item_invoice_head.is_draft:
+            # Nothing on a completed or void sale's bill can change; money is taken with Record payment.
+            flash(f"Item sale #{item_invoice_head.id} is {item_invoice_head.status_label.lower()}, "
+                  "so it cannot be changed.", category='warning')
+            return redirect(here)
+
         try:
             if form.customer_id.data is not None:
                 customer = db.session.get(Customer, form.customer_id.data)
@@ -389,8 +409,6 @@ def item_invoice_head_detail(item_invoice_head_id):
                     item_invoice_head.customer_id = customer.id
             item_invoice_head.discount_amount = form.discount_amount.data or 0
             item_invoice_head.update_dttm = utcnow()
-            if form.complete_item_invoice.data and not item_invoice_head.is_completed:
-                item_invoice_head.completed_dttm = utcnow()
             _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
             db.session.commit()
         except Exception:
@@ -400,6 +418,8 @@ def item_invoice_head_detail(item_invoice_head_id):
             return redirect(here)
 
         if form.complete_item_invoice.data:
+            if not _complete(item_invoice_head):
+                return redirect(here)
             _complete_documents(
                 item_invoice_head, form,
                 url_for('invoice_blueprint.print_item_invoice_head', item_invoice_head_id=item_invoice_head.id),
@@ -409,8 +429,11 @@ def item_invoice_head_detail(item_invoice_head_id):
         _saved_message(form)
         return redirect(here)
 
-    item_invoice_details = _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-    db.session.commit()
+    if item_invoice_head.is_draft:
+        item_invoice_details = _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
+        db.session.commit()
+    else:
+        item_invoice_details = documents.lines_of(item_invoice_head)
     return render_template(
         'invoice/item_update.html',
         title=f"Item invoice #{item_invoice_head.id}",
@@ -435,36 +458,40 @@ def print_item_invoice_head(item_invoice_head_id):
 
 
 # ---------------------------------------------------------------------------
-# Delete (POST only: a link that deletes can be triggered by accident)
+# Void (owners): nothing is deleted; the document stays, marked void, and its stock goes back
 # ---------------------------------------------------------------------------
 
-@invoice_blueprint.route('/app/invoice/head/<int:invoice_head_id>/delete', methods=['POST'])
-@owner_required
-def delete_invoice_head(invoice_head_id):
-    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-    _delete_service_invoice(invoice_head)
-    return redirect(url_for('invoice_blueprint.invoice_head'))
-
-
-@invoice_blueprint.route('/app/item_invoice/head/<int:item_invoice_head_id>/delete', methods=['POST'])
-@owner_required
-def delete_item_invoice_head(item_invoice_head_id):
-    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
-    if Payment.query.filter(Payment.item_invoice_id == item_invoice_head.id).count():
-        flash("Money has been recorded against this invoice, so it cannot be deleted. Payments stay in the ledger; reversing them does not remove them.",
-              category='warning')
-        return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id))
+def _void(document, here, back):
     try:
-        details = ItemInvoiceDetail.query.filter(ItemInvoiceDetail.item_invoice_head_id == item_invoice_head.id).all()
-        _return_lines_to_stock(details)
-        db.session.delete(item_invoice_head)
+        documents.void(document, request.form.get('reason'), current_user)
         db.session.commit()
-        flash("Item invoice deleted and its items returned to stock.", category='warning')
+    except documents.DocumentError as exc:
+        db.session.rollback()
+        flash(str(exc), category='warning')
+        return redirect(here)
     except Exception:
         db.session.rollback()
-        logger.exception("Could not delete item invoice %s", item_invoice_head_id)
-        flash("The invoice could not be deleted.", category='danger')
-    return redirect(url_for('invoice_blueprint.item_invoice_head'))
+        logger.exception("Could not void %s", documents.label(document))
+        flash("It could not be voided. Please try again.", category='danger')
+        return redirect(here)
+    flash(f"{documents.label(document)} is void. Its items are back in stock.", category='warning')
+    return redirect(here)
+
+
+@invoice_blueprint.route('/app/invoice/head/<int:invoice_head_id>/void', methods=['POST'])
+@owner_required
+def void_invoice_head(invoice_head_id):
+    invoice_head = db.get_or_404(InvoiceHead, invoice_head_id)
+    return _void(invoice_head, url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id),
+                 url_for('invoice_blueprint.invoice_head'))
+
+
+@invoice_blueprint.route('/app/item_invoice/head/<int:item_invoice_head_id>/void', methods=['POST'])
+@owner_required
+def void_item_invoice_head(item_invoice_head_id):
+    sale = db.get_or_404(ItemInvoiceHead, item_invoice_head_id)
+    return _void(sale, url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=sale.id),
+                 url_for('invoice_blueprint.item_invoice_head'))
 
 
 # ---------------------------------------------------------------------------
@@ -580,7 +607,32 @@ def _set_line_amounts(detail, extra_discount=None):
     detail.gross_price = amounts['gross_price']
 
 
+def _draft_or_flash(head):
+    try:
+        documents.require_draft(head)
+    except documents.DocumentError as exc:
+        flash(str(exc), category='warning')
+        return False
+    return True
+
+
+def _complete(head):
+    """Draft -> completed (and the job Done). Returns False, with a message, if it cannot be."""
+    try:
+        job_done = documents.complete(head, current_user)
+        db.session.commit()
+    except documents.DocumentError as exc:
+        db.session.rollback()
+        flash(str(exc), category='warning')
+        return False
+    if job_done:
+        _log_status(head)
+    return True
+
+
 def _add_line(head, detail_model, head_field, head_column):
+    if not _draft_or_flash(head):
+        return False
     form = InvoiceDetailCreateForm()
     if not form.validate_on_submit():
         utils.flash_form_errors(form)
@@ -617,6 +669,8 @@ def _add_line(head, detail_model, head_field, head_column):
 
 
 def _remove_line(head, detail, detail_model, head_column):
+    if not _draft_or_flash(head):
+        return False
     try:
         item = detail.item
         if item is not None and item.tracks_stock:
@@ -635,6 +689,8 @@ def _remove_line(head, detail, detail_model, head_column):
 
 
 def _change_line_quantity(head, detail, step, detail_model, head_column):
+    if not _draft_or_flash(head):
+        return False
     item = detail.item
     if step < 0 and detail.quantity <= 1:
         flash("Quantity is already at the minimum. Remove the item instead.", category='warning')
@@ -664,15 +720,6 @@ def update_invoice_detail_values(invoice_detail):
     """Recompute and save one line after its quantity changed."""
     _set_line_amounts(invoice_detail)
     db.session.commit()
-
-
-def _return_lines_to_stock(details):
-    """Put the quantities of deleted lines back on the shelf, then delete the lines."""
-    for detail in details:
-        item = detail.item
-        if item is not None and item.tracks_stock:
-            item.quantity = item.quantity + detail.quantity
-        db.session.delete(detail)
 
 
 def _latest_status_log_id(invoice_head):
@@ -732,13 +779,14 @@ def _save_service_invoice(invoice_head, form):
     else:
         invoice_head.next_milage = current
 
-    invoice_head.discount_amount = form.discount_amount.data or 0
     invoice_head.update_dttm = utcnow()
-
-    new_status = config.SERVICE_STATUS_DONE if form.complete_invoice.data else form.service_status.data
-    status_changed = _change_status(invoice_head, new_status)
-
-    _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
+    status_changed = False
+    if invoice_head.is_draft:
+        # The bill is still open: its discount can change, and the job can move between stages.
+        invoice_head.discount_amount = form.discount_amount.data or 0
+        if not form.complete_invoice.data:
+            status_changed = _change_status(invoice_head, form.service_status.data)
+        _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
     db.session.commit()
 
     if status_changed:
@@ -806,27 +854,6 @@ def _notify_customer(invoice_head, started):
         invoice_head.service_complete_msg_sent_ind = True
     db.session.commit()
     flash(f"SMS sent to {customer.name}.", category='success')
-    return True
-
-
-def _delete_service_invoice(invoice_head):
-    """Delete a service invoice, returning its items to stock. Returns True on success."""
-    if Payment.query.filter(Payment.invoice_id == invoice_head.id).count():
-        flash("Money has been recorded against this invoice, so it cannot be deleted. Payments stay in the ledger; reversing them does not remove them.",
-              category='warning')
-        return False
-    try:
-        details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id == invoice_head.id).all()
-        _return_lines_to_stock(details)
-        InvoiceStatusLog.query.filter(InvoiceStatusLog.invoice_id == invoice_head.id).delete(synchronize_session=False)
-        db.session.delete(invoice_head)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not delete service invoice %s", invoice_head.id)
-        flash("The invoice could not be deleted.", category='danger')
-        return False
-    flash("Invoice deleted and its items returned to stock.", category='warning')
     return True
 
 

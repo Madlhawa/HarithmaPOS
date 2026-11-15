@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request
 from harithmapos import db, config, ledger
 from harithmapos import settings as app_settings
 from harithmapos.timeutils import local_day_bounds_utc
+from harithmapos.models import DOC_COMPLETED
 from harithmapos.models import (
     Employee, InvoiceHead, InvoiceDetail, InvoiceStatusLog, Item, Vehicle, WashBay,
 )
@@ -22,7 +23,7 @@ def dashboard():
     # Every vehicle still in the station, oldest first.
     open_invoices = (
         InvoiceHead.query
-        .filter(InvoiceHead.service_status < done)
+        .filter(InvoiceHead.is_live, InvoiceHead.service_status < done)
         .order_by(InvoiceHead.created_dttm)
         .all()
     )
@@ -36,7 +37,7 @@ def dashboard():
     created_today = and_(InvoiceHead.created_dttm >= day_start, InvoiceHead.created_dttm < day_end)
     done_invoices = (
         InvoiceHead.query
-        .filter(InvoiceHead.service_status == done, or_(finished_today, created_today))
+        .filter(InvoiceHead.is_live, InvoiceHead.service_status == done, or_(finished_today, created_today))
         .order_by(InvoiceHead.update_dttm.desc())
         .all()
     )
@@ -60,7 +61,7 @@ def dashboard():
     unpaid_total = db.session.query(
         func.coalesce(func.sum(InvoiceHead.gross_price - func.coalesce(InvoiceHead.paid_amount, 0)), 0)
     ).filter(
-        InvoiceHead.service_status == done,
+        InvoiceHead.doc_status == DOC_COMPLETED,
         func.coalesce(InvoiceHead.gross_price, 0) > func.coalesce(InvoiceHead.paid_amount, 0),
     ).scalar()
 
@@ -101,6 +102,13 @@ def dashboard():
 def customer_invoice(token):
     """The status page a customer opens from the SMS link. No login."""
     invoice_head = InvoiceHead.verify_customer_view_token(token)
+    if invoice_head is not None and invoice_head.is_void:
+        return render_template(
+            'error/404.html',
+            title='Visit cancelled',
+            heading='This visit was cancelled',
+            message='Please ask at the counter if you have any questions.',
+        ), 404
     if not invoice_head:
         return render_template(
             'error/404.html',

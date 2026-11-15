@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import pager, search_box, plate, status_pill, rs %}
+{% from 'layout/macros.html' import pager, search_box, plate, status_pill, rs, doc_badge, balance_cell %}
 {% block body %}
 <div class="page-head">
     <div><h1>Service invoices</h1><p>Every vehicle that has come in for a service.</p></div>
@@ -10,15 +10,17 @@
     <div class="filter-tabs">
         <a href="{{ url_for('invoice_blueprint.invoice_head', query=query or none) }}" class="{{ 'active' if not status }}">All</a>
         <a href="{{ url_for('invoice_blueprint.invoice_head', status='open', query=query or none) }}" class="{{ 'active' if status == 'open' }}">In progress</a>
-        <a href="{{ url_for('invoice_blueprint.invoice_head', status='done', query=query or none) }}" class="{{ 'active' if status == 'done' }}">Done</a>
+        <a href="{{ url_for('invoice_blueprint.invoice_head', status='tobill', query=query or none) }}" class="{{ 'active' if status == 'tobill' }}">To bill</a>
+        <a href="{{ url_for('invoice_blueprint.invoice_head', status='done', query=query or none) }}" class="{{ 'active' if status == 'done' }}">Completed</a>
         <a href="{{ url_for('invoice_blueprint.invoice_head', status='unpaid', query=query or none) }}" class="{{ 'active' if status == 'unpaid' }}">Unpaid</a>
+        <a href="{{ url_for('invoice_blueprint.invoice_head', status='void', query=query or none) }}" class="{{ 'active' if status == 'void' }}">Void</a>
     </div>
 </div>
 <div class="panel">
     {% if invoice_heads.items %}
     <div class="table-responsive">
     <table class="table table-list table-hover">
-        <thead><tr><th>No.</th><th>Vehicle</th><th>Customer</th><th>Date</th><th>Status</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
+        <thead><tr><th>No.</th><th>Vehicle</th><th>Customer</th><th>Date</th><th>Job</th><th>Bill</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
         <tbody>
         {% for inv in invoice_heads.items %}
         {% set link = url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=inv.id) %}
@@ -27,9 +29,10 @@
             <td>{{ plate(inv.vehicle.number, size='sm', href=link) }}</td>
             <td><div class="cell-main">{{ inv.customer.name }}</div><div class="cell-sub">{{ inv.employee.name }}, {{ inv.washbay.name }}</div></td>
             <td class="nowrap">{{ inv.created_dttm|local_dt('%d %b %Y') }}</td>
-            <td>{{ status_pill(inv.service_status) }}</td>
+            <td>{% if not inv.is_void %}{{ status_pill(inv.service_status) }}{% endif %}</td>
+            <td>{{ doc_badge(inv) }}</td>
             <td class="num">{{ inv.gross_price|money }}</td>
-            <td class="num">{% if inv.balance > 0 %}<span class="tag tag-bad">{{ inv.balance|money }}</span>{% else %}<span class="text-muted">Paid</span>{% endif %}</td>
+            <td class="num">{{ balance_cell(inv) }}</td>
         </tr>
         {% endfor %}
         </tbody>

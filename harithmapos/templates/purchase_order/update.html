@@ -1,12 +1,14 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs, paid_history, pay_modal %}
+{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs, paid_history, pay_modal, doc_badge, void_banner, void_control %}
 {% block body %}
 {% set po = purchase_order_head %}
 <div class="page-head">
-    <div><h1>Purchase order #{{ po.id }}</h1><p>{{ po.supplier.name }}{% if po.supplier_invoice_id %}, their invoice {{ po.supplier_invoice_id }}{% endif %}, {{ po.created_dttm|local_dt }}</p></div>
+    <div><h1>Purchase order #{{ po.id }} {{ doc_badge(po) }}</h1><p>{{ po.supplier.name }}{% if po.supplier_invoice_id %}, their invoice {{ po.supplier_invoice_id }}{% endif %}, {{ po.created_dttm|local_dt }}</p></div>
 </div>
+{{ void_banner(po, 'purchase order') }}
 <div class="job">
     <div class="panel" id="lines" data-region>
+        {% if po.is_draft %}
         <div class="panel-body">
             <form method="post" action="{{ url_for('purchase_order_blueprint.add_purchase_order_detail', purchase_order_head_id=po.id) }}" data-entry>
                 {{ csrf() }}
@@ -25,6 +27,7 @@
             </form>
             <div class="entry-hint" data-entry-hint></div>
         </div>
+        {% endif %}
         {% if purchase_order_details %}
         <div class="table-responsive">
         <table class="table table-list">
@@ -34,13 +37,13 @@
             <tr>
                 <td class="cell-main">{{ d.item.name }}</td>
                 <td class="text-center"><span class="qty-stepper">
-                    {{ post_button(url_for('purchase_order_blueprint.decrease_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='dash', cls='btn btn-quiet btn-sm btn-icon', title='One less') }}
+                    {% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.decrease_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='dash', cls='btn btn-quiet btn-sm btn-icon', title='One less') }}{% endif %}
                     <span class="qty">{{ d.quantity|qty }}</span>
-                    {{ post_button(url_for('purchase_order_blueprint.increase_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='plus', cls='btn btn-quiet btn-sm btn-icon', title='One more') }}
+                    {% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.increase_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='plus', cls='btn btn-quiet btn-sm btn-icon', title='One more') }}{% endif %}
                 </span></td>
                 <td class="num">{{ (d.total_cost / d.quantity if d.quantity else 0)|money }}</td>
                 <td class="num fw-semibold">{{ d.total_cost|money }}</td>
-                <td class="cell-actions">{{ post_button(url_for('purchase_order_blueprint.delete_purchase_order_detail', purchase_order_detail_id=d.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove ' ~ d.item.name, confirm='Remove ' ~ d.item.name ~ '? Its quantity comes off stock.') }}</td>
+                <td class="cell-actions">{% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.delete_purchase_order_detail', purchase_order_detail_id=d.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove ' ~ d.item.name, confirm='Remove ' ~ d.item.name ~ '? Its quantity comes off stock.') }}{% endif %}</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -52,12 +55,17 @@
     </div>
 
     <div class="job-side">
+        {% if not po.is_void %}
         <form method="post" action="{{ url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=po.id) }}">
             {{ csrf() }}
             <div class="panel">
                 <div class="panel-head"><h2>Bill</h2></div>
                 <div class="panel-body">
+                    {% if po.is_draft %}
                     {{ autocomplete('supplier', 'Supplier', url_for('search_blueprint.search_suppliers'), prefix='pob', value=po.supplier.name, id_value=po.supplier_id, show_all=true, optional=true) }}
+                    {% else %}
+                    <p class="mb-2">{{ po.supplier.name }}</p>
+                    {% endif %}
                     {{ field('supplier_invoice_id', "Supplier's invoice no.", prefix='pob', value=po.supplier_invoice_id) }}
                     <dl class="totals" id="bill-totals" data-sync>
                         <div><dt>Cost of items</dt><dd>{{ po.total_cost|money }}</dd></div>
@@ -67,8 +75,8 @@
                         <div class="{{ 'is-due' if po.balance > 0 else 'is-clear' }}"><dt>Balance</dt><dd>{{ po.balance|money if po.balance != 0 else 'Settled' }}</dd></div>
                     </dl>
                     {% if po.is_completed %}
+                    <p class="form-hint">Completed {{ po.completed_dttm|local_dt }}{% if po.completed_by %} by {{ po.completed_by.name }}{% endif %}. Only the supplier's invoice number can still change.</p>
                     {{ paid_history(po, 'payOrder', paying='out', verb='Pay supplier') }}
-                    {{ field('discount_pct', 'Discount %', prefix='pob', kind='money', value=po.discount_pct|qty if po.discount_pct else '', placeholder='0', wrap='mt-3') }}
                     {% else %}
                     <div class="row g-3 mt-1">
                         <div class="col-6">{{ field('discount_pct', 'Discount %', prefix='pob', kind='money', value=po.discount_pct|qty if po.discount_pct else '', placeholder='0', wrap='') }}</div>
@@ -80,16 +88,20 @@
                     {% endif %}
                 </div>
                 <div class="panel-body border-top d-grid gap-2">
-                    {% if not po.is_completed %}
+                    {% if po.is_draft %}
                     <button type="submit" name="complete_purchase_order" value="1" class="btn btn-finish btn-lg">Complete</button>
                     {% endif %}
                     <button type="submit" name="update_purchase_order" value="1" class="btn btn-primary">Save</button>
                 </div>
             </div>
         </form>
-        <form method="post" action="{{ url_for('purchase_order_blueprint.delete_purchase_order_head', purchase_order_head_id=po.id) }}" data-confirm="Delete purchase order #{{ po.id }}? Its items come off stock." class="text-end">
-            {{ csrf() }}<button type="submit" class="btn btn-danger-quiet btn-sm">Delete this purchase order</button>
-        </form>
+        {% else %}
+        <div class="panel"><div class="panel-head"><h2>Bill</h2></div><div class="panel-body">
+            <p class="mb-2">{{ po.supplier.name }}{% if po.supplier_invoice_id %}, their invoice {{ po.supplier_invoice_id }}{% endif %}</p>
+            <dl class="totals"><div class="is-total"><dt>Was</dt><dd>{{ rs(po.gross_price) }}</dd></div></dl>
+        </div></div>
+        {% endif %}
+        {{ void_control(po, url_for('purchase_order_blueprint.void_purchase_order_head', purchase_order_head_id=po.id), 'purchase order') }}
     </div>
 </div>
 {{ pay_modal(po, 'payOrder', url_for('payment_blueprint.pay_purchase_order', purchase_order_head_id=po.id), title='Pay supplier for order #' ~ po.id, verb='Record payment', refund_action=url_for('payment_blueprint.refund_purchase_order', purchase_order_head_id=po.id)) }}

@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import pager, search_box, post_button, rs %}
+{% from 'layout/macros.html' import pager, search_box, post_button, rs, doc_badge, balance_cell %}
 {% block body %}
 <div class="page-head">
     <div><h1>Item invoices</h1><p>Counter sales of stock without a service, such as a bottle of oil.</p></div>
@@ -13,16 +13,17 @@
     {% if item_invoice_heads.items %}
     <div class="table-responsive">
     <table class="table table-list table-hover">
-        <thead><tr><th>No.</th><th>Customer</th><th>Date</th><th class="num">Items</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
+        <thead><tr><th>No.</th><th>Customer</th><th>Date</th><th>Bill</th><th class="num">Items</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
         <tbody>
         {% for inv in item_invoice_heads.items %}
         <tr>
             <td class="cell-id"><a class="row-link" href="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=inv.id) }}">#{{ inv.id }}</a></td>
             <td class="cell-main">{{ inv.customer.name if inv.customer else 'Walk-in' }}</td>
             <td class="nowrap">{{ inv.created_dttm|local_dt('%d %b %Y, %I:%M %p') }}</td>
+            <td>{{ doc_badge(inv) }}</td>
             <td class="num">{{ inv.invoice_details|length }}</td>
             <td class="num">{{ inv.gross_price|money }}</td>
-            <td class="num">{% if inv.balance > 0 %}<span class="tag tag-bad">{{ inv.balance|money }}</span>{% else %}<span class="text-muted">Paid</span>{% endif %}</td>
+            <td class="num">{{ balance_cell(inv) }}</td>
         </tr>
         {% endfor %}
         </tbody>

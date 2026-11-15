@@ -73,7 +73,8 @@ def shop(app):
 
         def job(customer, vehicle, when, lines, paid, status=config.SERVICE_STATUS_DONE, minutes=40):
             head = InvoiceHead(customer_id=customer.id, vehicle_id=vehicle.id, washbay_id=bay.id, employee_id=staff.id,
-                               service_status=status, created_dttm=when)
+                               service_status=status, created_dttm=when,
+                               doc_status='completed' if status == config.SERVICE_STATUS_DONE else 'draft')
             db.session.add(head)
             db.session.flush()
             gross = cost = Decimal(0)
@@ -99,7 +100,8 @@ def shop(app):
         job(new, v_new, at(date(2026, 11, 4), 15), [wash], 0, minutes=20)            # November, unpaid
         job(new, v_new, at(date(2026, 11, 5), 11), [wax], 0, status=2)               # still in the bay: not a sale
         sale = ItemInvoiceHead(customer_id=None, created_dttm=at(date(2026, 11, 4), 12), gross_price=1600,
-                               total_price=1600, total_cost=1000, total_discount=0)
+                               total_price=1600, total_cost=1000, total_discount=0,
+                               doc_status='completed')
         db.session.add(sale)
         db.session.flush()
         db.session.add(ItemInvoiceDetail(item_invoice_head_id=sale.id, item_id=oil.id, quantity=1, total_cost=1000,

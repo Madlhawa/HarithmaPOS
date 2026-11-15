@@ -1327,3 +1327,10 @@ code.dv-note { display: inline; }
 .ledger-tag.is-gone { background: var(--h-red-soft); color: var(--h-red); border-color: transparent; }
 tr.is-reversed td { color: var(--h-muted); }
 tr.is-reversed td.num, .history li.is-reversed .num { text-decoration: line-through; }
+
+/* ---- Document state (draft / completed / void) ---- */
+.doc-badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; border: 1px solid var(--h-line); background: var(--h-surface-2); color: var(--h-muted); }
+.doc-badge.is-completed { background: var(--h-green-soft); color: var(--h-green); border-color: transparent; }
+.doc-badge.is-void { background: var(--h-red-soft); color: var(--h-red); border-color: transparent; }
+.void-banner { border-left: 3px solid var(--h-red); }
+

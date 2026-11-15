@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import pager, search_box, rs %}
+{% from 'layout/macros.html' import pager, search_box, rs, doc_badge, balance_cell %}
 {% block body %}
 <div class="page-head">
     <div><h1>Purchase orders</h1><p>Stock bought from suppliers. Adding items here increases stock.</p></div>
@@ -10,7 +10,7 @@
     {% if purchase_order_heads.items %}
     <div class="table-responsive">
     <table class="table table-list table-hover">
-        <thead><tr><th>No.</th><th>Supplier</th><th>Supplier invoice</th><th>Date</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
+        <thead><tr><th>No.</th><th>Supplier</th><th>Supplier invoice</th><th>Date</th><th>Bill</th><th class="num">Total</th><th class="num">Balance</th></tr></thead>
         <tbody>
         {% for po in purchase_order_heads.items %}
         <tr>
@@ -18,8 +18,9 @@
             <td class="cell-main">{{ po.supplier.name }}</td>
             <td>{{ po.supplier_invoice_id or '-' }}</td>
             <td class="nowrap">{{ po.created_dttm|local_dt('%d %b %Y') }}</td>
+            <td>{{ doc_badge(po) }}</td>
             <td class="num">{{ po.gross_price|money }}</td>
-            <td class="num">{% if po.balance > 0 %}<span class="tag tag-warn">{{ po.balance|money }}</span>{% else %}<span class="text-muted">Paid</span>{% endif %}</td>
+            <td class="num">{{ balance_cell(po) }}</td>
         </tr>
         {% endfor %}
         </tbody>

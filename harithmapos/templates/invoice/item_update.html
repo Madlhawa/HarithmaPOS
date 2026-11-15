@@ -1,10 +1,10 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, rs, autocomplete, field, payment_choice, totals, paid_history, pay_modal %}
+{% from 'layout/macros.html' import csrf, rs, autocomplete, field, payment_choice, totals, paid_history, pay_modal, doc_badge, void_banner, void_control %}
 {% block body %}
 {% set inv = item_invoice_head %}
 <div class="page-head">
     <div>
-        <h1>Item sale #{{ inv.id }}</h1>
+        <h1>Item sale #{{ inv.id }} {{ doc_badge(inv) }}</h1>
         <p>{{ inv.customer.name if inv.customer else 'Walk-in' }}, started {{ inv.created_dttm|local_dt }}</p>
     </div>
     <div class="page-actions">
@@ -12,16 +12,18 @@
     </div>
 </div>
 
+{{ void_banner(inv, 'sale') }}
 <div class="job">
     <div>
         {% with add_url=url_for('invoice_blueprint.add_item_invoice_detail', item_invoice_head_id=inv.id), lines=item_invoice_details,
                 inc_endpoint='invoice_blueprint.increase_quantity_item_invoice_detail', dec_endpoint='invoice_blueprint.decrease_quantity_item_invoice_detail',
-                del_endpoint='invoice_blueprint.delete_item_invoice_detail', line_arg='item_invoice_detail_id' %}
+                del_endpoint='invoice_blueprint.delete_item_invoice_detail', line_arg='item_invoice_detail_id', locked=not inv.is_draft %}
         {% include 'invoice/_lines.html' %}
         {% endwith %}
     </div>
 
     <div class="job-side">
+        {% if inv.is_draft %}
         <form method="post" action="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=inv.id) }}">
             {{ csrf() }}
             <div class="panel">
@@ -29,10 +31,6 @@
                 <div class="panel-body">
                     {{ autocomplete('customer', 'Customer', url_for('search_blueprint.search_customers'), prefix='bill', value=inv.customer.name if inv.customer else '', id_value=inv.customer_id, optional=true, placeholder='Name or phone') }}
                     {{ totals(inv) }}
-                    {% if inv.is_completed %}
-                    {{ paid_history(inv, 'paySale') }}
-                    {{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='mt-3') }}
-                    {% else %}
                     <div class="row g-3 mt-1">
                         <div class="col-6">{{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='') }}</div>
                         <div class="col-6">{{ field('received_amount', 'Received now', prefix='bill', kind='money', placeholder='0.00', wrap='') }}</div>
@@ -40,22 +38,27 @@
                     <label class="form-label mt-3">Paid by</label>
                     {{ payment_choice('cash') }}
                     <div class="form-hint">Recorded when you press Complete. More than the bill? The change to give back is shown.</div>
-                    {% endif %}
                 </div>
                 <div class="panel-body border-top d-grid gap-2">
-                    {% if not inv.is_completed %}
                     <button type="submit" name="complete_item_invoice" value="1" class="btn btn-finish btn-lg">Complete and print receipt</button>
-                    {% endif %}
                     <button type="submit" name="update_item_invoice" value="1" class="btn btn-primary">Save</button>
                 </div>
             </div>
         </form>
-        {% if is_owner() %}
-        <form method="post" action="{{ url_for('invoice_blueprint.delete_item_invoice_head', item_invoice_head_id=inv.id) }}" data-confirm="Delete item sale #{{ inv.id }}? Its items go back into stock." class="text-end">
-            {{ csrf() }}
-            <button type="submit" class="btn btn-danger-quiet btn-sm">Delete this sale</button>
-        </form>
+        {% else %}
+        <div class="panel">
+            <div class="panel-head"><h2>Bill</h2></div>
+            <div class="panel-body">
+                <p class="mb-2">{{ inv.customer.name if inv.customer else 'Walk-in' }}</p>
+                {{ totals(inv) }}
+                {% if inv.is_completed %}
+                <p class="form-hint">Completed {{ inv.completed_dttm|local_dt }}{% if inv.completed_by %} by {{ inv.completed_by.name }}{% endif %}.</p>
+                {{ paid_history(inv, 'paySale') }}
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
+        {{ void_control(inv, url_for('invoice_blueprint.void_item_invoice_head', item_invoice_head_id=inv.id), 'sale') }}
     </div>
 </div>
 {{ pay_modal(inv, 'paySale', url_for('payment_blueprint.pay_item_invoice', item_invoice_head_id=inv.id), title='Payment for item sale #' ~ inv.id, refund_action=url_for('payment_blueprint.refund_item_invoice', item_invoice_head_id=inv.id)) }}

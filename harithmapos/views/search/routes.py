@@ -109,6 +109,7 @@ def search_invoices():
         InvoiceHead.query
         .join(Customer, InvoiceHead.customer_id == Customer.id)
         .join(Vehicle, InvoiceHead.vehicle_id == Vehicle.id)
+        .filter(InvoiceHead.is_live)
     )
     if query:
         pattern = f"%{query}%"

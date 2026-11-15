@@ -5,7 +5,7 @@ from flask_login import UserMixin
 from flask import current_app
 from sqlalchemy import CheckConstraint, case, func, select, type_coerce
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import column_property
+from sqlalchemy.orm import column_property, declared_attr
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
@@ -23,6 +23,68 @@ def load_user(user_id):
 def _balance(document):
     """What is still owed on an invoice or purchase order (negative = paid too much: refund due)."""
     return Decimal(str(document.gross_price or 0)) - Decimal(str(document.paid_amount or 0))
+
+DOC_DRAFT, DOC_COMPLETED, DOC_VOID = 'draft', 'completed', 'void'
+
+
+class DocumentState:
+    """The life of an invoice, item sale or purchase order: draft -> completed, or -> void.
+
+    Draft: being put together; lines, prices and discounts can change.
+    Completed: billed. Its lines, discounts and customer or supplier are fixed;
+        money is taken against it in the ledger.
+    Void: cancelled, with who, when and why. Kept for the record (numbers never
+        go missing); its stock is put back and it counts nowhere.
+    Changes go through harithmapos/documents.py. A service invoice's job
+    progress (service_status: waiting ... done) is separate from this.
+    """
+    doc_status = db.Column(db.String(10), nullable=False, default=DOC_DRAFT, server_default=DOC_DRAFT, index=True)
+    completed_dttm = db.Column(db.DateTime)
+    voided_dttm = db.Column(db.DateTime)
+    void_reason = db.Column(db.String(200))
+
+    @declared_attr
+    def completed_by_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    @declared_attr
+    def voided_by_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    @declared_attr
+    def completed_by(cls):
+        return db.relationship('User', foreign_keys=[cls.completed_by_id])
+
+    @declared_attr
+    def voided_by(cls):
+        return db.relationship('User', foreign_keys=[cls.voided_by_id])
+
+    @declared_attr
+    def __table_args__(cls):
+        return (CheckConstraint("doc_status IN ('draft', 'completed', 'void')",
+                                name=f'ck_{cls.__name__.lower()}_doc_status'),)
+
+    @property
+    def is_draft(self):
+        return self.doc_status == DOC_DRAFT
+
+    @property
+    def is_completed(self):
+        return self.doc_status == DOC_COMPLETED
+
+    @property
+    def is_void(self):
+        return self.doc_status == DOC_VOID
+
+    @hybrid_property
+    def is_live(self):
+        """Not voided: counts on boards, lists and reports."""
+        return self.doc_status != DOC_VOID
+
+    @property
+    def status_label(self):
+        return {DOC_DRAFT: 'Draft', DOC_COMPLETED: 'Completed', DOC_VOID: 'Void'}.get(self.doc_status, self.doc_status)
+
 
 class InvoiceRequest(db.Model):
     """One thing the customer asked for when the vehicle came in, ticked off when it is done."""
@@ -107,7 +169,7 @@ def _paid_column(document_id, link, paying_direction):
         .scalar_subquery()
     )
 
-class PurchaseOrderHead(db.Model):
+class PurchaseOrderHead(DocumentState, db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
     supplier_invoice_id = db.Column(db.String(255))
@@ -117,7 +179,6 @@ class PurchaseOrderHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
-    completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
     payments = db.relationship('Payment', backref='purchase_order', lazy=True, order_by='Payment.id')
     paid_amount = _paid_column(id, 'purchase_order_id', 'out')
 
@@ -125,9 +186,6 @@ class PurchaseOrderHead(db.Model):
     def balance(self):
         return _balance(self)
 
-    @property
-    def is_completed(self):
-        return self.completed_dttm is not None
 
 class PurchaseOrderDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -150,10 +208,10 @@ class WashBay(db.Model):
 
     @hybrid_property
     def active_invoice(self):
-        active_invoice_head = InvoiceHead.query.filter(InvoiceHead.is_in_bay).filter(InvoiceHead.washbay_id==self.id).first()
+        active_invoice_head = InvoiceHead.query.filter(InvoiceHead.is_in_bay, InvoiceHead.is_live).filter(InvoiceHead.washbay_id==self.id).first()
         return active_invoice_head
 
-class ItemInvoiceHead(db.Model):
+class ItemInvoiceHead(DocumentState, db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     discount_amount = db.Column(db.Numeric(10,2), default=0)
@@ -164,7 +222,6 @@ class ItemInvoiceHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
-    completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
     payments = db.relationship('Payment', backref='item_invoice', lazy=True, order_by='Payment.id')
     paid_amount = _paid_column(id, 'item_invoice_id', 'in')
 
@@ -172,9 +229,6 @@ class ItemInvoiceHead(db.Model):
     def balance(self):
         return _balance(self)
 
-    @property
-    def is_completed(self):
-        return self.completed_dttm is not None
 
 class ItemInvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -189,7 +243,7 @@ class ItemInvoiceDetail(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-class InvoiceHead(db.Model):
+class InvoiceHead(DocumentState, db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
@@ -244,10 +298,6 @@ class InvoiceHead(db.Model):
     def is_done(self):
         return self.service_status == config.SERVICE_STATUS_DONE
 
-    @property
-    def is_completed(self):
-        """A service invoice is completed once its job is Done."""
-        return self.is_done
 
     @hybrid_property
     def service_status_str(self):

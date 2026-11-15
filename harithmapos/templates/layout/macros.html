@@ -239,9 +239,10 @@
 <button type="button" class="btn btn-finish btn-lg w-100 mt-3" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}">
     <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>{{ verb }}
 </button>
-{% elif head.balance < 0 and is_owner() %}
-<button type="button" class="btn btn-quiet w-100 mt-3" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}-refund">
-    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Refund {{ rs(0 - head.balance) }}
+{% endif %}
+{% if head.paid_amount > 0 and is_owner() %}
+<button type="button" class="btn btn-quiet w-100 mt-2" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}-refund">
+    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Refund
 </button>
 {% endif %}
 {% endmacro %}
@@ -266,13 +267,14 @@
     </div>
 </form>
 {% endcall %}
-{% elif head.is_completed and head.balance < 0 and refund_action and is_owner() %}
-{% call modal(modal_id ~ '-refund', 'Refund the overpayment') %}
+{% endif %}
+{% if head.is_completed and head.paid_amount > 0 and refund_action and is_owner() %}
+{% call modal(modal_id ~ '-refund', 'Refund') %}
 <form method="post" action="{{ refund_action }}">
     {{ csrf() }}
     <div class="modal-body">
-        <p class="mb-3">Paid {{ rs(head.paid_amount) }} against a total of {{ rs(head.gross_price) }}: <strong>{{ rs(0 - head.balance) }}</strong> overpaid.</p>
-        {{ field('payment_amount', 'Amount', prefix=modal_id ~ '-rf', kind='money', value=(0 - head.balance)|money, required=true) }}
+        <p class="mb-3">Paid {{ rs(head.paid_amount) }} against a total of {{ rs(head.gross_price) }}. Refund money actually given back; for a payment entered by mistake, use Reverse on the Payments page instead.</p>
+        {{ field('payment_amount', 'Amount', prefix=modal_id ~ '-rf', kind='money', value=((0 - head.balance) if head.balance < 0 else head.paid_amount)|money, required=true, hint='Up to ' ~ head.paid_amount|money ~ ', what was paid.') }}
         <label class="form-label">Given back by</label>
         {{ payment_choice('cash', prefix=modal_id ~ '-rfm') }}
         {{ field('remarks', 'Note (optional)', prefix=modal_id ~ '-rf', wrap='mt-3', attrs={'maxlength': 255}) }}
@@ -296,3 +298,58 @@
     <div class="form-hint">One request per line. Each becomes a checklist item on the invoice, ticked off when it's done.</div>
 </div>
 {%- endmacro %}
+
+
+{# A document's bill state (draft / completed / void) as a tag, and its balance cell for lists. #}
+{% macro doc_badge(head) -%}
+<span class="doc-badge is-{{ head.doc_status }}">{{ head.status_label }}</span>
+{%- endmacro %}
+
+{% macro balance_cell(head) -%}
+{% if head.is_void %}<span class="text-muted">Void</span>
+{% elif head.is_draft %}<span class="text-muted">Not billed</span>
+{% elif head.balance > 0 %}<span class="tag tag-bad">{{ head.balance|money }}</span>
+{% elif head.balance < 0 %}<span class="tag tag-warn">Overpaid {{ (0 - head.balance)|money }}</span>
+{% else %}<span class="text-muted">Paid</span>{% endif %}
+{%- endmacro %}
+
+
+{# Shown at the top of a void document: who voided it, when and why. #}
+{% macro void_banner(head, noun) -%}
+{% if head.is_void %}
+<div class="panel void-banner mb-3">
+    <div class="panel-body">
+        <strong>This {{ noun }} is void.</strong>
+        Voided {{ head.voided_dttm|local_dt }}{% if head.voided_by %} by {{ head.voided_by.name }}{% endif %}: {{ head.void_reason }}.
+        It counts nowhere, and its stock was put back.
+    </div>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# Owners: void a draft or completed document (with a reason). Goes outside any other form. #}
+{% macro void_control(head, action, noun) -%}
+{% if is_owner() and not head.is_void %}
+<div class="text-end">
+    <button type="button" class="btn btn-danger-quiet btn-sm" data-bs-toggle="modal" data-bs-target="#voidModal">Void this {{ noun }}</button>
+</div>
+{% call modal('voidModal', 'Void ' ~ noun ~ ' #' ~ head.id) %}
+<form method="post" action="{{ action }}">
+    {{ csrf() }}
+    <div class="modal-body">
+        {% if head.paid_amount != 0 %}
+        <p class="mb-0"><strong>{{ rs(head.paid_amount) }}</strong> has been paid on it. Refund it (the <em>Refund</em> button on the bill), or reverse a payment entered by mistake on the Payments page, then void it.</p>
+        {% else %}
+        <p>The {{ noun }} stays on record, marked void, and counts nowhere. {{ 'Its items go back into stock.' if noun != 'purchase order' else 'Its items come back off stock.' }} To bill it differently, start a new one.</p>
+        {{ field('reason', 'Why is it being voided?', prefix='void', required=true, attrs={'maxlength': 200}, placeholder='For example: customer left, wrong vehicle') }}
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Close</button>
+        {% if head.paid_amount == 0 %}<button class="btn btn-danger">Void it</button>{% endif %}
+    </div>
+</form>
+{% endcall %}
+{% endif %}
+{%- endmacro %}
+

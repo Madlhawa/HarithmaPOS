@@ -53,7 +53,7 @@ def _stage_since(invoices):
 
 
 def board_data():
-    open_invoices = (InvoiceHead.query.filter(InvoiceHead.service_status < DONE)
+    open_invoices = (InvoiceHead.query.filter(InvoiceHead.is_live, InvoiceHead.service_status < DONE)
                      .order_by(InvoiceHead.created_dttm).all())
 
     day_start, day_end = local_day_bounds_utc(tz_name=config.APP_TIMEZONE)
@@ -63,7 +63,8 @@ def board_data():
         InvoiceStatusLog.created_dttm < day_end,
     ))
     created_today = and_(InvoiceHead.created_dttm >= day_start, InvoiceHead.created_dttm < day_end)
-    ready = (InvoiceHead.query.filter(InvoiceHead.service_status == DONE, or_(finished_today, created_today))
+    ready = (InvoiceHead.query.filter(InvoiceHead.is_live, InvoiceHead.service_status == DONE,
+                                      or_(finished_today, created_today))
              .order_by(InvoiceHead.update_dttm.desc()).all())
 
     since = _stage_since(open_invoices + ready)
@@ -94,7 +95,7 @@ def board_data():
         'polishing': polishing,
         'ready': ready[:READY_SHOWN],
         'ready_count': len(ready),
-        'unpaid_ready': sum(1 for i in ready if i.balance > 0),
+        'unpaid_ready': sum(1 for i in ready if i.is_draft or i.balance > 0),
         'since': since,
         'washbays': washbays,
         'employees': employees,
@@ -111,7 +112,8 @@ def board():
 
 def _bay_taken_by(bay_id, invoice_id=None):
     """The other vehicle already in this bay (vacuuming or washing), if any."""
-    query = InvoiceHead.query.filter(InvoiceHead.washbay_id == bay_id, InvoiceHead.service_status.in_(IN_BAY))
+    query = InvoiceHead.query.filter(InvoiceHead.is_live, InvoiceHead.washbay_id == bay_id,
+                                     InvoiceHead.service_status.in_(IN_BAY))
     if invoice_id:
         query = query.filter(InvoiceHead.id != invoice_id)
     return query.first()
@@ -122,9 +124,12 @@ def _bay_taken_by(bay_id, invoice_id=None):
 def move(invoice_id):
     """Change a vehicle's stage, and optionally its bay and employee."""
     invoice = db.get_or_404(InvoiceHead, invoice_id)
+    if invoice.is_void:
+        flash(f"{invoice.vehicle.number}'s invoice is void.", category='warning')
+        return _here()
     status = _int('status')
-    if status is None or not 0 <= status <= DONE:
-        status = invoice.service_status or 0
+    if status is None or not 0 <= status <= DONE or invoice.is_completed:
+        status = invoice.service_status or 0          # a billed job stays Done
 
     bay_id = _int('washbay_id')
     if bay_id and bay_id != invoice.washbay_id:
@@ -204,7 +209,7 @@ def add():
 
     if vehicle is not None:
         open_invoice = InvoiceHead.query.filter(
-            InvoiceHead.vehicle_id == vehicle.id, InvoiceHead.service_status < DONE).first()
+            InvoiceHead.vehicle_id == vehicle.id, InvoiceHead.is_live, InvoiceHead.service_status < DONE).first()
         if open_invoice:
             flash(f"{vehicle.number} is already on the floor ({open_invoice.service_status_str.lower()}).",
                   category='info')

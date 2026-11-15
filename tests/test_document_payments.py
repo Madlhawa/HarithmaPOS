@@ -138,31 +138,31 @@ def test_bad_amounts_and_methods_are_refused(app, staff, ids):
     assert len(_get(app, InvoiceHead, ids['inv'])[1]) == 1
 
 
-def test_done_on_the_floor_board_without_complete(app, staff, ids):
+def test_done_on_the_floor_board_still_needs_billing(app, staff, ids):
+    """The job being finished does not complete the bill: the counter still presses Complete."""
     _service_invoice(staff, ids, '', complete=False)
     staff.post(f"/app/invoice/head/{ids['inv']}/status", data={'status': config.SERVICE_STATUS_DONE})
-    assert 'Record payment' in staff.get(f"/app/invoice/head/{ids['inv']}").get_data(as_text=True)
+    html = staff.get(f"/app/invoice/head/{ids['inv']}").get_data(as_text=True)
+    assert 'Complete and print receipt' in html and 'Record payment' not in html
     staff.post(f"/app/invoice/head/{ids['inv']}/pay", data={'payment_amount': '4000', 'payment_method': 'cash'})
+    assert _get(app, InvoiceHead, ids['inv'])[1] == []
+    staff.post(f"/app/invoice/head/{ids['inv']}", data={'service_status': config.SERVICE_STATUS_DONE,
+                                                        'payment_method': 'cash', 'received_amount': '4000',
+                                                        'complete_invoice': '1'})
     doc, payments = _get(app, InvoiceHead, ids['inv'])
-    assert doc.balance == 0 and len(payments) == 1
+    assert doc.is_completed and doc.balance == 0 and len(payments) == 1
 
 
 # --- Overpaid: refunds (owners) ------------------------------------------------
 
-def test_discount_after_payment_is_refunded_by_an_owner(app, staff, owner, ids):
+def test_owner_refunds_up_to_what_was_paid(app, staff, owner, ids):
     _service_invoice(staff, ids, '4000')
-    staff.post(f"/app/invoice/head/{ids['inv']}", data={
-        'service_status': config.SERVICE_STATUS_DONE, 'discount_amount': '500', 'update_invoice': '1'})
-    doc, payments = _get(app, InvoiceHead, ids['inv'])
-    assert doc.balance == Decimal('-500') and len(payments) == 1      # Save never touches what was paid
-    assert 'Overpaid' in owner.get(f"/app/invoice/head/{ids['inv']}").get_data(as_text=True)
-
     staff.post(f"/app/invoice/head/{ids['inv']}/refund", data={'payment_amount': '500', 'payment_method': 'cash'})
-    owner.post(f"/app/invoice/head/{ids['inv']}/refund", data={'payment_amount': '600', 'payment_method': 'cash'})
+    owner.post(f"/app/invoice/head/{ids['inv']}/refund", data={'payment_amount': '4000.01', 'payment_method': 'cash'})
     assert len(_get(app, InvoiceHead, ids['inv'])[1]) == 1            # staff refused, too much refused
     owner.post(f"/app/invoice/head/{ids['inv']}/refund", data={'payment_amount': '500', 'payment_method': 'cash'})
     doc, payments = _get(app, InvoiceHead, ids['inv'])
-    assert payments[-1][:3] == ('sale_refund', 'out', Decimal('500.00')) and doc.balance == 0
+    assert payments[-1][:3] == ('sale_refund', 'out', Decimal('500.00')) and doc.balance == Decimal('500')
 
 
 # --- Item sales ----------------------------------------------------------------

@@ -7,8 +7,8 @@ from flask_login import current_user
 from harithmapos import db, config
 from harithmapos.billing import money, purchase_totals, to_decimal
 from harithmapos.timeutils import utcnow
-from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Item, Payment
-from harithmapos import ledger
+from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Item
+from harithmapos import documents, ledger
 from harithmapos.views.purchase_order.forms import (
     PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm,
 )
@@ -93,17 +93,20 @@ def purchase_order_head_detail(purchase_order_head_id):
             utils.flash_form_errors(form)
             return redirect(here)
 
+        if purchase_order_head.is_void:
+            flash(f"Purchase order #{purchase_order_head.id} is void and cannot be changed.", category='warning')
+            return redirect(here)
+
         try:
-            if form.supplier_id.data is not None:
-                supplier = db.session.get(Supplier, form.supplier_id.data)
-                if supplier:
-                    purchase_order_head.supplier_id = supplier.id
-            purchase_order_head.supplier_invoice_id = form.supplier_invoice_id.data
-            purchase_order_head.discount_pct = form.discount_pct.data or 0
+            purchase_order_head.supplier_invoice_id = form.supplier_invoice_id.data   # a reference: always editable
             purchase_order_head.update_dttm = utcnow()
-            if form.complete_purchase_order.data and not purchase_order_head.is_completed:
-                purchase_order_head.completed_dttm = utcnow()
-            _recalculate(purchase_order_head)
+            if purchase_order_head.is_draft:
+                if form.supplier_id.data is not None:
+                    supplier = db.session.get(Supplier, form.supplier_id.data)
+                    if supplier:
+                        purchase_order_head.supplier_id = supplier.id
+                purchase_order_head.discount_pct = form.discount_pct.data or 0
+                _recalculate(purchase_order_head)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -112,6 +115,13 @@ def purchase_order_head_detail(purchase_order_head_id):
             return redirect(here)
 
         if form.complete_purchase_order.data:
+            try:
+                documents.complete(purchase_order_head, current_user)
+                db.session.commit()
+            except documents.DocumentError as exc:
+                db.session.rollback()
+                flash(str(exc), category='warning')
+                return redirect(here)
             _pay_on_completion(purchase_order_head, form)
             return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
 
@@ -131,31 +141,34 @@ def purchase_order_head_detail(purchase_order_head_id):
     )
 
 
-@purchase_order_blueprint.route('/app/purchase_order/head/<int:purchase_order_head_id>/delete', methods=['POST'])
+@purchase_order_blueprint.route('/app/purchase_order/head/<int:purchase_order_head_id>/void', methods=['POST'])
 @owner_required
-def delete_purchase_order_head(purchase_order_head_id):
-    purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
-    if Payment.query.filter(Payment.purchase_order_id == purchase_order_head.id).count():
-        flash("Money has been recorded against this purchase order, so it cannot be deleted. Payments stay in the ledger.",
-              category='warning')
-        return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
-                                purchase_order_head_id=purchase_order_head.id))
+def void_purchase_order_head(purchase_order_head_id):
+    order = db.get_or_404(PurchaseOrderHead, purchase_order_head_id)
+    here = url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=order.id)
     try:
-        details = PurchaseOrderDetail.query.filter(
-            PurchaseOrderDetail.purchase_order_head_id == purchase_order_head.id).all()
-        for detail in details:
-            # The delivery is being un-done: take the stock back out.
-            if detail.item is not None and detail.item.tracks_stock:
-                detail.item.quantity = detail.item.quantity - detail.quantity
-            db.session.delete(detail)
-        db.session.delete(purchase_order_head)
+        documents.void(order, request.form.get('reason'), current_user)
         db.session.commit()
-        flash("Purchase order deleted and its stock removed.", category='warning')
+    except documents.DocumentError as exc:
+        db.session.rollback()
+        flash(str(exc), category='warning')
+        return redirect(here)
     except Exception:
         db.session.rollback()
-        logger.exception("Could not delete purchase order %s", purchase_order_head_id)
-        flash("The purchase order could not be deleted.", category='danger')
-    return redirect(url_for('purchase_order_blueprint.purchase_order_head'))
+        logger.exception("Could not void purchase order %s", order.id)
+        flash("It could not be voided. Please try again.", category='danger')
+        return redirect(here)
+    flash(f"Purchase order #{order.id} is void. Its items came back off stock.", category='warning')
+    return redirect(here)
+
+
+def _draft_or_flash(order):
+    try:
+        documents.require_draft(order)
+    except documents.DocumentError as exc:
+        flash(str(exc), category='warning')
+        return False
+    return True
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/add/<int:purchase_order_head_id>", methods=['POST'])
@@ -164,6 +177,8 @@ def add_purchase_order_detail(purchase_order_head_id):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
     here = redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
                             purchase_order_head_id=purchase_order_head_id))
+    if not _draft_or_flash(purchase_order_head):
+        return here
 
     form = PurchaseOrderDetailCreateForm()
     if not form.validate_on_submit():
@@ -210,6 +225,9 @@ def add_purchase_order_detail(purchase_order_head_id):
 def delete_purchase_order_detail(purchase_order_detail_id):
     purchase_order_detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)
     purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_detail.purchase_order_head_id)
+    if not _draft_or_flash(purchase_order_head):
+        return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
+                                purchase_order_head_id=purchase_order_head.id))
     try:
         item = purchase_order_detail.item
         if item is not None and item.tracks_stock:
@@ -245,6 +263,8 @@ def _change_line_quantity(purchase_order_detail_id, step):
     purchase_order_head = PurchaseOrderHead.query.get_or_404(detail.purchase_order_head_id)
     here = redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
                             purchase_order_head_id=purchase_order_head.id))
+    if not _draft_or_flash(purchase_order_head):
+        return here
 
     if step < 0 and detail.quantity <= 1:
         flash("Quantity is already at the minimum. Remove the item instead.", category='warning')

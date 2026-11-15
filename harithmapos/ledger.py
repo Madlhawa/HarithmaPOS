@@ -128,6 +128,8 @@ def _document_link(document):
 
 def pay_document(document, amount, method, user=None, remarks=None, tendered=None):
     """Money towards what a document still owes (a customer paying, or paying a supplier)."""
+    if not document.is_completed:
+        raise LedgerError("Complete it first: money is only taken against a completed bill.")
     links, pay_type, _ = _document_link(document)
     balance = money(document.balance)
     amount = money(to_decimal(amount))
@@ -139,14 +141,19 @@ def pay_document(document, amount, method, user=None, remarks=None, tendered=Non
 
 
 def refund_document(document, amount, method, user=None, remarks=None):
-    """Give back money a document was overpaid (for example after a discount was added later)."""
+    """Give back money paid on a document (a customer refund, or the supplier paying us back).
+
+    Up to what was paid. Refunding everything is how a paid bill is emptied before it is voided.
+    """
+    if not document.is_completed:
+        raise LedgerError("Only a completed bill can be refunded.")
     links, _, refund_type = _document_link(document)
-    overpaid = money(-document.balance)
+    paid = money(document.paid_amount)
     amount = money(to_decimal(amount))
-    if overpaid <= 0:
-        raise LedgerError("It has not been overpaid, so there is nothing to refund.")
-    if amount > overpaid:
-        raise LedgerError(f"That is more than the {config.CURRENCY} {overpaid:,.2f} overpaid.")
+    if paid <= 0:
+        raise LedgerError("Nothing has been paid on it, so there is nothing to refund.")
+    if amount > paid:
+        raise LedgerError(f"That is more than the {config.CURRENCY} {paid:,.2f} paid.")
     return post(refund_type, amount, method, user=user, remarks=remarks, **links)
 
 

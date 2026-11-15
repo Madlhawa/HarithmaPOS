@@ -103,12 +103,17 @@
                 </div>
                 <div class="ticket-foot">
                     {% if is_done_lane %}
+                        {% if invoice.is_draft %}
+                        <span class="ticket-total is-unpaid">{{ rs(invoice.gross_price) }} to bill</span>
+                        <a class="btn btn-finish btn-sm" href="{{ invoice_url }}">Bill and finish</a>
+                        {% else %}
                         {% if invoice.balance > 0 %}
                         <span class="ticket-total is-unpaid">{{ rs(invoice.balance) }} unpaid</span>
                         {% else %}
                         <span class="ticket-total">{{ rs(invoice.gross_price) }}</span>
                         {% endif %}
                         <a class="btn btn-quiet btn-sm" href="{{ invoice_url }}">Open</a>
+                        {% endif %}
                     {% else %}
                         <span class="ticket-total">{{ rs(invoice.gross_price) }}</span>
                         {% if lane.status.id < SERVICE_STATUS_DONE - 1 %}

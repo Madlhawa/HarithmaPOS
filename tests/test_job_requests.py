@@ -118,14 +118,14 @@ def test_floor_sheet_ticks_requests_and_ready_warns(app, staff, ids):
     assert _requests(app, inv) == [('Full wash', True), ('Tyre shine', False)]
 
 
-def test_requests_go_with_a_cancelled_invoice(app, owner, ids):
+def test_requests_stay_with_a_voided_invoice(app, owner, ids):
     with app.app_context():
         inv = _start(owner, ids, asked='Full wash')
-    owner.post(f'/app/invoice/head/{inv}', data={'service_status': 0, 'payment_method': 'cash',
-                                                 'cancel_invoice': '1'})
+    owner.post(f'/app/invoice/head/{inv}/void', data={'reason': 'Customer left'})
     with app.app_context():
-        assert db.session.get(InvoiceHead, inv) is None
-        assert InvoiceRequest.query.count() == 0
+        assert db.session.get(InvoiceHead, inv).is_void
+        assert InvoiceRequest.query.count() == 1             # kept with the record
+    assert 'Customer asked for' not in owner.get(f'/app/invoice/head/{inv}').get_data(as_text=True)
 
 
 def test_requests_need_sign_in(app, ids):

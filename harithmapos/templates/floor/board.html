@@ -115,7 +115,7 @@
             <a class="fl-ready" href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}">
                 {{ plate(invoice.vehicle.number, size='sm') }}
                 <span class="fl-ready-who">{{ invoice.customer.name }}</span>
-                {% if invoice.balance > 0 %}<span class="fl-tag is-due">To pay</span>{% else %}<span class="fl-tag is-paid">Paid</span>{% endif %}
+                {% if invoice.is_draft %}<span class="fl-tag is-due">To bill</span>{% elif invoice.balance > 0 %}<span class="fl-tag is-due">To pay</span>{% else %}<span class="fl-tag is-paid">Paid</span>{% endif %}
             </a>
             {% else %}<p class="fl-empty">Nothing finished yet today.</p>{% endfor %}
             {% if ready_count > ready|length %}<p class="fl-empty">and {{ ready_count - ready|length }} more on the dashboard.</p>{% endif %}

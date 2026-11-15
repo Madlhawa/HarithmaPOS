@@ -32,6 +32,7 @@ class Watch:
     describe: object = None           # obj -> (label, link_entity, link_id)
     summary: object = None            # obj -> text for created/deleted rows
     create_if: object = None          # obj -> bool: only record the creation when this is true
+    status: bool = False              # also record draft -> completed -> void (a void goes under Deletions)
 
 
 def _money(value):
@@ -133,7 +134,7 @@ WATCHES = {
                           + (f", discount {_qty(o.discount_pct)}%" if o.discount_pct else '')),
     models.InvoiceHead: Watch(
         'invoice', 'discounts', {'discount_amount': ('Bill discount', MONEY)},
-        on_delete=True,
+        on_delete=True, status=True,
         describe=lambda o: (f"Service invoice #{o.id} ({_name(o, 'vehicle', 'number')})", 'invoice', o.id),
         summary=_head_summary),
     models.InvoiceDetail: Watch(
@@ -143,7 +144,7 @@ WATCHES = {
         summary=_line_summary),
     models.ItemInvoiceHead: Watch(
         'item_sale', 'discounts', {'discount_amount': ('Bill discount', MONEY)},
-        on_delete=True,
+        on_delete=True, status=True,
         describe=lambda o: (f"Item sale #{o.id}", 'item_sale', o.id),
         summary=_head_summary),
     models.ItemInvoiceDetail: Watch(
@@ -153,7 +154,7 @@ WATCHES = {
         summary=_line_summary),
     models.PurchaseOrderHead: Watch(
         'purchase_order', 'discounts', {'discount_pct': ('Discount %', PCT)},
-        on_delete=True,
+        on_delete=True, status=True,
         describe=lambda o: (f"Purchase order #{o.id} ({_name(o, 'supplier')})", 'purchase_order', o.id),
         summary=_head_summary),
     models.PurchaseOrderDetail: Watch(
@@ -237,12 +238,12 @@ def _who():
     return user_id, f"{request.method} {request.path}"[:120]
 
 
-def _row(obj, watch, action, field_name=None, old='', new=''):
+def _row(obj, watch, action, field_name=None, old='', new='', category=None):
     try:
         label, link_entity, link_id = watch.describe(obj)
     except Exception:
         label, link_entity, link_id = f"{watch.entity} #{getattr(obj, 'id', '')}", None, None
-    category = 'deletions' if action == 'deleted' else watch.category
+    category = category or ('deletions' if action == 'deleted' else watch.category)
     return {
         'category': category, 'action': action, 'entity': watch.entity,
         'entity_id': getattr(obj, 'id', None) if isinstance(getattr(obj, 'id', None), int) else None,
@@ -265,6 +266,8 @@ def _keep_old_values():
     for cls, watch in WATCHES.items():
         for name in watch.fields:
             event.listen(getattr(cls, name), 'set', _noop, active_history=True, retval=True)
+        if watch.status:
+            event.listen(cls.doc_status, 'set', _noop, active_history=True, retval=True)
 
 
 _keep_old_values()
@@ -292,6 +295,13 @@ def _before_flush(session, flush_context, instances):
                                                 _setting_value(obj, old), _setting_value(obj, new))))
                 else:
                     pending.append(('row', _row(obj, watch, 'changed', label, _show(old, kind), _show(new, kind))))
+            if watch.status:
+                history = state.attrs['doc_status'].history
+                if history.has_changes() and history.deleted and history.added and history.deleted[0] != history.added[0]:
+                    new = history.added[0]
+                    text = new.title() + (f": {obj.void_reason}" if new == 'void' and obj.void_reason else '')
+                    pending.append(('row', _row(obj, watch, 'changed', 'Status', history.deleted[0].title(), text,
+                                                category='deletions' if new == 'void' else watch.category)))
         for obj in list(session.deleted):
             watch = WATCHES.get(type(obj))
             if watch is not None and watch.on_delete:

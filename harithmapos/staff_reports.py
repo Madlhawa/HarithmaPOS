@@ -186,7 +186,8 @@ def collect(period, employee_id=None, today=None, rules=None):
     lo, hi = period.utc_bounds()
     jobs = (InvoiceHead.query.filter(InvoiceHead.employee_id.in_(ids),
                                      InvoiceHead.created_dttm >= lo, InvoiceHead.created_dttm < hi,
-                                     InvoiceHead.service_status == config.SERVICE_STATUS_DONE).all())
+                                     InvoiceHead.service_status == config.SERVICE_STATUS_DONE,
+                                     InvoiceHead.is_live).all())
     minutes = reports._minutes_each(jobs)
     for j in jobs:
         s = stats[j.employee_id]

@@ -30,7 +30,6 @@ class InvoiceHeadUpdateForm(FlaskForm):
     received_amount = money_field("Received now")
     update_invoice = SubmitField('Save')
     complete_invoice = SubmitField('Complete')
-    cancel_invoice = SubmitField('Cancel invoice')
     send_service_start_msg = SubmitField('Notify started')
     send_service_complete_msg = SubmitField('Notify completed')
 

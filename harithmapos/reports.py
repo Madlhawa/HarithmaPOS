@@ -20,6 +20,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from harithmapos import config
+from harithmapos.models import DOC_COMPLETED
 from harithmapos.models import (
     Customer, Employee, InvoiceDetail, InvoiceHead, InvoiceStatusLog, Item, ItemInvoiceDetail,
     ItemInvoiceHead, Payment, WashBay,
@@ -126,11 +127,11 @@ def _load(period):
     lo, hi = period.utc_bounds()
     services = (InvoiceHead.query
                 .filter(InvoiceHead.created_dttm >= lo, InvoiceHead.created_dttm < hi)
-                .filter(InvoiceHead.service_status == config.SERVICE_STATUS_DONE)
+                .filter(InvoiceHead.doc_status == DOC_COMPLETED)          # billed; drafts and voids are not sales
                 .all())
     sales = (ItemInvoiceHead.query
              .filter(ItemInvoiceHead.created_dttm >= lo, ItemInvoiceHead.created_dttm < hi)
-             .filter(ItemInvoiceHead.gross_price > 0)
+             .filter(ItemInvoiceHead.doc_status == DOC_COMPLETED)
              .all())
     # Money from customers for invoices and sales: payments count up, refunds and reversals down.
     payments_in = (Payment.query
@@ -217,9 +218,11 @@ def _count_new_customers(customer_ids, period):
     seen_before = set()
     for chunk in (ids[i:i + 500] for i in range(0, len(ids), 500)):
         seen_before |= {cid for (cid,) in InvoiceHead.query.with_entities(InvoiceHead.customer_id)
-                        .filter(InvoiceHead.customer_id.in_(chunk), InvoiceHead.created_dttm < lo).distinct()}
+                        .filter(InvoiceHead.customer_id.in_(chunk), InvoiceHead.created_dttm < lo,
+                                InvoiceHead.is_live).distinct()}
         seen_before |= {cid for (cid,) in ItemInvoiceHead.query.with_entities(ItemInvoiceHead.customer_id)
-                        .filter(ItemInvoiceHead.customer_id.in_(chunk), ItemInvoiceHead.created_dttm < lo).distinct()}
+                        .filter(ItemInvoiceHead.customer_id.in_(chunk), ItemInvoiceHead.created_dttm < lo,
+                                ItemInvoiceHead.is_live).distinct()}
     return len(set(ids) - seen_before)
 
 
@@ -328,7 +331,7 @@ def _busy_times(period):
     lo, hi = period.utc_bounds()
     grid = [[0] * len(HOURS) for _ in WEEKDAYS]
     rows = (InvoiceHead.query.with_entities(InvoiceHead.created_dttm)
-            .filter(InvoiceHead.created_dttm >= lo, InvoiceHead.created_dttm < hi).all())
+            .filter(InvoiceHead.created_dttm >= lo, InvoiceHead.created_dttm < hi, InvoiceHead.is_live).all())
     for (created,) in rows:
         local = to_local(created)
         h = min(max(local.hour, HOURS[0]), HOURS[-1])

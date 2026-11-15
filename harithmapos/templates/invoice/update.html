@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, rs, plate, status_pill, autocomplete, field, status_steps, payment_choice, totals, paid_history, pay_modal, post_button %}
+{% from 'layout/macros.html' import csrf, rs, plate, status_pill, autocomplete, field, status_steps, payment_choice, totals, paid_history, pay_modal, post_button, doc_badge, void_banner, void_control %}
 {% block body %}
 {% set inv = invoice_head %}
 <div class="page-head">
@@ -12,23 +12,25 @@
                 {% if not inv.is_done %}(<time data-since="{{ inv.created_dttm|iso_utc }}">{{ inv.created_dttm|elapsed }}</time> ago){% endif %}
             </div>
         </div>
-        {{ status_pill(inv.service_status) }}
+        {% if not inv.is_void %}{{ status_pill(inv.service_status) }}{% endif %}
+        {{ doc_badge(inv) }}
     </div>
     <div class="page-actions">
         <a class="btn btn-quiet" href="{{ url_for('invoice_blueprint.print_invoice_head', invoice_head_id=inv.id) }}" target="_blank" rel="noopener" data-print><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</a>
     </div>
 </div>
 
+{{ void_banner(inv, 'invoice') }}
 <div class="job">
     <div>
         {% with add_url=url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=inv.id), lines=invoice_details,
                 inc_endpoint='invoice_blueprint.increase_quantity_invoice_detail', dec_endpoint='invoice_blueprint.decrease_quantity_invoice_detail',
-                del_endpoint='invoice_blueprint.delete_invoice_detail', line_arg='invoice_detail_id' %}
+                del_endpoint='invoice_blueprint.delete_invoice_detail', line_arg='invoice_detail_id', locked=not inv.is_draft %}
         {% include 'invoice/_lines.html' %}
         {% endwith %}
 
         {% set reqs = inv.requests %}{% set left = inv.open_requests|length %}
-        {% if reqs or not inv.is_done %}
+        {% if (reqs or not inv.is_done) and not inv.is_void %}
         <div class="panel req-panel {{ 'is-open' if left else '' }}" id="requests" data-region>
             <div class="panel-head">
                 <h2>Customer asked for</h2>
@@ -72,13 +74,19 @@
         {% endif %}
     </div>
 
-    <form class="job-side" method="post" action="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=inv.id) }}">
+    <div class="job-side">
+    {% if not inv.is_void %}
+    <form method="post" action="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=inv.id) }}">
         {{ csrf() }}
         <div class="panel">
             <div class="panel-head"><h2>Job</h2></div>
             <div class="panel-body">
+                {% if inv.is_draft %}
                 <label class="form-label">Status</label>
                 {{ status_steps(inv.service_status) }}
+                {% else %}
+                <p class="form-hint mt-0">Billed {{ inv.completed_dttm|local_dt }}{% if inv.completed_by %} by {{ inv.completed_by.name }}{% endif %}. The job details below can still be corrected; the bill can't.</p>
+                {% endif %}
                 <div class="row g-3 mt-1">
                     <div class="col-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='job', value=inv.employee.name, id_value=inv.employee_id, show_all=true, optional=true, wrap='') }}</div>
                     <div class="col-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='job', value=inv.washbay.name, id_value=inv.washbay_id, show_all=true, optional=true, wrap='') }}</div>
@@ -109,7 +117,6 @@
                 {{ totals(inv) }}
                 {% if inv.is_completed %}
                 {{ paid_history(inv, 'payInvoice') }}
-                {{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='mt-3') }}
                 {% else %}
                 <div class="row g-3 mt-1">
                     <div class="col-6">{{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='') }}</div>
@@ -126,13 +133,18 @@
                 <button type="submit" name="complete_invoice" value="1" class="btn btn-finish btn-lg" {% if left %}data-confirm="{{ requests_confirm(inv) }}"{% endif %}>Complete and print receipt</button>
                 {% endif %}
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" name="update_invoice" value="1" class="btn btn-primary flex-fill">Save</button>
-                    {% if is_owner() %}<button type="submit" name="cancel_invoice" value="1" class="btn btn-danger-quiet" data-confirm="Cancel and delete invoice #{{ inv.id }}? Its items go back into stock.">Cancel invoice</button>{% endif %}
-                </div>
+                <button type="submit" name="update_invoice" value="1" class="btn btn-primary">Save</button>
             </div>
         </div>
     </form>
+    {% else %}
+    <div class="panel">
+        <div class="panel-head"><h2>Bill</h2></div>
+        <div class="panel-body">{{ totals(inv) }}</div>
+    </div>
+    {% endif %}
+    {{ void_control(inv, url_for('invoice_blueprint.void_invoice_head', invoice_head_id=inv.id), 'invoice') }}
+    </div>
 </div>
 {{ pay_modal(inv, 'payInvoice', url_for('payment_blueprint.pay_invoice', invoice_head_id=inv.id), title='Payment for invoice #' ~ inv.id, refund_action=url_for('payment_blueprint.refund_invoice', invoice_head_id=inv.id)) }}
 {% endblock %}

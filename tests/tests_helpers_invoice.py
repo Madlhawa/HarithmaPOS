@@ -12,7 +12,7 @@ def make_completed_invoice(app, gross=4000, number='CAB-9999'):
         db.session.flush()
         inv = InvoiceHead(customer_id=cust.id, vehicle_id=car.id, washbay_id=bay.id, employee_id=emp.id,
                           service_status=config.SERVICE_STATUS_DONE, total_cost=0, total_price=gross,
-                          gross_price=gross)
+                          gross_price=gross, doc_status='completed')
         db.session.add(inv)
         db.session.commit()
         return inv.id

@@ -57,8 +57,8 @@ If your account has been switched off you will see a message saying so; ask an o
 | Add and edit customers and vehicles | Yes | Yes |
 | Record money coming in | Yes | Yes |
 | See items and prices | Yes (no cost price or margin) | Yes, with cost and margin |
-| Cancel or delete invoices, delete customers or vehicles | No | Yes |
-| Record, edit or delete money going out | No | Yes |
+| Void invoices, sales and orders; refund customers; delete customers or vehicles | No | Yes |
+| Record money going out, or reverse a payment | No | Yes |
 | Items (add/change), purchase orders, suppliers | No | Yes |
 | Staff (attendance, payroll, advances, employees) | No | Yes |
 | Sales report, wash bays, users, settings | No | Yes |
@@ -123,7 +123,7 @@ Shown only until the station has at least one wash bay, one employee and one ite
 | Finished today | Vehicles marked Done today. |
 | Collected today | Money in recorded today. |
 | Paid out today *(owners)* | Money out recorded today. |
-| Unpaid on finished jobs | What customers still owe on Done jobs. Click it to see those invoices. |
+| Unpaid on finished jobs | What customers still owe on completed (billed) invoices. Click it to see those invoices. |
 | Items running low | Stock items at or below the "running low" level (Settings → General). Click to see them. |
 
 ### On the floor
@@ -175,7 +175,7 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 | **Queue** | Vehicles waiting, oldest first, with **Bring into** *bay*. |
 | **Bays** | Each wash bay and the vehicle in it (vacuuming or washing). A free bay shows **Bring in** with the next waiting vehicle (one booked for that bay first, else the first in the queue), or **Start a vehicle here** when no one is waiting. |
 | **Polishing** | Vehicles being polished, with **Ready to collect**. |
-| **Ready** | Vehicles finished today, marked **To pay** or **Paid**. Tap one to open its invoice. |
+| **Ready** | Vehicles finished today, marked **To bill** (not completed at the counter yet), **To pay** or **Paid**. Tap one to open its invoice. |
 
 **Each vehicle card** shows the plate, the time it has been in its current stage (red after 20 minutes waiting or 45 minutes in any other stage), the owner and vehicle, the stage, the bay, who is working on it and, when the customer asked for things, how many are ticked off (for example **1/3**). The big button moves it to the next stage in one tap: **Bring into** *bay* → **Start washing** → **Start polishing** → **Ready to collect**.
 
@@ -208,7 +208,7 @@ Rules the board keeps:
 - A bay holds one vehicle at a time. Bringing a vehicle into a busy bay is refused with a message naming the vehicle already there; move that one on, or choose another bay.
 - A vehicle can only be on the floor once. Adding a plate that already has an open job shows where it is instead.
 - **Ready to collect** asks first if any of the customer's requests are not ticked off, and lists them.
-- **Ready to collect** does not bill the customer. The invoice still has to be completed and paid at the counter, which is why the Ready tab marks it **To pay** until then.
+- **Ready to collect** does not bill the customer. The invoice still has to be completed and paid at the counter, which is why the Ready tab marks it **To bill** until then.
 - The board never sends SMS. Texts go only from the buttons on the invoice screen.
 
 ---
@@ -268,13 +268,13 @@ The SMS buttons are greyed out if the customer has no phone number or that text 
 | Bill discount | An amount off the whole bill. |
 | Received now | What the customer hands over. Recorded only when you press **Complete**: if they give Rs. 5,000 for a Rs. 4,300 bill, type 5000 and the app records Rs. 4,300, notes the 5,000 handed over and tells you to give back Rs. 700 change. Leave it empty if they will pay later. **Save** never records money. |
 | Paid by | Cash, Card, Bank Transfer or QR. (There is no *Credit*: an unpaid bill simply has a balance.) |
-| **Complete and print receipt** | Marks the job Done, records the money received on the Payments page, and returns you to the dashboard with the print window open for the invoice (choose the LQ-350 and print). The message says how much change to give and anything still to pay. |
+| **Complete and print receipt** | Completes the bill (and marks the job Done if it isn't yet), records the money received on the Payments page, and returns you to the dashboard with the print window open for the invoice (choose the LQ-350 and print). The message says how much change to give and anything still to pay. |
 | **Save** | Saves the job and bill panels without completing. |
-| **Cancel invoice** *(owners)* | Deletes the invoice after asking; its items go back into stock. |
+| **Void this invoice** *(owners)* | See [draft, completed and void](#draft-completed-and-void). |
 
 ### Taking a payment later
 
-Once an invoice is completed (its job is **Done**), the **Received now** box and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
+Once an invoice is completed, the **Received now** box and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
 
 1. Press **Record payment**. The amount is filled in with the balance; change it for a part payment.
 2. Choose **Paid by** and, if you like, add a **Note** (a cheque number, say).
@@ -282,9 +282,24 @@ Once an invoice is completed (its job is **Done**), the **Received now** box and
 
 You cannot pay more than the balance: give change from the till. While a job is still in progress there is no **Record payment** button: enter the money in **Received now** and press **Complete**.
 
-You can still open a completed invoice to correct the job details or the bill discount, and press **Save**; what was paid never changes. If a later discount means the customer paid too much, the bill shows **Overpaid** and an owner sees **Refund**: it records the money given back (money out) against the invoice.
+Owners also see **Refund** on a completed bill with money paid: it records money given back to the customer (money out), up to what was paid.
 
 A payment recorded by mistake is put right on the Payments page with **Reverse** (owners).
+
+### Draft, completed and void
+
+Every service invoice, item sale and purchase order is in one of three states, shown as a tag next to its number and in the lists:
+
+| State | What it means | What can change |
+|---|---|---|
+| **Draft** | Being put together. A job on the floor is a draft until the counter completes the bill, even once it is *Done*. | Everything: lines, quantities, discounts, customer or supplier. |
+| **Completed** | Billed, by **Complete**. Shows who completed it and when. Money is taken against it with **Record payment**. | Only the job details (employee, bay, mileage, texts) and a supplier's invoice number. Items, prices and discounts are fixed. |
+| **Void** | Cancelled by an owner, with a reason. It stays on record (invoice numbers never go missing) but counts nowhere: not on the boards, in Unpaid, or in reports. Its items went back into stock (a purchase order's came back off). | Nothing. |
+
+**A completed bill is wrong** (wrong item, a discount forgotten): an owner voids it and a new one is made. **Void this invoice** (at the bottom of the right-hand side) asks why. If money has been paid on it, first **Refund** it (money really given back) or, for a payment entered by mistake, **Reverse** it on the Payments page; then void.
+
+Nothing is ever deleted: drafts that are not needed are voided too ("customer left").
+
 
 ---
 
@@ -296,7 +311,7 @@ A payment recorded by mistake is put right on the Payments page with **Reverse**
 |---|---|
 | **New service** | Opens the full-page *New service* form (same fields as on the dashboard). |
 | Search | Vehicle number, customer name or invoice number. |
-| **All / In progress / Done / Unpaid** | Filters the list. *Unpaid* = finished jobs with money still owed. |
+| **All / In progress / To bill / Completed / Unpaid / Void** | Filters the list. *In progress* = job still on the floor; *To bill* = job finished but the bill not completed; *Unpaid* = completed with money still owed. The *Bill* column shows Draft, Completed or Void. |
 
 Columns: number, plate, customer (with employee and bay), date, stage, total, and balance (red if owed, otherwise *Paid*). Click the number or plate to open it.
 
@@ -326,7 +341,7 @@ The same **Add a service or item / Quantity / Extra discount / Add** row and lin
 | **Record payment** | On a completed sale with money still owed: take the rest, in full or in part. See [taking a payment later](#taking-a-payment-later). |
 | **Save** | Saves without completing. |
 | **Print** | Opens the print window for the receipt without leaving the page. |
-| **Delete this sale** *(owners)* | Deletes it after asking; items go back into stock. |
+| **Void this sale** *(owners)* | See [draft, completed and void](#draft-completed-and-void). Once completed, the bill can't change. |
 
 ---
 
@@ -430,7 +445,7 @@ Stock changes automatically: down when added to an invoice or sale, back up when
 | **Complete** | Saves and records **Paid now** as a supplier payment (money out). |
 | **Pay supplier** | On a completed order with money still owed: shows the payments made so far and records another one (money out), in full or in part. It works like [taking a payment later](#taking-a-payment-later) on an invoice. |
 | **Save** | Saves without recording payment. |
-| **Delete this purchase order** | Deletes it after asking; its items come off stock. |
+| **Void this purchase order** | See [draft, completed and void](#draft-completed-and-void); its items come back off stock. Once completed, only the supplier's invoice number can change. |
 
 ---
 
@@ -704,7 +719,7 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 | **Prices** | An item's price, cost, discount % or name changed; items added (with their price) or deleted. |
 | **Discounts** | Bill discounts on service invoices and item sales, discount % on purchase orders, and extra discounts on lines (when added or changed). |
 | **Payments** | Every payment and reversal added, with its amount, direction, method and type (payments can't be changed or deleted). |
-| **Deletions** | Anything deleted: invoices, item sales, purchase orders, their lines, payments, items, employees, users and salary advances, with what they held. |
+| **Deletions** | Voided invoices, item sales and purchase orders (with the reason), lines removed from drafts, and anything deleted: items, employees, users and salary advances, with what they held. |
 | **Staff and pay** | An employee's pay rate, monthly/daily, EPF or active status; salary advances; allowances and other deductions on payslips. |
 | **Users and settings** | User roles, active status and email; every Settings change. Passwords and API keys show only as *(hidden)*. |
 
@@ -770,7 +785,7 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 
 **Someone has left.** Employees → pencil → untick **Working here**. Users → edit → untick **Can sign in** if they had an account.
 
-**Payroll is wrong after finalising.** If nobody is paid yet, **Reopen as draft**. If someone is paid, delete their wage payment on Payments first, then reopen.
+**Payroll is wrong after finalising.** If nobody is paid yet, **Reopen as draft**. If someone is paid, reverse their wage payment on Payments first, then reopen.
 
 **Prices changed.** Items → pencil → change **Price** (and **Cost**). Existing invoices keep the old prices.
 
