@@ -172,8 +172,8 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 
 | Tab | What it shows |
 |---|---|
-| **Bays** | Each wash bay and the vehicle in it (vacuuming or washing). A free bay shows **Bring in** with the next waiting vehicle (one booked for that bay first, else the first in the queue), or **Start a vehicle here** when no one is waiting. |
 | **Queue** | Vehicles waiting, oldest first, with **Bring into** *bay*. |
+| **Bays** | Each wash bay and the vehicle in it (vacuuming or washing). A free bay shows **Bring in** with the next waiting vehicle (one booked for that bay first, else the first in the queue), or **Start a vehicle here** when no one is waiting. |
 | **Polishing** | Vehicles being polished, with **Ready to collect**. |
 | **Ready** | Vehicles finished today, marked **To pay** or **Paid**. Tap one to open its invoice. |
 

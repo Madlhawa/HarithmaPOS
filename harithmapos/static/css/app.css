@@ -1205,7 +1205,7 @@ a.att-cell:hover, a.att-cell:focus-visible { box-shadow: 0 0 0 2px var(--h-ring)
 @media (min-width: 900px) {
     .fl-tabs { display: none; }
     .fl-h { display: block; }
-    .fl-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr 0.9fr; gap: 1rem; padding: 1rem; align-items: start; }
+    .fl-grid { display: grid; grid-template-columns: 1fr 1.35fr 1fr 0.9fr; gap: 1rem; padding: 1rem; align-items: start; }
     .fl-col { display: grid; gap: 0.65rem; align-content: start; }
     .fl .flash-stack { margin: 1rem 1rem 0; }
 }

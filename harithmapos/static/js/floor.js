@@ -32,7 +32,7 @@
         });
     });
     var start = recall();
-    show(root.querySelector('[data-fl-tab="' + start + '"]') ? start : 'bays');
+    show(root.querySelector('[data-fl-tab="' + start + '"]') ? start : 'queue');
 
     function modal(id) { return window.bootstrap.Modal.getOrCreateInstance(document.getElementById(id)); }
     function check(form, name, value) {
