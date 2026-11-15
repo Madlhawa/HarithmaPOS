@@ -1290,16 +1290,17 @@ code.dv-note { display: inline; }
 .req-panel.is-open { border-left: 3px solid var(--h-amber); }
 .req-count { font-size: 0.8125rem; font-weight: 600; color: var(--h-amber); }
 .req-count.is-done { color: var(--h-green); }
-.req-list { list-style: none; margin: 0; padding: 0.25rem 1rem; }
-.req-list li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--h-line); }
-.req-list li:last-child { border-bottom: 0; }
-.req-tick { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--h-line-strong); background: var(--h-surface); color: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.req-list { list-style: none; margin: 0; padding: 0.75rem 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.5rem; }
+.req-list li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.5rem; padding: 0.3rem 0.25rem 0.3rem 0.4rem; border: 1px solid var(--h-line); border-radius: 8px; background: var(--h-surface-2); min-width: 0; }
+.req-list li.is-done { background: var(--h-green-soft); border-color: transparent; }
+.req-tick { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--h-line-strong); background: var(--h-surface); color: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; font-size: 0.875rem; }
 .req-tick:hover { border-color: var(--h-green); color: var(--h-muted); }
 .req-list li.is-done .req-tick { background: var(--h-green); border-color: var(--h-green); color: #fff; }
-.req-text { overflow-wrap: anywhere; }
-.req-text small { display: block; color: var(--h-muted); font-size: 0.75rem; }
+.req-text { font-size: 0.9rem; line-height: 1.25; overflow-wrap: anywhere; min-width: 0; }
+.req-text small { display: block; color: var(--h-muted); font-size: 0.7rem; }
 .req-list li.is-done .req-text { color: var(--h-muted); }
-.req-add { display: flex; gap: 0.5rem; }
+.req-list .btn-icon { width: 26px; height: 26px; padding: 0; color: var(--h-muted); }
+.req-add { display: flex; gap: 0.5rem; padding-top: 0.6rem; padding-bottom: 0.6rem; }
 .req-list + .req-add { border-top: 1px solid var(--h-line); }
 
 /* Floor board: requests count on a card, and the checklist in the sheet */

@@ -21,6 +21,12 @@
 
 <div class="job">
     <div>
+        {% with add_url=url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=inv.id), lines=invoice_details,
+                inc_endpoint='invoice_blueprint.increase_quantity_invoice_detail', dec_endpoint='invoice_blueprint.decrease_quantity_invoice_detail',
+                del_endpoint='invoice_blueprint.delete_invoice_detail', line_arg='invoice_detail_id' %}
+        {% include 'invoice/_lines.html' %}
+        {% endwith %}
+
         {% set reqs = inv.requests %}{% set left = inv.open_requests|length %}
         {% if reqs or not inv.is_done %}
         <div class="panel req-panel {{ 'is-open' if left else '' }}" id="requests">
@@ -42,17 +48,11 @@
             <form class="panel-body req-add" method="post" action="{{ url_for('invoice_blueprint.add_invoice_requests', invoice_head_id=inv.id) }}">
                 {{ csrf() }}
                 <label class="visually-hidden" for="req-new">Add a request</label>
-                <input class="form-control" id="req-new" name="requests" maxlength="200" autocomplete="off" placeholder="{{ 'Add another request' if reqs else 'What did the customer ask for? For example: check the AC smell' }}">
-                <button type="submit" class="btn btn-quiet">Add</button>
+                <input class="form-control form-control-sm" id="req-new" name="requests" maxlength="200" autocomplete="off" placeholder="{{ 'Add another request' if reqs else 'What did the customer ask for? For example: check the AC smell' }}">
+                <button type="submit" class="btn btn-quiet btn-sm">Add</button>
             </form>
         </div>
         {% endif %}
-
-        {% with add_url=url_for('invoice_blueprint.add_invoice_detail', invoice_head_id=inv.id), lines=invoice_details,
-                inc_endpoint='invoice_blueprint.increase_quantity_invoice_detail', dec_endpoint='invoice_blueprint.decrease_quantity_invoice_detail',
-                del_endpoint='invoice_blueprint.delete_invoice_detail', line_arg='invoice_detail_id' %}
-        {% include 'invoice/_lines.html' %}
-        {% endwith %}
 
         {% if previous_visits %}
         <div class="panel">
