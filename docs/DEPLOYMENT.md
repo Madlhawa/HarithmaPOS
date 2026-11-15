@@ -70,11 +70,12 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItRF0RcRzYO0X43G/sliz8rIh2XWzcEtsiAC1Dv9Og7
 
 | Piece | Details | Source in the repository |
 |---|---|---|
-| System | Package updates, automatic security updates, firewall (SSH, 80, 443 only), 2 GB swap | `deployment/deploy.sh` |
+| System | Package updates, automatic security updates, firewall (SSH, 80, 443 only; an address opening 6+ SSH connections in 30 s is blocked), 2 GB swap | `deployment/deploy.sh` |
+| SSH | Keys only (no passwords, root by key only), 4 tries per connection, 30 s to log in, no X11 forwarding | `deployment/server/sshd-harithma.conf` |
 | App | `harithma` user, code in `/opt/harithma-pos`, Python venv, `.env` | `deployment/deploy.sh` |
 | Database | PostgreSQL database `harithma_pos` owned by `harithma_user`; restore or `flask db upgrade` | `deployment/deploy.sh` |
 | Service | `harithma-pos` (gunicorn on 127.0.0.1:8080), starts on boot | `deployment/server/harithma-pos.service` |
-| Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, and sign-in limited to 10 posts a minute per address | `deployment/server/nginx-http.conf`, `deployment/server/nginx-https.conf`, `deployment/server/429.html` |
+| Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, no framing by other sites, no version number shown, and sign-in posts (`/app`, `/app/login`, `/app/reset_password`) limited to 10 a minute per address | `deployment/server/nginx-http.conf`, `deployment/server/nginx-https.conf`, `deployment/server/429.html` |
 | HTTPS | Let's Encrypt certificate, renewed automatically by certbot's timer | `deployment/deploy.sh` |
 | Nightly backup | 21:00 UTC (02:30 Sri Lanka) to `/root/backups/nightly`, kept 14 days | `deployment/server/harithma-backup.sh`, `deployment/server/harithma-backup.cron` |
 | Deploys | `/usr/local/bin/harithma-ci-deploy` and the restricted GitHub key | `deployment/ci-deploy.sh` |
@@ -435,43 +436,23 @@ sudo rabbitmqctl list_queues
 sudo systemctl restart rabbitmq-server
 ```
 
-### Security Recommendations
+### Security
 
-1. **Setup SSL/HTTPS** with Let's Encrypt:
-   ```bash
-   sudo apt install certbot python3-certbot-nginx
-   sudo certbot --nginx -d your-domain.com
-   ```
+`deploy.sh` already sets up HTTPS, the firewall, key-only SSH, the sign-in rate limit,
+a database reachable only from the server itself, and nightly backups.
 
-2. **Configure Firewall:**
-   ```bash
-   sudo ufw allow 22/tcp
-   sudo ufw allow 80/tcp
-   sudo ufw allow 443/tcp
-   # RabbitMQ ports (only if accessing externally)
-   # sudo ufw allow 5672/tcp
-   # sudo ufw allow 15672/tcp
-   sudo ufw enable
-   ```
+Expect a steady stream of scanner traffic (requests for `.env`, `wp-login.php` and
+the like) and SSH password guesses: every public server gets them. They show on the
+developer page and cannot succeed here, because the app has none of those files and
+SSH accepts no passwords.
 
-3. **Secure PostgreSQL:**
-   - Edit `/etc/postgresql/*/main/pg_hba.conf`
-   - Restrict access to localhost only
-
-4. **Secure RabbitMQ:**
-   - Management UI should be behind firewall
-   - Use strong passwords
-   - Disable guest user (done automatically by script)
-
-5. **Regular Backups:**
-   ```bash
-   # Create backup directory
-   sudo mkdir -p /backups
-   sudo chown $USER:$USER /backups
-   
-   # Add to crontab (crontab -e)
-   0 2 * * * pg_dump -U harithma_user harithma_pos > /backups/harithma_pos_$(date +\%Y\%m\%d).sql
-   ```
+Still worth doing:
+- **Copy backups off the server.** `/root/backups` is on the same disk as the database.
+- **Protect the SSH keys that open this server**: a passphrase on your own key, and
+  keep the GitHub deploy key only in the `DEPLOY_SSH_KEY` secret.
+- **Develop somewhere else.** Work on your own computer or a separate server and let
+  GitHub deploy, rather than editing on the production server.
+- **RabbitMQ**, if you set it up: keep its ports closed in the firewall and use a strong password.
 
 ---
 

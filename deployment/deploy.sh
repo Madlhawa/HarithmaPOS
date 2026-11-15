@@ -81,7 +81,7 @@ APT::Periodic::Unattended-Upgrade "1";
 EOF
 
 step "Firewall: SSH, HTTP and HTTPS only"
-ufw allow OpenSSH >/dev/null
+ufw limit OpenSSH >/dev/null   # allowed, but an address opening 6+ connections in 30 s is blocked
 ufw allow 80/tcp >/dev/null
 ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
@@ -220,6 +220,10 @@ if [[ $HTTPS == yes ]]; then
 fi
 
 # ---------------------------------------------------------------- root scripts and timers
+step "SSH: keys only, fewer guesses"
+install -o root -g root -m 644 "$SRC/sshd-harithma.conf" /etc/ssh/sshd_config.d/10-harithma.conf
+if sshd -t; then systemctl reload ssh; else rm -f /etc/ssh/sshd_config.d/10-harithma.conf; echo "SSH settings rejected; left unchanged."; fi
+
 step "Backups, monitoring and the deploy script"
 install -o root -g root -m 755 "$APP_DIR/deployment/ci-deploy.sh" /usr/local/bin/harithma-ci-deploy
 install -o root -g root -m 755 "$APP_DIR/deployment/monitor-collect.py" /usr/local/bin/harithma-monitor-collect
