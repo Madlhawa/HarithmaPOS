@@ -133,3 +133,12 @@ def test_requests_need_sign_in(app, ids):
     assert client.post('/app/invoice/request/1/done', data={'done': '1'}).status_code == 302
     with app.app_context():
         assert User.query.count() == 2
+
+
+def test_finished_job_without_requests_has_no_empty_list(app, staff, ids):
+    with app.app_context():
+        inv = _start(staff, ids, asked='')
+        head = db.session.get(InvoiceHead, inv)
+        head.service_status = config.SERVICE_STATUS_DONE
+        db.session.commit()
+    assert 'Customer asked for' not in staff.get(f'/app/invoice/head/{inv}').get_data(as_text=True)
