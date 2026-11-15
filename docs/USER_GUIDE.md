@@ -83,7 +83,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 
 ## 2. A typical day
 
-1. **Open the dashboard** and leave it open on the counter. It refreshes itself every minute.
+1. **Open the dashboard** and leave it open on the counter. It updates by itself within a few seconds of any change.
 2. **A car arrives.**
    - First visit: **New customer and vehicle** → fill in name, phone and plate → **Save and start a service**.
    - Returning customer: **New service** → type the plate, owner name or phone and pick the vehicle.
@@ -99,7 +99,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 
 ## 3. Dashboard
 
-*Menu → Dashboard.* The home page after signing in. It shows what is happening in the station right now and refreshes every minute (it waits while you are typing).
+*Menu → Dashboard.* The home page after signing in. It shows what is happening in the station right now and updates live: when anyone moves a vehicle, takes a payment or ticks a request (here, on the floor board or another computer), the board changes within a few seconds without reloading the page.
 
 ### Buttons at the top
 
@@ -166,7 +166,7 @@ Each bay shows the vehicle in it and its stage, or **Free** with a **Start a ser
 
 ### Floor board (supervisor's phone)
 
-*Menu → Floor board*, or **Floor board** on the dashboard. A full-screen page for the person running the floor, built for a phone held in one hand; on a tablet or computer it shows all four columns side by side. Any signed-in user can use it. It refreshes itself every 45 seconds (not while a sheet is open), and the **↻** button at the top right refreshes it at once. **‹** goes back to the dashboard.
+*Menu → Floor board*, or **Floor board** on the dashboard. A full-screen page for the person running the floor, built for a phone held in one hand; on a tablet or computer it shows all four columns side by side. Any signed-in user can use it. It updates live, within a few seconds of any change made anywhere, and keeps the tab you are on; the **↻** button at the top right reloads it at once. **‹** goes back to the dashboard.
 
 The top bar shows how many vehicles are in the station and how many bays are free. On a phone, four tabs switch between the sections; the number on each tab is how many vehicles it holds. The phone remembers the last tab you used.
 
@@ -218,6 +218,8 @@ Rules the board keeps:
 Opened from a plate, **Open**, **Bill and finish**, or the [Service invoices list](#5-service-invoices-list). Everything about one visit is here.
 
 **Header:** the number plate, customer and phone, invoice number, when it was opened and how long ago, and the current stage. **Print** opens the print window for the invoice (LQ-350 layout) without leaving the page.
+
+Adding, removing or changing the quantity of a line, and ticking customer requests, update that part of the page in place: the page doesn't reload or jump back to the top, and the bill totals on the right follow. The same goes for purchase order lines, the dashboard's stage buttons and the floor board.
 
 ### Customer asked for
 

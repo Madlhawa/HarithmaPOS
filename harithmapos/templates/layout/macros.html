@@ -22,6 +22,7 @@
 {%- endmacro %}
 
 {% macro flashes() %}
+<div id="flash-area" data-sync>
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="flash-stack" role="status" aria-live="polite">
@@ -36,6 +37,7 @@
 </div>
 {% endif %}
 {% endwith %}
+</div>
 {% endmacro %}
 
 {# A labelled text box. kind: text | money | qty | whole | phone | email | date | password #}
@@ -170,7 +172,7 @@
 
 {# The totals block on invoices, ruled like a cash book. #}
 {% macro totals(head) %}
-<dl class="totals">
+<dl class="totals" id="bill-totals" data-sync>
     <div><dt>Subtotal</dt><dd>{{ head.total_price|money }}</dd></div>
     {% if (head.total_discount or 0) > 0 %}
     <div><dt>Discounts</dt><dd>&minus; {{ head.total_discount|money }}</dd></div>

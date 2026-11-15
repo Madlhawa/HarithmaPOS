@@ -6,7 +6,7 @@
     <div><h1>Purchase order #{{ po.id }}</h1><p>{{ po.supplier.name }}{% if po.supplier_invoice_id %}, their invoice {{ po.supplier_invoice_id }}{% endif %}, {{ po.created_dttm|local_dt }}</p></div>
 </div>
 <div class="job">
-    <div class="panel">
+    <div class="panel" id="lines" data-region>
         <div class="panel-body">
             <form method="post" action="{{ url_for('purchase_order_blueprint.add_purchase_order_detail', purchase_order_head_id=po.id) }}" data-entry>
                 {{ csrf() }}
@@ -59,7 +59,7 @@
                 <div class="panel-body">
                     {{ autocomplete('supplier', 'Supplier', url_for('search_blueprint.search_suppliers'), prefix='pob', value=po.supplier.name, id_value=po.supplier_id, show_all=true, optional=true) }}
                     {{ field('supplier_invoice_id', "Supplier's invoice no.", prefix='pob', value=po.supplier_invoice_id) }}
-                    <dl class="totals">
+                    <dl class="totals" id="bill-totals" data-sync>
                         <div><dt>Cost of items</dt><dd>{{ po.total_cost|money }}</dd></div>
                         {% if po.discount_pct %}<div><dt>Discount {{ po.discount_pct|qty }}%</dt><dd>&minus; {{ (po.total_cost - po.gross_price)|money }}</dd></div>{% endif %}
                         <div class="is-total"><dt>To pay</dt><dd>{{ rs(po.gross_price) }}</dd></div>

@@ -7,32 +7,37 @@
 
     /* ---- Tabs (phones only; wide screens show every column) ---- */
     var KEY = 'harithma.floor.tab';
-    var tabs = root.querySelectorAll('[data-fl-tab]');
-    var panes = root.querySelectorAll('[data-fl-pane]');
+    var current = 'queue';
 
     function remember(name) { try { localStorage.setItem(KEY, name); } catch (e) { /* private mode */ } }
     function recall() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
 
+    // Tabs and panes are looked up each time: live updates replace them.
     function show(name) {
-        Array.prototype.forEach.call(tabs, function (tab) {
+        current = name;
+        Array.prototype.forEach.call(root.querySelectorAll('[data-fl-tab]'), function (tab) {
             var on = tab.dataset.flTab === name;
             tab.classList.toggle('is-on', on);
             tab.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        Array.prototype.forEach.call(panes, function (pane) {
+        Array.prototype.forEach.call(root.querySelectorAll('[data-fl-pane]'), function (pane) {
             pane.classList.toggle('is-on', pane.dataset.flPane === name);
         });
     }
 
-    Array.prototype.forEach.call(tabs, function (tab) {
-        tab.addEventListener('click', function () {
-            show(tab.dataset.flTab);
-            remember(tab.dataset.flTab);
-            window.scrollTo(0, 0);
-        });
+    root.addEventListener('click', function (event) {
+        var tab = event.target.closest('[data-fl-tab]');
+        if (!tab) { return; }
+        show(tab.dataset.flTab);
+        remember(tab.dataset.flTab);
+        window.scrollTo(0, 0);
     });
     var start = recall();
     show(root.querySelector('[data-fl-tab="' + start + '"]') ? start : 'queue');
+    // After the board is refreshed in place, keep the same tab open.
+    document.body.addEventListener('htmx:afterSettle', function (event) {
+        if (event.target && event.target.id === 'fl-live') { show(current); }
+    });
 
     function modal(id) { return window.bootstrap.Modal.getOrCreateInstance(document.getElementById(id)); }
     function check(form, name, value) {
@@ -157,21 +162,23 @@
         timer = setTimeout(lookup, 200);
     });
 
-    Array.prototype.forEach.call(document.querySelectorAll('[data-fl-add]'), function (button) {
-        button.addEventListener('click', function () {
-            reset();
-            if (button.dataset.bay) { check(addForm, 'washbay_id', button.dataset.bay); }
-            modal('flAdd').show();
-        });
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-fl-add]');
+        if (!button) { return; }
+        reset();
+        if (button.dataset.bay) { check(addForm, 'washbay_id', button.dataset.bay); }
+        modal('flAdd').show();
     });
     document.getElementById('flAdd').addEventListener('shown.bs.modal', function () { number.focus(); });
 
     // One tap is enough: stop a second tap sending the same change twice.
-    Array.prototype.forEach.call(document.querySelectorAll('.fl form, .fl-sheet form'), function (form) {
-        form.addEventListener('submit', function () {
-            setTimeout(function () {
-                Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = true; });
-            }, 0);
-        });
+    // (app.js turns the buttons back on when an in-page update finishes.)
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (event.defaultPrevented && !form.dataset.ajax) { return; }
+        if (!form.closest('.fl, .fl-sheet')) { return; }
+        setTimeout(function () {
+            Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = true; });
+        }, 0);
     });
 })();

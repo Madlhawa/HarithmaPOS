@@ -1,8 +1,9 @@
 {% extends 'layout/base.html' %}
 {% from 'layout/macros.html' import csrf, rs, plate, post_button, modal, field, autocomplete, payment_fields, requests_box %}
 
-{# The floor board is left open on the counter all day: reload it every minute. #}
-{% block body_attrs %}data-auto-refresh="60"{% endblock %}
+{# Left open on the counter all day: live updates (server-sent events) refresh the board when anything
+   changes; a full reload every 5 minutes is the safety net. #}
+{% block body_attrs %}data-live="dashboard" data-auto-refresh="300"{% endblock %}
 
 {% block body %}
 {% set here = url_for('dashboard_blueprint.dashboard') %}
@@ -43,6 +44,7 @@
 </div>
 {% endif %}
 
+<div id="dash-live" data-region data-live-region>
 <dl class="strip">
     <div>
         <dt>In the station now</dt>
@@ -156,6 +158,8 @@
 <div class="lane-empty">No wash bays yet. <a href="{{ url_for('washbay_blueprint.washbay') }}">Add your first bay</a>.</div>
 {% endif %}
 
+
+</div>{# /dash-live #}
 
 {# ---- New service ------------------------------------------------------- #}
 {% call modal('newServiceModal', 'New service', attrs={'data-auto-open': ''} if prefill_vehicle else {}) %}

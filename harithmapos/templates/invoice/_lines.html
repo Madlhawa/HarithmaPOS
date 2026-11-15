@@ -1,7 +1,7 @@
 {# Shared item entry + lines table for service and item invoices.
    Expects: add_url, lines, inc_endpoint, dec_endpoint, del_endpoint, line_arg #}
 {% from 'layout/macros.html' import csrf, autocomplete, post_button, rs %}
-<div class="panel">
+<div class="panel" id="lines" data-region>
     <div class="panel-body">
         <form method="post" action="{{ add_url }}" data-entry>
             {{ csrf() }}

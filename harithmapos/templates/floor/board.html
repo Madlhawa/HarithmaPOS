@@ -1,8 +1,9 @@
 {% extends 'layout/base.html' %}
 {% from 'layout/macros.html' import csrf, plate, flashes %}
 
-{# Left open on the supervisor's phone all day: reload quietly while no sheet is open. #}
-{% block body_attrs %}data-auto-refresh="45" class="floor-page"{% endblock %}
+{# Left open on the supervisor's phone all day: live updates refresh the board when anything changes;
+   a quiet full reload every 5 minutes (while no sheet is open) is the safety net. #}
+{% block body_attrs %}data-live="floor" data-auto-refresh="300" class="floor-page"{% endblock %}
 
 {% macro move_button(invoice, to, label, cls='btn btn-primary', confirm=none) -%}
 <form method="post" action="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}" class="fl-go" {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
@@ -50,6 +51,7 @@
 
 {% block shell %}
 <div class="fl">
+  <div id="fl-live" data-region data-live-region>
     <header class="fl-bar">
         <a class="fl-back" href="{{ url_for('dashboard_blueprint.dashboard') }}" aria-label="Back to the dashboard"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
         <div class="fl-title">
@@ -119,6 +121,7 @@
             {% if ready_count > ready|length %}<p class="fl-empty">and {{ ready_count - ready|length }} more on the dashboard.</p>{% endif %}
         </section>
     </main>
+  </div>{# /fl-live #}
 
     <button type="button" class="fl-fab btn btn-primary" data-fl-add>
         <i class="bi bi-plus-lg" aria-hidden="true"></i><span>Add vehicle</span>
@@ -128,7 +131,7 @@
 {# ---- Sheet: change a vehicle ---- #}
 <div class="modal fade fl-sheet" id="flEdit" tabindex="-1" aria-labelledby="flEdit-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <form class="modal-content" method="post" id="flEditForm">
+        <form class="modal-content" method="post" id="flEditForm" data-region-target="fl-live">
             {{ csrf() }}
             <div class="modal-header">
                 <div>
@@ -175,7 +178,7 @@
 {# ---- Sheet: add a vehicle ---- #}
 <div class="modal fade fl-sheet" id="flAdd" tabindex="-1" aria-labelledby="flAdd-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <form class="modal-content" method="post" action="{{ url_for('floor_blueprint.add') }}" id="flAddForm" autocomplete="off">
+        <form class="modal-content" method="post" action="{{ url_for('floor_blueprint.add') }}" id="flAddForm" autocomplete="off" data-region-target="fl-live">
             {{ csrf() }}
             <input type="hidden" name="vehicle_id" value="">
             <div class="modal-header">

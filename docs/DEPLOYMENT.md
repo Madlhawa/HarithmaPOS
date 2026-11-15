@@ -74,7 +74,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItRF0RcRzYO0X43G/sliz8rIh2XWzcEtsiAC1Dv9Og7
 | SSH | Keys only (no passwords, root by key only), 4 tries per connection, 30 s to log in, no X11 forwarding | `deployment/server/sshd-harithma.conf` |
 | App | `harithma` user, code in `/opt/harithma-pos`, Python venv, `.env` | `deployment/deploy.sh` |
 | Database | PostgreSQL database `harithma_pos` owned by `harithma_user`; restore or `flask db upgrade` | `deployment/deploy.sh` |
-| Service | `harithma-pos` (gunicorn on 127.0.0.1:8080), starts on boot | `deployment/server/harithma-pos.service` |
+| Service | `harithma-pos` (gunicorn on 127.0.0.1:8080: 2 processes × 16 threads, because each open dashboard or floor board keeps a live-updates connection), starts on boot | `deployment/server/harithma-pos.service`, `gunicorn_config.py` |
 | Web server | nginx: HTTP until the certificate exists, then HTTPS with HSTS, gzip, no framing by other sites, no version number shown, and sign-in posts (`/app`, `/app/login`, `/app/reset_password`) limited to 10 a minute per address | `deployment/server/nginx-http.conf`, `deployment/server/nginx-https.conf`, `deployment/server/429.html` |
 | HTTPS | Let's Encrypt certificate, renewed automatically by certbot's timer | `deployment/deploy.sh` |
 | Nightly backup | 21:00 UTC (02:30 Sri Lanka) to `/root/backups/nightly`, kept 14 days | `deployment/server/harithma-backup.sh`, `deployment/server/harithma-backup.cron` |

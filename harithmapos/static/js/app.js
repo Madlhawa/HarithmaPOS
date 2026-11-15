@@ -8,6 +8,8 @@
  *   <button data-edit-modal="#modal" data-values='{…}'>   open a modal pre-filled
  *   <time data-since="2026-01-01T08:00:00Z">              running "1h 05m" clock
  *   <a href="…/print" data-print>                          print that page without leaving this one
+ *   <div id="lines" data-region>                          its POST forms update just this part in place
+ *   <body data-live="floor"> + <div data-live-region>      refreshed when the server says something changed
  */
 (function () {
     'use strict';
@@ -471,6 +473,147 @@
     }
 
     /* ---------------------------------------------------------------------
+     * In-page updates (htmx).
+     *
+     * A POST form inside an element with data-region (or a form with
+     * data-region-target="id") is sent in the background. The server answers
+     * as it always has (a redirect back to the same page); only that region,
+     * plus any element marked data-sync (messages, bill totals), is swapped
+     * in from the answer. If the answer is a different page (the record was
+     * deleted, the session ended) the browser simply goes there. Without
+     * htmx every form still works the old way.
+     * ------------------------------------------------------------------- */
+    var live = { ok: false };
+    var inFlight = 0;
+    var lastSwap = 0;
+    var refocusNext = false;
+
+    function regionFor(form) {
+        if (form.dataset.regionTarget) { return document.getElementById(form.dataset.regionTarget); }
+        return form.closest('[data-region]');
+    }
+
+    function unlock(form) {
+        delete form.dataset.submitting;
+        delete form.dataset.ajax;
+        Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = false; });
+    }
+
+    // Runs after the confirm and double-click handlers above, so a cancelled confirm never gets here.
+    document.addEventListener('submit', function (event) {
+        if (event.defaultPrevented || !window.htmx) { return; }
+        var form = event.target;
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post' || 'noAjax' in form.dataset) { return; }
+        var region = regionFor(form);
+        if (!region || !region.id) { return; }
+        event.preventDefault();
+        form.dataset.ajax = '1';
+        var values = {};
+        if (event.submitter && event.submitter.name) { values[event.submitter.name] = event.submitter.value; }
+        inFlight += 1;
+        window.htmx.ajax('POST', form.getAttribute('action') || window.location.href, {
+            source: form, values: values, target: '#' + region.id, select: '#' + region.id, swap: 'outerHTML'
+        }).then(function () { inFlight -= 1; unlock(form); }, function () { inFlight -= 1; unlock(form); });
+    });
+
+    function settle(scope) {
+        initAll(scope);
+        tick();
+        Array.prototype.forEach.call(scope.querySelectorAll('form'), syncStockToggle);
+    }
+
+    document.addEventListener('htmx:beforeSwap', function (event) {
+        var detail = event.detail;
+        var target = detail.target;
+        if (!target || !target.id || detail.xhr.status >= 400) { return; }
+        var doc = new DOMParser().parseFromString(detail.serverResponse || '', 'text/html');
+        if (!doc.getElementById(target.id)) {
+            // A different page came back: show it.
+            detail.shouldSwap = false;
+            window.location.assign(detail.xhr.responseURL || window.location.href);
+            return;
+        }
+        Array.prototype.forEach.call(document.querySelectorAll('[data-sync][id]'), function (node) {
+            if (target.contains(node)) { return; }
+            var fresh = doc.getElementById(node.id);
+            if (!fresh) { return; }
+            var copy = document.importNode(fresh, true);
+            node.replaceWith(copy);
+            settle(copy);
+        });
+        var form = detail.requestConfig && detail.requestConfig.elt;
+        refocusNext = !!(form && form.matches && form.matches('form[data-entry]'));
+        var sheet = form && form.closest && form.closest('.modal.show');
+        if (sheet && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(sheet).hide(); }
+    });
+
+    document.addEventListener('htmx:afterSettle', function (event) {
+        var node = event.target;
+        if (!node || !node.id) { return; }
+        var fresh = document.getElementById(node.id) || node;
+        lastSwap = Date.now();
+        settle(fresh);
+        if (refocusNext) {
+            refocusNext = false;
+            var first = fresh.querySelector('[autofocus]');
+            if (first) { first.focus(); }
+        }
+    });
+
+    // The server failed: reload so the page shows what was actually saved.
+    document.addEventListener('htmx:responseError', function () { window.location.reload(); });
+    document.addEventListener('htmx:sendError', function () {
+        window.alert('No connection to the server. Check the internet connection and try again.');
+    });
+
+    /* ---------------------------------------------------------------------
+     * Live updates (server-sent events) for the dashboard and floor board:
+     * <body data-live="floor"> and one element with data-live-region.
+     * The server says "change" when invoices, payments or requests change,
+     * and the region is fetched again in the background.
+     * ------------------------------------------------------------------- */
+    function startLive() {
+        var board = document.body.dataset.live;
+        var region = document.querySelector('[data-live-region]');
+        if (!board || !region || !window.EventSource || !window.htmx) { return; }
+        var id = region.id;
+        var pending = false;
+        var opened = false;
+
+        function refresh() {
+            if (inFlight || document.hidden || Date.now() - lastSwap < 1500) {
+                pending = true;
+                if (!document.hidden) { setTimeout(refresh, 1500); }
+                return;
+            }
+            pending = false;
+            inFlight += 1;
+            window.htmx.ajax('GET', window.location.pathname + window.location.search, {
+                target: '#' + id, select: '#' + id, swap: 'outerHTML', headers: { 'X-Live-Refresh': '1' }
+            }).then(function () { inFlight -= 1; }, function () { inFlight -= 1; });
+        }
+
+        function connect() {
+            var source = new EventSource('/app/live?board=' + encodeURIComponent(board));
+            source.addEventListener('change', refresh);
+            source.onopen = function () {
+                live.ok = true;
+                if (opened) { refresh(); }     // reconnected: catch up on anything missed
+                opened = true;
+            };
+            source.onerror = function () {
+                live.ok = false;
+                if (source.readyState === 2) { setTimeout(connect, 30000); }   // closed for good: try again later
+            };
+        }
+
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && pending) { refresh(); }
+        });
+        connect();
+    }
+
+    /* ---------------------------------------------------------------------
      * Start-up
      * ------------------------------------------------------------------- */
     function start() {
@@ -499,11 +642,13 @@
             printPage(link.href);
         });
 
-        // The floor board is left open all day: refresh it quietly while nobody is typing.
+        startLive();
+
+        // Pages left open all day: a quiet full reload as a safety net, skipped while live updates are working.
         var refresh = Number(document.body.dataset.autoRefresh || 0);
         if (refresh > 0) {
             setInterval(function () {
-                var busy = printing || document.querySelector('.modal.show') ||
+                var busy = live.ok || printing || document.querySelector('.modal.show') ||
                     document.hidden ||
                     /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
                 if (!busy) { window.location.reload(); }

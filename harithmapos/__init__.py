@@ -68,6 +68,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.floor.routes import floor_blueprint
     from harithmapos.views.dev.routes import dev_blueprint
     from harithmapos.views.audit.routes import audit_blueprint
+    from harithmapos.views.live.routes import live_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -89,5 +90,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(floor_blueprint)
     app.register_blueprint(dev_blueprint)
     app.register_blueprint(audit_blueprint)
+    app.register_blueprint(live_blueprint)
 
     return app
