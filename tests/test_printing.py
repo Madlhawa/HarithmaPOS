@@ -43,6 +43,23 @@ def test_service_invoice_prints_on_the_dot_matrix_layout(staff, ids):
     assert 'Balance due' in html and '3,000.00' in html
 
 
+def test_next_service_mileage_on_the_invoice(app, staff, ids):
+    """Without a service interval the next mileage equals the current one: show a dash, not that number."""
+    _complete_service(staff, ids)
+    with app.app_context():
+        inv = db.session.get(InvoiceHead, ids['inv'])
+        inv.current_milage, inv.next_milage_in, inv.next_milage = 50000, None, 50000
+        db.session.commit()
+    html = staff.get(f"/app/invoice/head/{ids['inv']}/print").get_data(as_text=True)
+    assert html.count('50,000 km') == 1
+    with app.app_context():
+        inv = db.session.get(InvoiceHead, ids['inv'])
+        inv.next_milage_in, inv.next_milage = 5000, 55000
+        db.session.commit()
+    html = staff.get(f"/app/invoice/head/{ids['inv']}/print").get_data(as_text=True)
+    assert '50,000 km' in html and '55,000 km' in html
+
+
 def test_item_sale_prints_on_the_80mm_layout(staff, ids):
     _complete_sale(staff, ids)
     html = staff.get(f"/app/item_invoice/head/{ids['sale']}/print").get_data(as_text=True)

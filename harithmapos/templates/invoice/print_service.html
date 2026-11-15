@@ -53,7 +53,7 @@
             <td><div class="k">Customer</div><div class="v">{{ head.customer.name if head.customer else '' }}</div>{% if head.customer and head.customer.contact %}<div>{{ head.customer.contact }}</div>{% endif %}</td>
             <td><div class="k">Vehicle</div><div class="v">{{ head.vehicle.number if head.vehicle else '' }}</div></td>
             <td><div class="k">Current mileage</div><div class="v">{{ head.current_milage|km ~ ' km' if head.current_milage else '-' }}</div></td>
-            <td><div class="k">Next service at</div><div class="v">{{ head.next_milage|km ~ ' km' if head.next_milage else '-' }}</div></td>
+            <td><div class="k">Next service at</div><div class="v">{{ head.next_milage|km ~ ' km' if head.next_milage_in and head.next_milage else '-' }}</div></td>
         </tr>
     </table>
 
