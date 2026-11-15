@@ -691,7 +691,7 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 
 - **Home page (https://harithma.lk):** the public website with services, how it works, contact details and a map. Contact details come from Settings → Business details.
 - **Status page:** the link in the "started" SMS. It shows the vehicle plate, where it is (Waiting → Vacuuming → Washing → Polishing → Done, updating every minute) and the bill so far. The link stops working after the number of hours set in Settings.
-- **Service invoice** (LQ-350): business details, invoice number and date, customer and phone, vehicle, mileage, bay and who served, the numbered lines with discounts, totals, what was paid, the balance or change, and the next service mileage.
+- **Service invoice** (LQ-350): business details, invoice number and date, customer and phone, vehicle, current mileage and the mileage for the next service, the numbered lines with discounts, totals, what was paid, and the balance or change.
 - **Item sale receipt** (80 mm): business details, sale number and date, customer, the lines, totals, what was paid and change.
 
 ---

@@ -38,7 +38,8 @@ def test_service_invoice_prints_on_the_dot_matrix_layout(staff, ids):
     _complete_service(staff, ids)
     html = staff.get(f"/app/invoice/head/{ids['inv']}/print").get_data(as_text=True)
     assert 'LQ-350' in html and 'INVOICE' in html
-    assert 'CAB-1234' in html and 'Ajith' in html and 'Bay 1' in html
+    assert 'CAB-1234' in html and 'Current mileage' in html and 'Next service at' in html
+    assert 'Ajith' not in html and 'Bay 1' not in html and 'Checked by' not in html
     assert 'Balance due' in html and '3,000.00' in html
 
 
