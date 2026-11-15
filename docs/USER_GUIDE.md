@@ -256,7 +256,17 @@ The SMS buttons are greyed out if the customer has no phone number or that text 
 | **Save** | Saves the job and bill panels without completing. |
 | **Cancel invoice** *(owners)* | Deletes the invoice after asking; its items go back into stock. |
 
-You can open a completed invoice again to correct it. Pressing **Complete** a second time never records the payment twice: only a difference is added.
+### Taking a payment later
+
+Once an invoice is completed (its job is **Done**), the **Amount paid** and **Paid by** boxes and the **Complete** button are replaced by a list of **Payments** made on it. If money is still owed, a **Record payment** button appears:
+
+1. Press **Record payment**. The amount is filled in with the balance; change it for a part payment.
+2. Choose **Paid by** and, if you like, add a **Note** (a cheque number, say).
+3. Press **Record payment**. The payment appears in the list, on the Payments page and in today's figures, and the balance goes down. When nothing is left, the bill shows *Settled* and the button goes away.
+
+You cannot pay more than the balance. While a job is still in progress there is no **Record payment** button: type what was paid in **Amount paid** instead.
+
+You can still open a completed invoice to correct the job details or the bill discount, and press **Save**.
 
 ---
 
@@ -295,6 +305,7 @@ The same **Add a service or item / Quantity / Extra discount / Add** row and lin
 | Customer | Optional. Pick a customer or leave empty for a walk-in. |
 | Bill discount, Amount paid, Paid by | As on a service invoice. |
 | **Complete and print receipt** | Records the payment and prints. |
+| **Record payment** | On a completed sale with money still owed: take the rest, in full or in part. See [taking a payment later](#taking-a-payment-later). |
 | **Save** | Saves without completing. |
 | **Print** | Opens the receipt in a new tab. |
 | **Delete this sale** *(owners)* | Deletes it after asking; items go back into stock. |
@@ -401,6 +412,7 @@ Stock changes automatically: down when added to an invoice or sale, back up when
 | Discount % | A discount the supplier gave on the whole order. |
 | Amount paid, Paid by | What you have paid the supplier. |
 | **Complete** | Saves and records the payment to the supplier as money out. |
+| **Pay supplier** | On a completed order with money still owed: shows the payments made so far and records another one (money out), in full or in part. It works like [taking a payment later](#taking-a-payment-later) on an invoice. |
 | **Save** | Saves without recording payment. |
 | **Delete this purchase order** | Deletes it after asking; its items come off stock. |
 

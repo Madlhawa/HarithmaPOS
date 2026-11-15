@@ -61,11 +61,16 @@ class PurchaseOrderHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
+    completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
     payments = db.relationship('Payment', backref='purchase_order', lazy=True)
 
     @property
     def balance(self):
         return _balance(self)
+
+    @property
+    def is_completed(self):
+        return self.completed_dttm is not None
 
 class PurchaseOrderDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -106,11 +111,16 @@ class ItemInvoiceHead(db.Model):
     created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
+    completed_dttm = db.Column(db.DateTime)  # set by "Complete"; payments can then be added on the page
     payments = db.relationship('Payment', backref='item_invoice', lazy=True)
 
     @property
     def balance(self):
         return _balance(self)
+
+    @property
+    def is_completed(self):
+        return self.completed_dttm is not None
 
 class ItemInvoiceDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -175,6 +185,11 @@ class InvoiceHead(db.Model):
     @property
     def is_done(self):
         return self.service_status == config.SERVICE_STATUS_DONE
+
+    @property
+    def is_completed(self):
+        """A service invoice is completed once its job is Done."""
+        return self.is_done
 
     @hybrid_property
     def service_status_str(self):

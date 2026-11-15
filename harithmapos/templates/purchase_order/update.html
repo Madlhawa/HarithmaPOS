@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs %}
+{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs, paid_history, pay_modal %}
 {% block body %}
 {% set po = purchase_order_head %}
 <div class="page-head">
@@ -66,15 +66,22 @@
                         <div><dt>Paid</dt><dd>{{ po.paid_amount|money }}</dd></div>
                         <div class="{{ 'is-due' if po.balance > 0 else 'is-clear' }}"><dt>Balance</dt><dd>{{ po.balance|money if po.balance != 0 else 'Settled' }}</dd></div>
                     </dl>
+                    {% if po.is_completed %}
+                    {{ paid_history(po, 'payOrder', paying='out', verb='Pay supplier') }}
+                    {{ field('discount_pct', 'Discount %', prefix='pob', kind='money', value=po.discount_pct|qty if po.discount_pct else '', placeholder='0', wrap='mt-3') }}
+                    {% else %}
                     <div class="row g-3 mt-1">
                         <div class="col-6">{{ field('discount_pct', 'Discount %', prefix='pob', kind='money', value=po.discount_pct|qty if po.discount_pct else '', placeholder='0', wrap='') }}</div>
                         <div class="col-6">{{ field('paid_amount', 'Amount paid', prefix='pob', kind='money', value=po.paid_amount|money if po.paid_amount else '', placeholder='0.00', wrap='') }}</div>
                     </div>
                     <label class="form-label mt-3">Paid by</label>
                     {{ payment_choice(po.payment_method, prefix='popm') }}
+                    {% endif %}
                 </div>
                 <div class="panel-body border-top d-grid gap-2">
+                    {% if not po.is_completed %}
                     <button type="submit" name="complete_purchase_order" value="1" class="btn btn-finish btn-lg">Complete</button>
+                    {% endif %}
                     <button type="submit" name="update_purchase_order" value="1" class="btn btn-primary">Save</button>
                 </div>
             </div>
@@ -84,4 +91,5 @@
         </form>
     </div>
 </div>
+{{ pay_modal(po, 'payOrder', url_for('payment_blueprint.pay_purchase_order', purchase_order_head_id=po.id), title='Pay supplier for order #' ~ po.id, verb='Record payment') }}
 {% endblock %}

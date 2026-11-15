@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, rs, autocomplete, field, payment_choice, totals %}
+{% from 'layout/macros.html' import csrf, rs, autocomplete, field, payment_choice, totals, paid_history, pay_modal %}
 {% block body %}
 {% set inv = item_invoice_head %}
 <div class="page-head">
@@ -29,15 +29,22 @@
                 <div class="panel-body">
                     {{ autocomplete('customer', 'Customer', url_for('search_blueprint.search_customers'), prefix='bill', value=inv.customer.name if inv.customer else '', id_value=inv.customer_id, optional=true, placeholder='Name or phone') }}
                     {{ totals(inv) }}
+                    {% if inv.is_completed %}
+                    {{ paid_history(inv, 'paySale') }}
+                    {{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='mt-3') }}
+                    {% else %}
                     <div class="row g-3 mt-1">
                         <div class="col-6">{{ field('discount_amount', 'Bill discount', prefix='bill', kind='money', value=inv.discount_amount|money if inv.discount_amount else '', placeholder='0.00', wrap='') }}</div>
                         <div class="col-6">{{ field('paid_amount', 'Amount paid', prefix='bill', kind='money', value=inv.paid_amount|money if inv.paid_amount else '', placeholder='0.00', wrap='') }}</div>
                     </div>
                     <label class="form-label mt-3">Paid by</label>
                     {{ payment_choice(inv.payment_method) }}
+                    {% endif %}
                 </div>
                 <div class="panel-body border-top d-grid gap-2">
+                    {% if not inv.is_completed %}
                     <button type="submit" name="complete_item_invoice" value="1" class="btn btn-finish btn-lg">Complete and print receipt</button>
+                    {% endif %}
                     <button type="submit" name="update_item_invoice" value="1" class="btn btn-primary">Save</button>
                 </div>
             </div>
@@ -50,4 +57,5 @@
         {% endif %}
     </div>
 </div>
+{{ pay_modal(inv, 'paySale', url_for('payment_blueprint.pay_item_invoice', item_invoice_head_id=inv.id), title='Payment for item sale #' ~ inv.id) }}
 {% endblock %}

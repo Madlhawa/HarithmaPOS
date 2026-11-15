@@ -331,10 +331,14 @@ def item_invoice_head_detail(item_invoice_head_id):
                 customer = db.session.get(Customer, form.customer_id.data)
                 if customer:
                     item_invoice_head.customer_id = customer.id
-            item_invoice_head.payment_method = form.payment_method.data
-            item_invoice_head.paid_amount = form.paid_amount.data or 0
+            # Once completed, money is taken with "Record payment", so the paid box is not on the page.
+            if not item_invoice_head.is_completed:
+                item_invoice_head.payment_method = form.payment_method.data
+                item_invoice_head.paid_amount = form.paid_amount.data or 0
             item_invoice_head.discount_amount = form.discount_amount.data or 0
             item_invoice_head.update_dttm = utcnow()
+            if form.complete_item_invoice.data and not item_invoice_head.is_completed:
+                item_invoice_head.completed_dttm = utcnow()
             _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
             if item_invoice_head.paid_amount:
                 item_invoice_head.last_payment_date = local_today(config.APP_TIMEZONE)
@@ -678,8 +682,10 @@ def _save_service_invoice(invoice_head, form):
     else:
         invoice_head.next_milage = current
 
-    invoice_head.payment_method = form.payment_method.data
-    invoice_head.paid_amount = form.paid_amount.data or 0
+    # Once completed, money is taken with "Record payment", so the paid box is not on the page.
+    if not invoice_head.is_completed:
+        invoice_head.payment_method = form.payment_method.data
+        invoice_head.paid_amount = form.paid_amount.data or 0
     invoice_head.discount_amount = form.discount_amount.data or 0
     invoice_head.update_dttm = utcnow()
 

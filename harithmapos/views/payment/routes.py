@@ -1,13 +1,14 @@
 import logging
 
 from flask_login import login_required
-from flask import Blueprint, render_template, request, flash
+from flask import Blueprint, render_template, request, flash, redirect, url_for
 
-from harithmapos import db
+from harithmapos import db, config
+from harithmapos.billing import money, to_decimal
 from harithmapos.models import Payment, InvoiceHead, ItemInvoiceHead, PurchaseOrderHead, Customer, Employee
 from harithmapos.timeutils import utcnow
-from harithmapos.views.ledger import apply_payment
-from harithmapos.views.payment.forms import PaymentCreateForm, PaymentUpdateForm
+from harithmapos.views.ledger import apply_payment, record_document_payment
+from harithmapos.views.payment.forms import PaymentCreateForm, PaymentUpdateForm, DocumentPaymentForm
 from harithmapos.permissions import owner_required, user_is_owner
 
 import harithmapos.views.utils as utils
@@ -156,3 +157,70 @@ def delete_payment(payment_id):
         logger.exception("Could not delete payment %s", payment_id)
         flash("The payment could not be deleted. Please try again.", category='danger')
     return utils.redirect_back('payment_blueprint.payment')
+
+
+# ---------------------------------------------------------------------------
+# Payments taken on a completed invoice or purchase order's own page
+# ---------------------------------------------------------------------------
+
+def _pay_document(document, link_field, here, label):
+    """Record a later payment against a completed document, then go back to it."""
+    form = DocumentPaymentForm()
+    if not form.validate_on_submit():
+        utils.flash_form_errors(form)
+        return redirect(here)
+    if not document.is_completed:
+        flash(f"Complete {label} first. Until then, enter the amount paid on the bill.", category='warning')
+        return redirect(here)
+
+    balance = money(document.balance)
+    amount = money(to_decimal(form.payment_amount.data))
+    if balance <= 0:
+        flash(f"Nothing is left to pay on {label}.", category='info')
+        return redirect(here)
+    if amount > balance:
+        flash(f"That is more than the balance of {config.CURRENCY} {balance:,.2f}. "
+              "Enter the balance or less.", category='warning')
+        return redirect(here)
+
+    try:
+        record_document_payment(document, link_field, amount, form.payment_method.data, form.remarks.data)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Could not record a payment for %s %s", link_field, document.id)
+        flash("The payment could not be recorded. Please try again.", category='danger')
+        return redirect(here)
+
+    left = money(document.balance)
+    if left > 0:
+        flash(f"Payment of {config.CURRENCY} {amount:,.2f} recorded. "
+              f"Still to pay: {config.CURRENCY} {left:,.2f}.", category='success')
+    else:
+        flash(f"Payment of {config.CURRENCY} {amount:,.2f} recorded. {label[0].upper() + label[1:]} is now settled.",
+              category='success')
+    return redirect(here)
+
+
+@payment_blueprint.route("/app/invoice/head/<int:invoice_head_id>/pay", methods=['POST'])
+@login_required
+def pay_invoice(invoice_head_id):
+    invoice = InvoiceHead.query.get_or_404(invoice_head_id)
+    here = url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id)
+    return _pay_document(invoice, 'invoice_id', here, f"invoice #{invoice.id}")
+
+
+@payment_blueprint.route("/app/item_invoice/head/<int:item_invoice_head_id>/pay", methods=['POST'])
+@login_required
+def pay_item_invoice(item_invoice_head_id):
+    sale = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
+    here = url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=sale.id)
+    return _pay_document(sale, 'item_invoice_id', here, f"item sale #{sale.id}")
+
+
+@payment_blueprint.route("/app/purchase_order/head/<int:purchase_order_head_id>/pay", methods=['POST'])
+@owner_required
+def pay_purchase_order(purchase_order_head_id):
+    order = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
+    here = url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=order.id)
+    return _pay_document(order, 'purchase_order_id', here, f"purchase order #{order.id}")

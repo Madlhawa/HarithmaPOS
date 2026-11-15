@@ -100,10 +100,14 @@ def purchase_order_head_detail(purchase_order_head_id):
                 if supplier:
                     purchase_order_head.supplier_id = supplier.id
             purchase_order_head.supplier_invoice_id = form.supplier_invoice_id.data
-            purchase_order_head.payment_method = form.payment_method.data
-            purchase_order_head.paid_amount = form.paid_amount.data or 0
+            # Once completed, money is paid with "Record payment", so the paid box is not on the page.
+            if not purchase_order_head.is_completed:
+                purchase_order_head.payment_method = form.payment_method.data
+                purchase_order_head.paid_amount = form.paid_amount.data or 0
             purchase_order_head.discount_pct = form.discount_pct.data or 0
             purchase_order_head.update_dttm = utcnow()
+            if form.complete_purchase_order.data and not purchase_order_head.is_completed:
+                purchase_order_head.completed_dttm = utcnow()
             _recalculate(purchase_order_head)
             if purchase_order_head.paid_amount:
                 purchase_order_head.last_payment_date = local_today(config.APP_TIMEZONE)

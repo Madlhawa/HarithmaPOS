@@ -219,3 +219,53 @@
     <span><b>Harithma</b><small>Service Center</small></span>
 </span>
 {%- endmacro %}
+
+{# Payments on a completed invoice or purchase order: what was paid, and a button to take more.
+   Goes inside the bill panel; pay_modal() goes outside any form. #}
+{% macro paid_history(head, modal_id, paying='in', verb='Record payment') %}
+<input type="hidden" name="payment_method" value="{{ head.payment_method or 'cash' }}">
+{% set paid = head.payments|sort(attribute='created_dttm') %}
+<div class="paid-list">
+    <div class="form-label mb-1">Payments</div>
+    {% if paid %}
+    <ul class="history">
+        {% for p in paid %}
+        <li>
+            <span>{{ p.created_dttm|local_date }}</span>
+            <span class="text-muted">{{ PAYMENT_METHODS|selectattr(0, 'equalto', p.payment_method)|map(attribute=1)|first|default(p.payment_method or '') }}{% if p.remarks and p.remarks not in ('Invoice payment', 'Purchase order payment', 'Balance payment') %} · {{ p.remarks }}{% endif %}</span>
+            <span class="num">{% if p.payment_direction != paying %}&minus; {% endif %}{{ p.payment_amount|money }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted small mb-0">Nothing paid yet.</p>
+    {% endif %}
+</div>
+{% if head.balance > 0 %}
+<button type="button" class="btn btn-finish btn-lg w-100 mt-3" data-bs-toggle="modal" data-bs-target="#{{ modal_id }}">
+    <i class="bi bi-cash-coin me-1" aria-hidden="true"></i>{{ verb }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro pay_modal(head, modal_id, action, title='Record payment', verb='Record payment') %}
+{% if head.is_completed and head.balance > 0 %}
+{% call modal(modal_id, title) %}
+<form method="post" action="{{ action }}">
+    {{ csrf() }}
+    <div class="modal-body">
+        <p class="mb-3">Balance: <strong>{{ rs(head.balance) }}</strong></p>
+        {{ field('payment_amount', 'Amount', prefix=modal_id, kind='money', value=head.balance|money, required=true,
+                 hint='The full balance, or part of it.' ) }}
+        <label class="form-label">Paid by</label>
+        {{ payment_choice(head.payment_method, prefix=modal_id ~ '-pm') }}
+        {{ field('remarks', 'Note (optional)', prefix=modal_id, wrap='mt-3', placeholder='e.g. cheque number', attrs={'maxlength': 255}) }}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">{{ verb }}</button>
+    </div>
+</form>
+{% endcall %}
+{% endif %}
+{% endmacro %}

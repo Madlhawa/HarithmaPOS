@@ -16,6 +16,8 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 15 Nov 2026 | **Payments on completed invoices and purchase orders.** A completed service invoice, item sale or purchase order lists its payments and, while money is owed, has a **Record payment** (or **Pay supplier**) button for the rest, in full or in part. Open ones keep the Amount paid box. |
+| 15 Nov 2026 | **Security hardening.** Sign-in rate limit also covers `/app`; nginx hides its version and refuses framing by other sites; SSH keys only with fewer tries; SSH connection rate limit in the firewall. |
 | 14 Nov 2026 | **Developer page** (Menu → Developer → Monitor, developers only). Deploys with test results, GitHub Actions runs, users online and sign-ins (failed ones too), unique users per day, traffic per hour with attack and scanner requests, SSH break-in attempts, app errors with tracebacks, 5xx responses and server health, with a "Needs attention" list. |
 | 14 Nov 2026 | **Tests before every deploy.** GitHub Actions runs the tests on every push and pull request; only a green run deploys, and it deploys that exact commit. Each deploy backs up the database, health-checks the site and puts the old version back if it fails. A one-click *Roll back* workflow. First automatic deploy from GitHub went live on 14 Nov. Library versions pinned to production's. The two broken workflows (pointing at the old server) were replaced. |
 | 13 Nov 2026 | **Floor board** (Menu → Floor board). A phone-first page for the floor supervisor: bays, queue, polishing and ready tabs; one-tap next-stage buttons; a sheet to change stage, bay or employee; add a vehicle to the queue or straight into a free bay, registering new plates and owners on the spot. |
@@ -58,7 +60,7 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 |---|---|---|
 | Service packages | One-click bundles (Basic wash, Full detail) at a fixed price. | M |
 | Price by vehicle type | Car, van, SUV, bike and three-wheeler priced separately for the same service. | M |
-| Split and part payments | Part cash, part card on one bill; clearer tracking of credit balances. | M |
+| Split payments | Part cash, part card in one go at the counter; clearer tracking of credit balances. (Later part payments on completed bills are done.) | M |
 | Discount limits for staff | Owner-set maximum discount, with a reason recorded. | S |
 | Configurable stages | Owner edits the floor stages (fixed today: Waiting, Vacuuming, Washing, Polishing, Done). | M |
 | Bookings | Time slots booked by staff or customers, shown beside walk-ins on the dashboard. | L |

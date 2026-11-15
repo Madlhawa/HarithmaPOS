@@ -88,3 +88,28 @@ def apply_payment(payment, sign=1):
         document.remaining_amount = to_decimal(document.gross_price) - document.paid_amount
         if sign > 0:
             document.last_payment_date = local_today(config.APP_TIMEZONE)
+
+
+def record_document_payment(document, link_field, amount, method, remarks=None):
+    """Take a later payment on a completed invoice or purchase order.
+
+    First records any part of the document's paid amount the ledger does not
+    have yet (for example a job set to Done on the floor board, where Complete
+    was never pressed), so the new payment is not mixed up with that. Then adds
+    the payment and updates the document. Does not commit.
+    """
+    _, paying_direction = DOCUMENTS[link_field]
+    sync_document_payment(document, link_field)
+    payment = safe_insert_with_sequence_check(
+        Payment,
+        customer_id=getattr(document, 'customer_id', None),
+        payment_method=method,
+        payment_direction=paying_direction,
+        payment_amount=amount,
+        payment_type='general',
+        remarks=remarks or 'Balance payment',
+        **{link_field: document.id},
+    )
+    apply_payment(payment, sign=1)
+    document.payment_method = method
+    return payment

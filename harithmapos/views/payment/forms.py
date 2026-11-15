@@ -42,3 +42,14 @@ class PaymentCreateForm(FlaskForm):
 
 class PaymentUpdateForm(PaymentCreateForm):
     submit = SubmitField('Save payment')
+
+
+class DocumentPaymentForm(FlaskForm):
+    """A payment taken on a completed invoice or purchase order's own page."""
+    payment_amount = NumberBox("Amount", places=2, validators=[
+        InputRequired(message='Enter the amount.'),
+        NumberRange(min=Decimal('0.01'), max=MAX_AMOUNT, message='Enter an amount above 0.'),
+    ])
+    payment_method = SelectField("Paid by", choices=config.PAYMENT_METHOD_FORM_LIST)
+    remarks = text_field("Note", max_length=255)
+    submit = SubmitField('Record payment')

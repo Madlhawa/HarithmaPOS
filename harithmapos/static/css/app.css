@@ -1280,3 +1280,7 @@ code.dv-note { display: inline; }
     body { background: #fff; }
     .content { padding: 0; }
 }
+
+/* Payments on completed invoices and purchase orders */
+.paid-list { margin-top: 1rem; }
+.paid-list .history li { grid-template-columns: auto 1fr auto; }
