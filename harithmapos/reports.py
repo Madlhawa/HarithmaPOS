@@ -20,6 +20,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from harithmapos import config
+from harithmapos.timeutils import local_range_bounds_utc, to_local as _to_local
 from harithmapos.models import DOC_COMPLETED
 from harithmapos.models import (
     Customer, Employee, InvoiceDetail, InvoiceHead, InvoiceStatusLog, Item, ItemInvoiceDetail,
@@ -59,10 +60,8 @@ class Period:
         return Period(end - timedelta(days=self.days - 1), end, 'previous')
 
     def utc_bounds(self):
-        """[from, to) as the naive UTC datetimes the database stores."""
-        lo = datetime.combine(self.start, time.min, LOCAL).astimezone(UTC).replace(tzinfo=None)
-        hi = datetime.combine(self.end + timedelta(days=1), time.min, LOCAL).astimezone(UTC).replace(tzinfo=None)
-        return lo, hi
+        """[from, to) as aware UTC moments: the shop's first day at midnight to the day after the last."""
+        return local_range_bounds_utc(self.start, self.end, config.APP_TIMEZONE)
 
     @property
     def label(self):
@@ -105,7 +104,7 @@ def period_from_args(key=None, start=None, end=None, today=None):
 
 
 def to_local(dt):
-    return dt.replace(tzinfo=UTC).astimezone(LOCAL)
+    return _to_local(dt, config.APP_TIMEZONE)
 
 
 def _d(value):
@@ -243,7 +242,7 @@ def _timeline(period, services, sales):
     else:
         buckets = [period.start + timedelta(days=i) for i in range(period.days)]
     index = {b: i for i, b in enumerate(buckets)}
-    rows = [{'date': b.isoformat(), 'services': 0.0, 'sales': 0.0, 'jobs': 0} for b in buckets]
+    rows = [{'date': b.isoformat(), 'services': ZERO, 'sales': ZERO, 'jobs': 0} for b in buckets]
 
     def bucket(dt):
         day = to_local(dt).date()
@@ -252,12 +251,12 @@ def _timeline(period, services, sales):
     for s in services:
         i = index.get(bucket(s.created_dttm))
         if i is not None:
-            rows[i]['services'] += float(_d(s.gross_price))
+            rows[i]['services'] += _d(s.gross_price)
             rows[i]['jobs'] += 1
     for s in sales:
         i = index.get(bucket(s.created_dttm))
         if i is not None:
-            rows[i]['sales'] += float(_d(s.gross_price))
+            rows[i]['sales'] += _d(s.gross_price)
     for r, b in zip(rows, buckets):
         if weekly:
             last = min(b + timedelta(days=6), period.end)
@@ -268,8 +267,6 @@ def _timeline(period, services, sales):
             r['label'] = f'{b:%a %d %b}'
             r['short'] = f'{b:%d %b}'
             r['span'] = r['label']
-        r['services'] = round(r['services'], 2)
-        r['sales'] = round(r['sales'], 2)
     return {'weekly': weekly, 'rows': rows}
 
 
@@ -295,9 +292,9 @@ def _by_item(services, sales, limit=10):
         rows.append({
             'name': item.name if item else f'Item {item_id}',
             'kind': 'Service' if item is not None and not item.tracks_stock else 'Item',
-            'revenue': float(t['revenue']),
-            'qty': float(t['qty']),
-            'profit': float(t['profit']),
+            'revenue': t['revenue'],
+            'qty': t['qty'],
+            'profit': t['profit'],
         })
     rows.sort(key=lambda r: r['revenue'], reverse=True)
     if len(rows) > limit:
@@ -320,7 +317,7 @@ def _by_method(payments_in):
         totals[p.payment_method] += _signed(p)
         counts[p.payment_method] += 1 if p.payment_direction == 'in' else -1
     total = sum(totals.values(), ZERO)
-    rows = [{'method': METHOD_LABELS.get(m, m.title()), 'amount': float(a), 'count': counts[m],
+    rows = [{'method': METHOD_LABELS.get(m, m.title()), 'amount': a, 'count': counts[m],
              'share': float(a / total * 100) if total else 0} for m, a in totals.items()]
     rows.sort(key=lambda r: r['amount'], reverse=True)
     return rows
@@ -357,7 +354,7 @@ def _by_employee(services):
         if s.id in minutes:
             d['minutes'].append(minutes[s.id])
     names = {e.id: e.name for e in Employee.query.filter(Employee.id.in_(list(data) or [0])).all()}
-    rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': float(v['revenue']),
+    rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': v['revenue'],
              'avg_minutes': (sum(v['minutes']) / len(v['minutes'])) if v['minutes'] else None}
             for k, v in data.items()]
     rows.sort(key=lambda r: r['revenue'], reverse=True)
@@ -370,7 +367,7 @@ def _by_bay(services):
         data[s.washbay_id]['jobs'] += 1
         data[s.washbay_id]['revenue'] += _d(s.gross_price)
     names = {b.id: b.name for b in WashBay.query.filter(WashBay.id.in_(list(data) or [0])).all()}
-    rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': float(v['revenue'])} for k, v in data.items()]
+    rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': v['revenue']} for k, v in data.items()]
     rows.sort(key=lambda r: r['revenue'], reverse=True)
     return rows
 
@@ -385,7 +382,7 @@ def _top_customers(services, sales, limit=10):
     top = sorted(data.items(), key=lambda kv: kv[1]['spend'], reverse=True)[:limit]
     names = {c.id: c for c in Customer.query.filter(Customer.id.in_([k for k, _ in top] or [0])).all()}
     return [{'id': k, 'name': names[k].name if k in names else 'Unknown', 'contact': names[k].contact if k in names else '',
-             'visits': v['visits'], 'spend': float(v['spend']), 'last': to_local(v['last']).date()} for k, v in top]
+             'visits': v['visits'], 'spend': v['spend'], 'last': to_local(v['last']).date()} for k, v in top]
 
 
 def _unpaid(services, sales, today, limit=10):
@@ -394,13 +391,13 @@ def _unpaid(services, sales, today, limit=10):
         owed = _d(s.gross_price) - _d(s.paid_amount)
         if owed > 0:
             rows.append({'kind': 'service', 'id': s.id, 'customer': s.customer.name if s.customer else '',
-                         'plate': s.vehicle.number if s.vehicle else '', 'owed': float(owed),
+                         'plate': s.vehicle.number if s.vehicle else '', 'owed': owed,
                          'date': to_local(s.created_dttm).date()})
     for s in sales:
         owed = _d(s.gross_price) - _d(s.paid_amount)
         if owed > 0:
             rows.append({'kind': 'sale', 'id': s.id, 'customer': s.customer.name if s.customer else 'Walk-in',
-                         'plate': '', 'owed': float(owed), 'date': to_local(s.created_dttm).date()})
+                         'plate': '', 'owed': owed, 'date': to_local(s.created_dttm).date()})
     for r in rows:
         r['age_days'] = (today - r['date']).days
     rows.sort(key=lambda r: r['date'])

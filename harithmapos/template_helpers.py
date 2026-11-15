@@ -1,6 +1,6 @@
 """Jinja filters and globals shared by every template."""
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from harithmapos import config
 from harithmapos.billing import to_decimal
@@ -8,7 +8,7 @@ from harithmapos.permissions import user_is_owner
 from harithmapos.devtools import user_is_developer
 from harithmapos import settings as app_settings
 from harithmapos.textutils import format_phone
-from harithmapos.timeutils import to_local, elapsed_text, utcnow
+from harithmapos.timeutils import as_utc, to_local, elapsed_text, utcnow
 
 # How each service status is drawn: (key used in CSS classes, label on the
 # button that moves a vehicle INTO this status).
@@ -22,11 +22,16 @@ SERVICE_STATUS_META = [
 
 
 def money_filter(value, places=2):
-    """12500 -> '12,500.00'. None is shown as 0.00."""
+    """12500 -> '12,500.00'. None is shown as 0.00.
+
+    Rounded half up first, like billing.money(): Python's own formatting would
+    round 2.345 to 2.34 (half to even) and disagree with the stored amounts.
+    """
     try:
         amount = to_decimal(value)
     except (InvalidOperation, ValueError, TypeError):
         return value
+    amount = amount.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
     return f"{amount:,.{places}f}"
 
 
@@ -68,8 +73,8 @@ def local_time_filter(dt, fmt='%I:%M %p'):
 
 
 def iso_utc_filter(dt):
-    """Naive UTC datetime -> ISO string with a Z, safe for JavaScript's Date()."""
-    return dt.strftime('%Y-%m-%dT%H:%M:%SZ') if dt else ''
+    """A moment -> ISO string in UTC with a Z, safe for JavaScript's Date()."""
+    return as_utc(dt).strftime('%Y-%m-%dT%H:%M:%SZ') if dt else ''
 
 
 def elapsed_filter(dt):

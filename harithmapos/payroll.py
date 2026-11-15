@@ -30,17 +30,12 @@ Pay
 import calendar
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from harithmapos import config, settings as app_settings
+from harithmapos.billing import money, ZERO          # the one rounding rule
 
-ZERO = Decimal('0')
-CENT = Decimal('0.01')
 PAID_LEAVE = {config.LEAVE_ANNUAL, config.LEAVE_CASUAL, config.LEAVE_SICK}
-
-
-def money(value):
-    return Decimal(str(value or 0)).quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 def parse_hhmm(text, fallback):

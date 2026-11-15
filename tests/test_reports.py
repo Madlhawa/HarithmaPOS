@@ -1,5 +1,5 @@
 """The sales report: periods, figures and the page. Run with: python -m pytest tests"""
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -48,7 +48,7 @@ def test_previous_period_is_the_same_length_just_before():
 
 def test_local_day_bounds_are_converted_to_utc():
     lo, hi = reports.Period(TODAY, TODAY).utc_bounds()
-    assert lo == datetime(2026, 11, 11, 18, 30) and hi == datetime(2026, 11, 12, 18, 30)
+    assert lo == datetime(2026, 11, 11, 18, 30, tzinfo=timezone.utc) and hi == datetime(2026, 11, 12, 18, 30, tzinfo=timezone.utc)
 
 
 # --- figures -----------------------------------------------------------------

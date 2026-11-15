@@ -748,6 +748,7 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 
 **Invoice totals**
 - Line amount = quantity × unit price − the item's automatic discount % − any extra discount.
+- **Rounding:** every amount is rounded to the cent when it is worked out, halves up (2.345 → 2.35): each line's price, discount and cost, each payroll figure, each payment. Totals add up those rounded amounts, so a bill always adds up on paper.
 - **Total** = sum of lines − bill discount.
 - **Paid** = the invoice's payments, less refunds and reversals. Nothing else changes it.
 - **Balance** = total − paid. Positive means still to collect; negative means overpaid (refund due).

@@ -15,7 +15,7 @@ from sqlalchemy import func
 
 from harithmapos import config, db
 from harithmapos.models import LoginEvent, User, UserActivityDay
-from harithmapos.timeutils import local_today, to_local, utcnow
+from harithmapos.timeutils import as_utc, local_today, to_local, utcnow
 
 DEFAULT_SNAPSHOT = '/var/lib/harithma-monitor/snapshot.json'
 STALE_AFTER = timedelta(minutes=15)
@@ -53,9 +53,7 @@ def _parse_time(value):
         dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
     except ValueError:
         return value
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
+    return as_utc(dt)
 
 
 def _times(node):
@@ -113,7 +111,7 @@ def users_section(today=None):
         seen = u.last_seen_dttm
         rows.append({
             'user': u, 'last_seen': seen,
-            'online': bool(seen and now - seen <= ONLINE_WITHIN),
+            'online': bool(seen and now - as_utc(seen) <= ONLINE_WITHIN),
             'today': bool(seen and to_local(seen, config.APP_TIMEZONE).date() == today),
             'sign_ins_7d': ok_by_user.get(u.id, 0),
             'failed_7d': bad_by_user.get(u.id, 0),
@@ -167,11 +165,12 @@ def _hour_rows(hourly):
 
 def alerts(snap, users, now=None):
     """Things worth a look, most serious first: (level, text)."""
-    now = now or utcnow()
+    now = as_utc(now) if now is not None else utcnow()
     out = []
     if snap is None:
         return [('bad', 'No monitoring data: the collector is not running.')]
     collected = snap.get('collected_at')
+    collected = as_utc(collected) if isinstance(collected, datetime) else collected
     if isinstance(collected, datetime) and now - collected > STALE_AFTER:
         out.append(('bad', f'Monitoring data is {int((now - collected).total_seconds() // 60)} minutes old: check the cron job.'))
     for name, err in (snap.get('errors') or {}).items():
@@ -192,6 +191,7 @@ def alerts(snap, users, now=None):
         out.append(('bad' if days < 7 else 'warn', f'The HTTPS certificate expires in {days} days (it should renew itself at 30).'))
     nightly = srv.get('nightly_backup')
     nb_time = (nightly or {}).get('time')
+    nb_time = as_utc(nb_time) if isinstance(nb_time, datetime) else nb_time
     if not nightly:
         out.append(('bad', 'No nightly database backup found.'))
     elif isinstance(nb_time, datetime) and now - nb_time > timedelta(hours=26):

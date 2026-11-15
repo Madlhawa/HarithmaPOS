@@ -1,4 +1,6 @@
 from harithmapos import db, login_manager, config
+from harithmapos.dbtypes import UTCDateTime
+from harithmapos.timeutils import utcnow
 from datetime import datetime
 from decimal import Decimal
 from flask_login import UserMixin
@@ -39,8 +41,8 @@ class DocumentState:
     progress (service_status: waiting ... done) is separate from this.
     """
     doc_status = db.Column(db.String(10), nullable=False, default=DOC_DRAFT, server_default=DOC_DRAFT, index=True)
-    completed_dttm = db.Column(db.DateTime)
-    voided_dttm = db.Column(db.DateTime)
+    completed_dttm = db.Column(UTCDateTime())
+    voided_dttm = db.Column(UTCDateTime())
     void_reason = db.Column(db.String(200))
 
     @declared_attr
@@ -93,9 +95,9 @@ class InvoiceRequest(db.Model):
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id', ondelete='CASCADE'), nullable=False, index=True)
     description = db.Column(db.String(200), nullable=False)
     done = db.Column(db.Boolean, nullable=False, default=False)
-    done_dttm = db.Column(db.DateTime)
+    done_dttm = db.Column(UTCDateTime())
     done_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     done_by = db.relationship('User', foreign_keys=[done_by_id])
 
@@ -107,7 +109,7 @@ class InvoiceStatusLog(db.Model):
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
     service_status = db.Column(db.Integer)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     previous_invoice_status = db.relationship('InvoiceStatusLog', remote_side=[id], backref='next_invoice_status')
 
 class Payment(db.Model):
@@ -139,7 +141,7 @@ class Payment(db.Model):
     remarks = db.Column(db.String(255))
     reverses_id = db.Column(db.Integer, db.ForeignKey('payment.id'), unique=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow, index=True)
     reverses = db.relationship('Payment', remote_side=[id], backref=db.backref('reversed_by', uselist=False))
     created_by = db.relationship('User')
 
@@ -176,8 +178,8 @@ class PurchaseOrderHead(DocumentState, db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     discount_pct = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='purchase_order', lazy=True)
     payments = db.relationship('Payment', backref='purchase_order', lazy=True, order_by='Payment.id')
     paid_amount = _paid_column(id, 'purchase_order_id', 'out')
@@ -195,15 +197,15 @@ class PurchaseOrderDetail(db.Model):
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
     total_price = db.Column(db.Numeric(10,2), nullable=False)
     discount_pct = db.Column(db.Numeric(10,2), nullable=False)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
 
 class WashBay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     remarks = db.Column(db.String(255))
     capacity = db.Column(db.Numeric(10,2))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     invoices = db.relationship('InvoiceHead', backref='washbay', lazy=True)
 
     @hybrid_property
@@ -219,8 +221,8 @@ class ItemInvoiceHead(DocumentState, db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     total_discount = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     invoice_details = db.relationship('ItemInvoiceDetail', backref='item_invoice', lazy=True)
     payments = db.relationship('Payment', backref='item_invoice', lazy=True, order_by='Payment.id')
     paid_amount = _paid_column(id, 'item_invoice_id', 'in')
@@ -240,8 +242,8 @@ class ItemInvoiceDetail(db.Model):
     discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
     additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
 
 class InvoiceHead(DocumentState, db.Model):
     id =  db.Column(db.Integer, primary_key=True)
@@ -260,8 +262,8 @@ class InvoiceHead(DocumentState, db.Model):
     total_price = db.Column(db.Numeric(10,2), default=0)
     total_discount = db.Column(db.Numeric(10,2), default=0)
     gross_price = db.Column(db.Numeric(10,2), default=0)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
     payments = db.relationship('Payment', backref='invoice', lazy=True, order_by='Payment.id')
     paid_amount = _paid_column(id, 'invoice_id', 'in')
@@ -325,8 +327,8 @@ class InvoiceDetail(db.Model):
     discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
     additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
 
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -340,8 +342,8 @@ class Employee(db.Model):
     epf_enabled = db.Column(db.Boolean, nullable=False, default=True)
     epf_number = db.Column(db.String(20))
     active = db.Column(db.Boolean, nullable=False, default=True)
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     invoices = db.relationship('InvoiceHead', backref='employee', lazy=True)
     payments = db.relationship('Payment', backref='employee', lazy=True)
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='employee', lazy=True)
@@ -355,8 +357,8 @@ class Item(db.Model):
     unit_cost = db.Column(db.Numeric(10,2))
     unit_price = db.Column(db.Numeric(10,2))
     discount_pct = db.Column(db.Numeric(5,2))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     invoice_details = db.relationship('InvoiceDetail', backref='item', lazy=True)
     item_invoice_details = db.relationship('ItemInvoiceDetail', backref='item', lazy=True)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='item', lazy=True)
@@ -376,8 +378,8 @@ class Supplier(db.Model):
     name = db.Column(db.String(100), nullable=False)
     contact = db.Column(db.String(10))
     address = db.Column(db.String(255))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     purchse_orders = db.relationship('PurchaseOrderHead', backref='supplier', lazy=True)
 
 class User(db.Model, UserMixin):
@@ -389,9 +391,9 @@ class User(db.Model, UserMixin):
     ui_theme = db.Column(db.String(5), default='light')
     role = db.Column(db.String(10), nullable=False, default=config.ROLE_STAFF)
     active = db.Column(db.Boolean, nullable=False, default=True)
-    last_seen_dttm = db.Column(db.DateTime)      # UTC; updated at most once a minute
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_seen_dttm = db.Column(UTCDateTime())      # UTC; updated at most once a minute
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
 
     @property
     def is_owner(self):
@@ -433,8 +435,8 @@ class Customer(db.Model):
     contact = db.Column(db.String(10))
     address = db.Column(db.String(255))
     email = db.Column(db.String(150))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     vehicles = db.relationship('Vehicle', backref='owner', lazy=True)
     invoices = db.relationship('InvoiceHead', backref='customer', lazy=True)
     item_invoices = db.relationship('ItemInvoiceHead', backref='customer', lazy=True)
@@ -449,8 +451,8 @@ class Vehicle(db.Model):
     make = db.Column(db.String(20))
     model = db.Column(db.String(20))
     year = db.Column(db.String(4))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     owner_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     invoices = db.relationship('InvoiceHead', backref='vehicle', lazy=True)
 
@@ -461,7 +463,7 @@ class Setting(db.Model):
     """One value from the Settings page. See harithmapos/settings.py for the list."""
     key = db.Column(db.String(64), primary_key=True)
     value = db.Column(db.Text)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 
@@ -485,8 +487,8 @@ class AttendanceDay(db.Model):
     overtime_minutes = db.Column(db.Integer, nullable=False, default=0)
     note = db.Column(db.String(255))
     updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    update_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     employee = db.relationship('Employee', backref=db.backref('attendance_days', lazy='dynamic'))
 
 
@@ -501,7 +503,7 @@ class ShortLeave(db.Model):
     minutes = db.Column(db.Integer, nullable=False)
     reason = db.Column(db.String(255))
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     employee = db.relationship('Employee', backref=db.backref('short_leaves', lazy='dynamic'))
 
 
@@ -512,7 +514,7 @@ class PayrollRun(db.Model):
     month = db.Column(db.Date, nullable=False, unique=True)  # the first day of the month
     status = db.Column(db.String(10), nullable=False, default='final')
     finalised_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     payslips = db.relationship('Payslip', backref='run', lazy=True, cascade='all, delete-orphan')
 
 
@@ -566,7 +568,7 @@ class SalaryAdvance(db.Model):
     payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'))
     payslip_id = db.Column(db.Integer, db.ForeignKey('payslip.id'))  # set when it is taken back
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    create_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     employee = db.relationship('Employee', backref=db.backref('advances', lazy='dynamic'))
     payment = db.relationship('Payment', foreign_keys=[payment_id])
     payslip = db.relationship('Payslip', backref='advance_items', foreign_keys=[payslip_id])
@@ -584,7 +586,7 @@ class LoginEvent(db.Model):
     outcome = db.Column(db.String(20), nullable=False)   # ok, bad_password, unknown_email, switched_off, logout
     ip = db.Column(db.String(45))
     user_agent = db.Column(db.String(200))
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow, index=True)
     user = db.relationship('User')
 
 
@@ -604,7 +606,7 @@ class AuditLog(db.Model):
     """
     __tablename__ = 'audit_log'
     id = db.Column(db.Integer, primary_key=True)
-    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     category = db.Column(db.String(20), nullable=False, index=True)   # prices, discounts, payments, staff, access
     action = db.Column(db.String(10), nullable=False)                  # created, changed, deleted

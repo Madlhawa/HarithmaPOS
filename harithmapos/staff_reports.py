@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from harithmapos import config, payroll, reports
+from harithmapos.billing import money
 from harithmapos.models import (
     AttendanceDay, Employee, InvoiceHead, PayrollRun, Payslip, SalaryAdvance, ShortLeave,
 )
@@ -248,11 +249,11 @@ def _kpis(team, cost):
         'short_minutes': team.short_minutes,
         'overtime_minutes': team.overtime_minutes,
         'jobs': team.jobs,
-        'revenue': float(team.revenue),
-        'revenue_per_day': float(team.revenue_per_day) if team.revenue_per_day is not None else None,
+        'revenue': money(team.revenue),
+        'revenue_per_day': money(team.revenue_per_day) if team.revenue_per_day is not None else None,
         'avg_job_minutes': team.avg_job_minutes,
-        'advances_given': float(team.advances_given),
-        'advances_open': float(team.advances_open),
+        'advances_given': money(team.advances_given),
+        'advances_open': money(team.advances_open),
         'unmarked': team.unmarked,
         'staff_cost': cost,
     }
@@ -287,7 +288,7 @@ def payroll_by_month(end, employee_id=None, months=6):
                 employer += p.epf_employer + p.etf_employer
                 net += p.net_pay
         rows.append({'date': m.isoformat(), 'label': f'{m:%B %Y}', 'short': f'{m:%b}', 'span': f'{m:%B %Y}',
-                     'gross': float(gross), 'employer': float(employer), 'net': float(net), 'finalised': finalised})
+                     'gross': money(gross), 'employer': money(employer), 'net': money(net), 'finalised': finalised})
     return rows
 
 
@@ -303,7 +304,7 @@ def _cost_in_period(period, employee_id=None):
             if employee_id and p.employee_id != employee_id:
                 continue
             total += p.gross_pay + p.epf_employer + p.etf_employer
-    return float(total)
+    return money(total)
 
 
 def _daily_rows(daily, period, end):

@@ -1,8 +1,13 @@
-"""Time helpers.
+"""Time helpers: one set of rules for moments in time and calendar days.
 
-The database stores naive UTC timestamps (the model defaults use utcnow).
-Everything a person reads on screen should be in shop time, and "today"
-should mean the shop's calendar day rather than the server's.
+* A moment (when a payment was taken, when a job started) is a timezone-aware
+  datetime in UTC, everywhere: in Python (`utcnow()`), and in the database,
+  where the columns are `timestamptz` (see `UTCDateTime` in dbtypes.py).
+* A calendar fact (an attendance day, a payroll month, a time of day on a
+  rota) is a plain `date` or `time` in shop time. It is never a timestamp.
+* "Today" is the shop's day in Asia/Colombo (`local_today()`), and a day's
+  moments are found with `local_day_bounds_utc()`. Times are turned into
+  shop time only to show them (`to_local()`).
 """
 
 from datetime import datetime, timedelta, timezone
@@ -28,17 +33,24 @@ def get_tz(name=DEFAULT_TZ_NAME):
 
 
 def utcnow():
-    """Naive UTC 'now', matching what the model column defaults store."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    """Now, as a timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
 
 
-def to_local(dt, tz_name=DEFAULT_TZ_NAME):
-    """Convert a naive UTC datetime from the database to shop time."""
+def as_utc(dt):
+    """Any datetime as aware UTC. A naive one is taken to be UTC already (older code and SQLite)."""
     if dt is None:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(get_tz(tz_name))
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def to_local(dt, tz_name=DEFAULT_TZ_NAME):
+    """A moment in shop time, for showing it."""
+    if dt is None:
+        return None
+    return as_utc(dt).astimezone(get_tz(tz_name))
 
 
 def local_today(tz_name=DEFAULT_TZ_NAME):
@@ -46,7 +58,7 @@ def local_today(tz_name=DEFAULT_TZ_NAME):
 
 
 def local_day_bounds_utc(day=None, tz_name=DEFAULT_TZ_NAME):
-    """Start and end of a shop calendar day, as naive UTC datetimes.
+    """Start and end of a shop calendar day, as aware UTC datetimes.
 
     Use these to filter UTC timestamp columns for "today":
         start, end = local_day_bounds_utc()
@@ -57,17 +69,22 @@ def local_day_bounds_utc(day=None, tz_name=DEFAULT_TZ_NAME):
         day = local_today(tz_name)
     start_local = datetime(day.year, day.month, day.day, tzinfo=tz)
     end_local = start_local + timedelta(days=1)
-    start = start_local.astimezone(timezone.utc).replace(tzinfo=None)
-    end = end_local.astimezone(timezone.utc).replace(tzinfo=None)
+    return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+
+def local_range_bounds_utc(first_day, last_day, tz_name=DEFAULT_TZ_NAME):
+    """[start of first_day, start of the day after last_day) in shop time, as aware UTC datetimes."""
+    start, _ = local_day_bounds_utc(first_day, tz_name)
+    _, end = local_day_bounds_utc(last_day, tz_name)
     return start, end
 
 
 def elapsed_text(since, now=None):
-    """'2h 15m' / '12m' since a naive UTC datetime."""
+    """'2h 15m' / '12m' since a moment."""
     if since is None:
         return ''
-    now = now or utcnow()
-    seconds = max(int((now - since).total_seconds()), 0)
+    now = as_utc(now) if now is not None else utcnow()
+    seconds = max(int((now - as_utc(since)).total_seconds()), 0)
     hours, remainder = divmod(seconds, 3600)
     minutes = remainder // 60
     if hours >= 24:

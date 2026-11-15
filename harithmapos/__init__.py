@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from flask import Flask
+from flask.json.provider import DefaultJSONProvider
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
@@ -20,8 +23,23 @@ login_manager.login_view = 'user_blueprint.login'
 login_manager.login_message = 'Please sign in to continue.'
 login_manager.login_message_category = 'info'
 
+class JSONProvider(DefaultJSONProvider):
+    """JSON for the browser (chart data, search results): money goes out as a number.
+
+    Inside the app money is always a Decimal; this is the one place it becomes
+    a float, for JavaScript, which has no decimal type. Flask's default would
+    send it as a string.
+    """
+    @staticmethod
+    def default(o):
+        if isinstance(o, Decimal):
+            return float(o)
+        return DefaultJSONProvider.default(o)
+
+
 def create_app(Config_class=Config):
     app = Flask(__name__)
+    app.json = JSONProvider(app)
     app.config.from_object(Config_class)
     # nginx sits in front and passes the real scheme and client address.
     # Trust exactly one proxy, so links in SMS and emails use https://.

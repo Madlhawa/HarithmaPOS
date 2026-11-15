@@ -1,5 +1,5 @@
 """Tests for the money, phone and time rules. Run with: python -m pytest tests"""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal as D
 from types import SimpleNamespace as Line
 
@@ -78,9 +78,16 @@ def test_plates_are_upper_case_and_trimmed():
 def test_today_means_the_colombo_calendar_day():
     # 00:00 to 24:00 in Colombo is 18:30 the day before to 18:30 UTC.
     start, end = local_day_bounds_utc(date(2026, 11, 11))
-    assert start == datetime(2026, 11, 10, 18, 30)
-    assert end == datetime(2026, 11, 11, 18, 30)
-    assert to_local(datetime(2026, 11, 10, 20, 0)).date() == date(2026, 11, 11)
+    assert start == datetime(2026, 11, 10, 18, 30, tzinfo=timezone.utc) and start.tzinfo is not None
+    assert end == datetime(2026, 11, 11, 18, 30, tzinfo=timezone.utc)
+    assert to_local(datetime(2026, 11, 10, 20, 0, tzinfo=timezone.utc)).date() == date(2026, 11, 11)
+    assert to_local(datetime(2026, 11, 10, 20, 0)).date() == date(2026, 11, 11)     # naive = UTC
+
+
+def test_now_is_aware_utc():
+    from harithmapos.timeutils import utcnow
+    now = utcnow()
+    assert now.tzinfo is not None and now.utcoffset() == timedelta(0)
 
 
 def test_elapsed_text():

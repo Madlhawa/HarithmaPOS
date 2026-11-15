@@ -1,7 +1,20 @@
-"""Money and stock arithmetic for invoices and purchase orders.
+"""Money arithmetic: the one place money is rounded.
 
-Everything in here is a pure function on Decimals: no database, no Flask.
-That keeps the rules in one place and makes them easy to unit test
+Rules (used by billing, the ledger, payroll and the screens):
+
+* Money is a Decimal in rupees with two places, never a float. The database
+  columns are Numeric(10, 2); quantities are Numeric(10, 4).
+* `money()` rounds to the cent, half up (2.345 -> 2.35), the way a cashier
+  would. Every stored amount is rounded when it is worked out: each line's
+  price, cost and discounts; each payroll component; each payment.
+* Totals are sums of those rounded amounts and are never rounded again, so a
+  bill always adds up to its lines on paper.
+* A percentage discount is worked out on the rounded line price, then rounded.
+  A bill discount comes off after the lines and can't exceed them.
+* Floats appear only at the very edge: chart data sent to the browser
+  (the JSON encoder turns Decimals into numbers there).
+
+Everything here is a pure function on Decimals: no database, no Flask
 (see tests/test_billing.py).
 """
 
@@ -13,7 +26,11 @@ HUNDRED = Decimal('100')
 
 
 def to_decimal(value):
-    """Turn None / '' / int / float / str / Decimal into a Decimal (None -> 0)."""
+    """Turn None / '' / int / str / Decimal into a Decimal (None -> 0).
+
+    A float is converted through its shortest text form (0.1 -> Decimal('0.1')),
+    so the binary error of the float does not leak in.
+    """
     if value is None or value == '':
         return ZERO
     if isinstance(value, Decimal):
