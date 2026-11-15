@@ -16,6 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 15 Nov 2026 | **What the customer asked for.** The supervisor notes the customer's requests when starting a job (dashboard, New service page or floor board); they become a checklist on the invoice and in the floor board's sheet, and Complete or Ready to collect asks first if any are not ticked off. |
 | 15 Nov 2026 | **Browser printing; RabbitMQ removed.** Service invoices have an LQ-350 layout and item sales the 80 mm receipt; Complete opens Chrome's print window and Print prints without leaving the page. The RabbitMQ queue, its settings and the `pika` package are gone. |
 | 15 Nov 2026 | **Payments on completed invoices and purchase orders.** A completed service invoice, item sale or purchase order lists its payments and, while money is owed, has a **Record payment** (or **Pay supplier**) button for the rest, in full or in part. Open ones keep the Amount paid box. |
 | 15 Nov 2026 | **Security hardening.** Sign-in rate limit also covers `/app`; nginx hides its version and refuses framing by other sites; SSH keys only with fewer tries; SSH connection rate limit in the firewall. |

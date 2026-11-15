@@ -41,6 +41,26 @@
         });
     }
 
+    /* ---- The customer's requests, ticked off in the sheet ---- */
+    function fillRequests(items) {
+        var box = document.querySelector('[data-fl-requests]');
+        var list = box.querySelector('[data-fl-request-list]');
+        list.textContent = '';
+        items.forEach(function (item) {
+            var label = document.createElement('label');
+            label.className = 'fl-check';
+            var shown = document.createElement('input');
+            shown.type = 'hidden'; shown.name = 'request_ids'; shown.value = item.id;
+            var box2 = document.createElement('input');
+            box2.type = 'checkbox'; box2.name = 'request_done'; box2.value = item.id; box2.checked = !!item.done;
+            var text = document.createElement('span');
+            text.textContent = item.text;
+            label.appendChild(shown); label.appendChild(box2); label.appendChild(text);
+            list.appendChild(label);
+        });
+        box.hidden = items.length === 0;
+    }
+
     /* ---- Change a vehicle ---- */
     var editForm = document.getElementById('flEditForm');
     root.addEventListener('click', function (event) {
@@ -54,6 +74,7 @@
         check(editForm, 'status', d.status);
         check(editForm, 'washbay_id', d.bay);
         check(editForm, 'employee_id', d.emp);
+        fillRequests(JSON.parse(d.requests || '[]'));
         modal('flEdit').show();
     });
 

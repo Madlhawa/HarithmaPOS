@@ -83,6 +83,17 @@ def status_meta(status):
         return {'id': status, 'key': 'unknown', 'label': f"Status {status}", 'action': ''}
 
 
+def requests_json(invoice):
+    """The customer's requests as JSON for the floor board's sheet."""
+    import json
+    return json.dumps([{'id': r.id, 'text': r.description, 'done': bool(r.done)} for r in invoice.requests])
+
+
+def requests_confirm(invoice):
+    from harithmapos.job_requests import confirm_message
+    return confirm_message(invoice)
+
+
 def register_template_helpers(app):
     app.add_template_filter(money_filter, 'money')
     app.add_template_filter(quantity_filter, 'qty')
@@ -103,6 +114,8 @@ def register_template_helpers(app):
     app.jinja_env.globals.update(
         SERVICE_STATUSES=SERVICE_STATUS_META,
         status_meta=status_meta,
+        requests_json=requests_json,
+        requests_confirm=requests_confirm,
         PAYMENT_METHODS=config.PAYMENT_METHOD_FORM_LIST,
         PAYMENT_METHOD_LABELS=dict(config.PAYMENT_METHOD_FORM_LIST),
         PAYMENT_DIRECTIONS=config.PAYMENT_DIRECTION_FORM_LIST,
@@ -117,7 +130,7 @@ def register_template_helpers(app):
         is_owner=user_is_owner,
         is_developer=user_is_developer,
         # Change this when app.css / app.js change so browsers fetch the new files.
-        ASSET_VERSION='20',
+        ASSET_VERSION='21',
     )
 
     @app.context_processor

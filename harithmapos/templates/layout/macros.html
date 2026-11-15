@@ -270,3 +270,14 @@
 {% endcall %}
 {% endif %}
 {% endmacro %}
+
+
+{# What the customer asked for, typed when a job is started: one request per line. #}
+{% macro requests_box(prefix, wrap='mb-3') -%}
+<div class="{{ wrap }}">
+    <label class="form-label" for="{{ prefix }}-requests">What the customer asked for <span class="text-muted fw-normal">optional</span></label>
+    <textarea class="form-control" id="{{ prefix }}-requests" name="requests" rows="3" maxlength="3000"
+              placeholder="One per line, for example:&#10;Full wash and vacuum&#10;Check the AC smell&#10;Engine oil change"></textarea>
+    <div class="form-hint">Each line becomes a checklist item on the invoice, ticked off when it's done.</div>
+</div>
+{%- endmacro %}

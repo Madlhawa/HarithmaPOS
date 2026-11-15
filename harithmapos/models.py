@@ -22,6 +22,20 @@ def _balance(document):
     """What is still owed on an invoice or purchase order (negative = change due)."""
     return (document.gross_price or Decimal('0')) - (document.paid_amount or Decimal('0'))
 
+class InvoiceRequest(db.Model):
+    """One thing the customer asked for when the vehicle came in, ticked off when it is done."""
+    __tablename__ = 'invoice_request'
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id', ondelete='CASCADE'), nullable=False, index=True)
+    description = db.Column(db.String(200), nullable=False)
+    done = db.Column(db.Boolean, nullable=False, default=False)
+    done_dttm = db.Column(db.DateTime)
+    done_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    done_by = db.relationship('User', foreign_keys=[done_by_id])
+
+
 class InvoiceStatusLog(db.Model):
     __tablename__ = 'invoice_status_log'
     id = db.Column(db.Integer, primary_key=True)
@@ -161,6 +175,13 @@ class InvoiceHead(db.Model):
     invoice_details = db.relationship('InvoiceDetail', backref='invoice', lazy=True)
     payments = db.relationship('Payment', backref='invoice', lazy=True)
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='invoice', lazy=True)
+    requests = db.relationship('InvoiceRequest', backref='invoice', lazy=True,
+                               order_by='InvoiceRequest.id', cascade='all, delete-orphan')
+
+    @property
+    def open_requests(self):
+        """What the customer asked for that is not ticked off yet."""
+        return [r for r in self.requests if not r.done]
 
     def get_customer_view_token(self):
         serializer = Serializer(current_app.config['SECRET_KEY'])

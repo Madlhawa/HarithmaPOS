@@ -87,7 +87,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 2. **A car arrives.**
    - First visit: **New customer and vehicle** → fill in name, phone and plate → **Save and start a service**.
    - Returning customer: **New service** → type the plate, owner name or phone and pick the vehicle.
-3. **Choose the employee and wash bay**, type the mileage if you have it, and press **Open the invoice**.
+3. **Choose the employee and wash bay**, type the mileage if you have it, note **what the customer asked for** (one request per line), and press **Open the invoice**.
 4. **Add what you will charge for**: type "body wash", pick it from the list, press **Add**. Repeat for every service or item.
 5. **Text the customer** (optional): **Text: started** sends them a link to follow the job.
 6. **Move the car along** on the dashboard: **Start vacuuming → Start washing → Start polishing**.
@@ -149,6 +149,7 @@ Each bay shows the vehicle in it and its stage, or **Free** with a **Start a ser
 | Employee doing the job | Pick from the list (click the box to see everyone). |
 | Wash bay | Pick from the list. |
 | Mileage now (km) | The odometer reading. Leave empty if you don't have it. |
+| What the customer asked for | Optional. One request per line, for example *Full wash and vacuum*, *Check the AC smell*. Each line becomes a [checklist item](#customer-asked-for) on the invoice. |
 
 **Open the invoice** creates the invoice in *Waiting* and opens the [service invoice screen](#4-service-invoice-screen). **Cancel** closes the form.
 
@@ -176,7 +177,7 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 | **Polishing** | Vehicles being polished, with **Ready to collect**. |
 | **Ready** | Vehicles finished today, marked **To pay** or **Paid**. Tap one to open its invoice. |
 
-**Each vehicle card** shows the plate, the time it has been in its current stage (red after 20 minutes waiting or 45 minutes in any other stage), the owner and vehicle, the stage, the bay and who is working on it. The big button moves it to the next stage in one tap: **Bring into** *bay* → **Start washing** → **Start polishing** → **Ready to collect**.
+**Each vehicle card** shows the plate, the time it has been in its current stage (red after 20 minutes waiting or 45 minutes in any other stage), the owner and vehicle, the stage, the bay, who is working on it and, when the customer asked for things, how many are ticked off (for example **1/3**). The big button moves it to the next stage in one tap: **Bring into** *bay* → **Start washing** → **Start polishing** → **Ready to collect**.
 
 **Tap the card itself** (anywhere above the big button) to open the change sheet:
 
@@ -185,6 +186,7 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 | **Stage** | Any stage, including going back one if a button was pressed by mistake. **Ready** means finished. |
 | **Wash bay** | Moves the vehicle to another bay. |
 | **Working on it** | Changes the employee. The small number is how many vehicles that person already has on the floor. |
+| **Customer asked for** | The customer's requests, if any. Tick each one when it's done; **Save** stores the ticks. |
 | **Open invoice** | Opens the full service invoice (to add services and items, bill and complete). |
 | **Save** | Saves the changes. |
 
@@ -197,6 +199,7 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 | **Wash bay** | The first free bay is chosen for you; **free** marks the empty ones. |
 | **Who will work on it** | Required. The number shows how many vehicles each person already has. |
 | **Mileage now (km)** | Optional. |
+| **What the customer asked for** | Optional. One request per line; each becomes a checklist item. |
 | **Add to queue** | Puts it in the queue (Waiting). |
 | **Start now** | Puts it straight into the chosen bay (Vacuuming). Refused if that bay already has a vehicle. |
 
@@ -204,6 +207,7 @@ Rules the board keeps:
 
 - A bay holds one vehicle at a time. Bringing a vehicle into a busy bay is refused with a message naming the vehicle already there; move that one on, or choose another bay.
 - A vehicle can only be on the floor once. Adding a plate that already has an open job shows where it is instead.
+- **Ready to collect** asks first if any of the customer's requests are not ticked off, and lists them.
 - **Ready to collect** does not bill the customer. The invoice still has to be completed and paid at the counter, which is why the Ready tab marks it **To pay** until then.
 - The board never sends SMS. Texts go only from the buttons on the invoice screen.
 
@@ -214,6 +218,16 @@ Rules the board keeps:
 Opened from a plate, **Open**, **Bill and finish**, or the [Service invoices list](#5-service-invoices-list). Everything about one visit is here.
 
 **Header:** the number plate, customer and phone, invoice number, when it was opened and how long ago, and the current stage. **Print** opens the print window for the invoice (LQ-350 layout) without leaving the page.
+
+### Customer asked for
+
+The checklist at the top of the left side: what the customer asked for when the vehicle came in, so nothing is missed at handover.
+
+- **Tick** the box next to a request when it's done (tick again to undo). It shows when it was done and by whom.
+- **Add** a request with the box at the bottom, for example when the customer phones with something extra.
+- **✕** removes a request that was noted by mistake.
+- The heading shows how many are done; **All done** when every request is ticked. While some are open the panel has an amber edge.
+- **Complete and print receipt** asks first if any request is not ticked off, and lists them.
 
 ### Adding services and items (left)
 

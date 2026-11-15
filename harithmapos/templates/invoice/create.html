@@ -1,8 +1,8 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, field, autocomplete %}
+{% from 'layout/macros.html' import csrf, field, autocomplete, requests_box %}
 {% block content_class %}content-narrow{% endblock %}
 {% block body %}
-<div class="page-head"><div><h1>New service</h1><p>Choose the vehicle, who is working on it and which bay it is in.</p></div></div>
+<div class="page-head"><div><h1>New service</h1><p>Choose the vehicle, who is working on it and which bay it is in, and note what the customer asked for.</p></div></div>
 <form class="panel" method="post" action="{{ url_for('invoice_blueprint.insert_invoice_head') }}">
     {{ csrf() }}
     <div class="panel-body">
@@ -11,6 +11,7 @@
             <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='nc', show_all=true, placeholder='Choose an employee', wrap='') }}</div>
             <div class="col-sm-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='nc', value=washbay.name if washbay else '', id_value=washbay.id if washbay else '', show_all=true, placeholder='Choose a bay', wrap='') }}</div>
             <div class="col-sm-6">{{ field('current_milage', 'Mileage now (km)', prefix='nc', kind='whole', wrap='') }}</div>
+            <div class="col-12">{{ requests_box('nc', wrap='') }}</div>
         </div>
     </div>
     <div class="panel-body border-top d-flex justify-content-end gap-2">

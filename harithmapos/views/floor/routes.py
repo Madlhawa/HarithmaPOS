@@ -9,14 +9,14 @@ import logging
 import re
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 from sqlalchemy import and_, func, or_
 
-from harithmapos import config, db
+from harithmapos import config, db, job_requests
 from harithmapos.models import Customer, Employee, InvoiceHead, InvoiceStatusLog, Vehicle, WashBay
 from harithmapos.textutils import normalize_phone, normalize_plate
 from harithmapos.timeutils import local_day_bounds_utc, utcnow
-from harithmapos.views.invoice.routes import _change_status, _log_status
+from harithmapos.views.invoice.routes import _change_status, _log_status, save_start_requests
 from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
@@ -147,6 +147,13 @@ def move(invoice_id):
                   f"Move it on first, or choose another bay.", category='warning')
             return _here()
 
+    # Ticks from the sheet's checklist: every request shown is listed, the ticked ones are done.
+    shown = {int(v) for v in request.form.getlist('request_ids') if v.isdigit()}
+    ticked = {int(v) for v in request.form.getlist('request_done') if v.isdigit()}
+    for item in invoice.requests:
+        if item.id in shown:
+            job_requests.set_done(item, item.id in ticked, current_user)
+
     try:
         changed = _change_status(invoice, status)
         invoice.update_dttm = utcnow()
@@ -242,6 +249,7 @@ def add():
         flash("The vehicle could not be added. Please try again.", category='danger')
         return _here()
 
+    save_start_requests(invoice)
     where = f"into {washbay.name}" if start_now else "to the queue"
     flash(f"{vehicle.number} added {where}.", category='success')
     return _here()

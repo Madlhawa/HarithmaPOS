@@ -1,16 +1,17 @@
 import logging
 
 from sqlalchemy import func, or_
-from flask_login import login_required
+from flask_login import current_user, login_required
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 
 from harithmapos import db, config
 from harithmapos import settings as app_settings
+from harithmapos import job_requests
 from harithmapos.billing import invoice_totals, line_amounts, to_decimal
 from harithmapos.timeutils import local_today, utcnow
 from harithmapos.models import (
     InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle,
-    WashBay, Employee, Item, Payment, InvoiceStatusLog,
+    WashBay, Employee, Item, Payment, InvoiceStatusLog, InvoiceRequest,
 )
 from harithmapos.views.invoice.forms import (
     InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm,
@@ -150,9 +151,11 @@ def insert_invoice_head():
         )
         _log_status(invoice, previous_log_id=None)
     except Exception:
+        db.session.rollback()
         logger.exception("Could not create service invoice")
         flash("The invoice could not be created. Please try again.", category='danger')
         return utils.redirect_back('invoice_blueprint.invoice_head')
+    save_start_requests(invoice)
 
     return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id))
 
@@ -294,6 +297,62 @@ def set_invoice_status(invoice_head_id):
     else:
         utils.flash_form_errors(form)
     return utils.redirect_back('dashboard_blueprint.dashboard')
+
+
+# ---------------------------------------------------------------------------
+# What the customer asked for (a checklist on the service invoice)
+# ---------------------------------------------------------------------------
+
+def save_start_requests(invoice):
+    """Store what the customer asked for, typed when the job was started. Never raises."""
+    try:
+        if job_requests.add(invoice, request.form.get('requests'), current_user):
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Could not save the requests for invoice %s", invoice.id)
+        flash("The job was started, but the customer's requests were not saved. Add them on the invoice.",
+              category='warning')
+
+
+def _back_to_invoice(invoice_id):
+    return utils.redirect_back('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_id)
+
+
+@invoice_blueprint.route("/app/invoice/head/<int:invoice_head_id>/requests", methods=['POST'])
+@login_required
+def add_invoice_requests(invoice_head_id):
+    invoice = db.get_or_404(InvoiceHead, invoice_head_id)
+    try:
+        added = job_requests.add(invoice, request.form.get('requests'), current_user)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Could not add requests to invoice %s", invoice_head_id)
+        flash("The request was not saved. Please try again.", category='danger')
+        return _back_to_invoice(invoice_head_id)
+    if not added:
+        flash("Type what the customer asked for first (or it is already on the list).", category='warning')
+    return _back_to_invoice(invoice_head_id)
+
+
+@invoice_blueprint.route("/app/invoice/request/<int:request_id>/done", methods=['POST'])
+@login_required
+def tick_invoice_request(request_id):
+    item = db.get_or_404(InvoiceRequest, request_id)
+    job_requests.set_done(item, request.form.get('done') == '1', current_user)
+    db.session.commit()
+    return _back_to_invoice(item.invoice_id)
+
+
+@invoice_blueprint.route("/app/invoice/request/<int:request_id>/delete", methods=['POST'])
+@login_required
+def delete_invoice_request(request_id):
+    item = db.get_or_404(InvoiceRequest, request_id)
+    invoice_id = item.invoice_id
+    db.session.delete(item)
+    db.session.commit()
+    return _back_to_invoice(invoice_id)
 
 
 @invoice_blueprint.route("/app/invoice/head/<int:invoice_head_id>/print", methods=['GET'])

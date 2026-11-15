@@ -4,8 +4,8 @@
 {# Left open on the supervisor's phone all day: reload quietly while no sheet is open. #}
 {% block body_attrs %}data-auto-refresh="45" class="floor-page"{% endblock %}
 
-{% macro move_button(invoice, to, label, cls='btn btn-primary') -%}
-<form method="post" action="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}" class="fl-go">
+{% macro move_button(invoice, to, label, cls='btn btn-primary', confirm=none) -%}
+<form method="post" action="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}" class="fl-go" {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
     {{ csrf() }}<input type="hidden" name="status" value="{{ to }}">
     <button type="submit" class="{{ cls }}">{{ label }}</button>
 </form>
@@ -16,7 +16,7 @@
 {% if s == 0 %}{{ move_button(invoice, 1, 'Bring into ' ~ invoice.washbay.name) }}
 {% elif s == 1 %}{{ move_button(invoice, 2, 'Start washing') }}
 {% elif s == 2 %}{{ move_button(invoice, 3, 'Start polishing') }}
-{% elif s == 3 %}{{ move_button(invoice, 4, 'Ready to collect', 'btn btn-finish') }}{% endif %}
+{% elif s == 3 %}{{ move_button(invoice, 4, 'Ready to collect', 'btn btn-finish', confirm=requests_confirm(invoice)) }}{% endif %}
 {%- endmacro %}
 
 {% macro card(invoice, show_bay=true) -%}
@@ -27,6 +27,7 @@
             data-invoice="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}"
             data-plate="{{ invoice.vehicle.number }}" data-owner="{{ invoice.customer.name }}"
             data-status="{{ invoice.service_status or 0 }}" data-bay="{{ invoice.washbay_id }}" data-emp="{{ invoice.employee_id }}"
+            data-requests="{{ requests_json(invoice) }}"
             aria-label="Change {{ invoice.vehicle.number }}">
         <span class="fl-card-top">
             {{ plate(invoice.vehicle.number) }}
@@ -37,6 +38,9 @@
             <span class="status" data-status="{{ meta.key }}">{{ meta.label }}</span>
             {% if show_bay %}<span><i class="bi bi-droplet" aria-hidden="true"></i>{{ invoice.washbay.name }}</span>{% endif %}
             <span><i class="bi bi-person" aria-hidden="true"></i>{{ invoice.employee.name }}</span>
+            {% if invoice.requests %}{% set left = invoice.open_requests|length %}
+            <span class="fl-req {{ 'is-open' if left else 'is-done' }}" title="Customer's requests ticked off"><i class="bi bi-list-check" aria-hidden="true"></i>{{ invoice.requests|length - left }}/{{ invoice.requests|length }}</span>
+            {% endif %}
             <i class="bi bi-three-dots fl-more" aria-hidden="true"></i>
         </span>
     </button>
@@ -134,6 +138,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <fieldset class="fl-field" data-fl-requests hidden>
+                    <legend>Customer asked for</legend>
+                    <div class="fl-checks" data-fl-request-list></div>
+                </fieldset>
                 <fieldset class="fl-field">
                     <legend>Stage</legend>
                     <div class="fl-chips fl-stages">
@@ -205,6 +213,11 @@
                 <div class="fl-field">
                     <label class="form-label" for="fl-km">Mileage now (km) <span class="text-muted">optional</span></label>
                     <input type="text" class="form-control" id="fl-km" name="current_milage" inputmode="numeric" pattern="[0-9,]*">
+                </div>
+                <div class="fl-field">
+                    <label class="form-label" for="fl-requests">What the customer asked for <span class="text-muted">optional</span></label>
+                    <textarea class="form-control" id="fl-requests" name="requests" rows="3" maxlength="3000"
+                              placeholder="One per line, for example:&#10;Full wash and vacuum&#10;Check the AC smell"></textarea>
                 </div>
             </div>
             <div class="modal-footer">

@@ -1284,3 +1284,30 @@ code.dv-note { display: inline; }
 /* Payments on completed invoices and purchase orders */
 .paid-list { margin-top: 1rem; }
 .paid-list .history li { grid-template-columns: auto 1fr auto; }
+
+/* ---- What the customer asked for (service invoice checklist) ---- */
+.req-panel .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.req-panel.is-open { border-left: 3px solid var(--h-amber); }
+.req-count { font-size: 0.8125rem; font-weight: 600; color: var(--h-amber); }
+.req-count.is-done { color: var(--h-green); }
+.req-list { list-style: none; margin: 0; padding: 0.25rem 1rem; }
+.req-list li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid var(--h-line); }
+.req-list li:last-child { border-bottom: 0; }
+.req-tick { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--h-line-strong); background: var(--h-surface); color: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.req-tick:hover { border-color: var(--h-green); color: var(--h-muted); }
+.req-list li.is-done .req-tick { background: var(--h-green); border-color: var(--h-green); color: #fff; }
+.req-text { overflow-wrap: anywhere; }
+.req-text small { display: block; color: var(--h-muted); font-size: 0.75rem; }
+.req-list li.is-done .req-text { color: var(--h-muted); }
+.req-add { display: flex; gap: 0.5rem; }
+.req-list + .req-add { border-top: 1px solid var(--h-line); }
+
+/* Floor board: requests count on a card, and the checklist in the sheet */
+.fl-req { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600; }
+.fl-req.is-open { color: var(--h-amber); }
+.fl-req.is-done { color: var(--h-green); }
+.fl-checks { display: grid; gap: 0.25rem; }
+.fl-check { display: flex; align-items: center; gap: 0.75rem; min-height: 44px; padding: 0.35rem 0.75rem; border: 1.5px solid var(--h-line-strong); border-radius: 10px; background: var(--h-surface); cursor: pointer; margin: 0; }
+.fl-check input { width: 1.25rem; height: 1.25rem; flex: none; accent-color: var(--h-green); }
+.fl-check:has(input:checked) span { color: var(--h-muted); text-decoration: line-through; }
+

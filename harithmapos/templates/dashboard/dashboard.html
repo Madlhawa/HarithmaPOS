@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, rs, plate, post_button, modal, field, autocomplete, payment_fields %}
+{% from 'layout/macros.html' import csrf, rs, plate, post_button, modal, field, autocomplete, payment_fields, requests_box %}
 
 {# The floor board is left open on the counter all day: reload it every minute. #}
 {% block body_attrs %}data-auto-refresh="60"{% endblock %}
@@ -181,6 +181,7 @@
             <div class="col-sm-6">
                 {{ field('current_milage', 'Mileage now (km)', prefix='ns', kind='whole', hint='Leave empty if you do not have it.', wrap='') }}
             </div>
+            <div class="col-12">{{ requests_box('ns', wrap='') }}</div>
         </div>
     </div>
     <div class="modal-footer">
