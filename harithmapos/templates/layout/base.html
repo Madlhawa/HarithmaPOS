@@ -96,6 +96,7 @@
         </div>
         <main class="content {% block content_class %}{% endblock %}" id="main">
             {{ flashes() }}
+            {% if session.print_after %}<span hidden data-print-now="{{ session.pop('print_after') }}"></span>{% endif %}
             {% block body %}{% endblock %}
         </main>
     </div>

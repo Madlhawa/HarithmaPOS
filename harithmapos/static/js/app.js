@@ -7,6 +7,7 @@
  *   <form data-confirm="Delete this?">                    ask before submitting
  *   <button data-edit-modal="#modal" data-values='{…}'>   open a modal pre-filled
  *   <time data-since="2026-01-01T08:00:00Z">              running "1h 05m" clock
+ *   <a href="…/print" data-print>                          print that page without leaving this one
  */
 (function () {
     'use strict';
@@ -422,6 +423,33 @@
     /* ---------------------------------------------------------------------
      * Running clocks: <time data-since="…Z" data-long-after="90">
      * ------------------------------------------------------------------- */
+    // Printing: load the receipt page into a hidden frame and open Chrome's
+    // print window for it, so the user stays on the page they were on.
+    var printing = false;
+
+    function printPage(url) {
+        var old = document.getElementById('print-frame');
+        if (old) { old.remove(); }
+        var frame = document.createElement('iframe');
+        frame.id = 'print-frame';
+        frame.setAttribute('aria-hidden', 'true');
+        frame.tabIndex = -1;
+        frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+        printing = true;
+        frame.addEventListener('load', function () {
+            try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            } catch (err) {
+                window.open(url, '_blank', 'noopener');   // printing blocked: open the receipt instead
+            }
+            // print() returns once the print window is closed.
+            setTimeout(function () { printing = false; }, 1000);
+        });
+        frame.src = url;
+        document.body.appendChild(frame);
+    }
+
     function elapsed(minutes) {
         var hours = Math.floor(minutes / 60);
         var rest = minutes % 60;
@@ -461,11 +489,21 @@
             }
         }
 
+        // A receipt to print straight away (after Complete).
+        var printNow = document.querySelector('[data-print-now]');
+        if (printNow) { printPage(printNow.dataset.printNow); }
+        document.addEventListener('click', function (event) {
+            var link = event.target.closest('a[data-print]');
+            if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) { return; }
+            event.preventDefault();
+            printPage(link.href);
+        });
+
         // The floor board is left open all day: refresh it quietly while nobody is typing.
         var refresh = Number(document.body.dataset.autoRefresh || 0);
         if (refresh > 0) {
             setInterval(function () {
-                var busy = document.querySelector('.modal.show') ||
+                var busy = printing || document.querySelector('.modal.show') ||
                     document.hidden ||
                     /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
                 if (!busy) { window.location.reload(); }

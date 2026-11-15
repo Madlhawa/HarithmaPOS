@@ -140,9 +140,6 @@ HARITHMA_EMAIL=
 HARITHMA_PASSWORD=
 NOTIFYLK_USER_ID=
 NOTIFYLK_API_KEY=
-RABBIT_MQ_HOST=
-RABBIT_MQ_USERNAME=
-RABBIT_MQ_PASSWORD=
 EOF
     echo "Wrote $APP_DIR/.env with a new database password and secret key."
 else
@@ -261,7 +258,7 @@ cat <<EOF
 Done. The app is at $URL/app/login
 
 Still to do:
-  1. Fill in the blank values in $APP_DIR/.env (email, SMS, RabbitMQ), then:
+  1. Fill in the blank values in $APP_DIR/.env (email, SMS), then:
        systemctl restart $SERVICE
 EOF
 if [[ -z "$RESTORE" ]]; then cat <<EOF

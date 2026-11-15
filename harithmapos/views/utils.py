@@ -1,13 +1,10 @@
-import json
 import logging
 import os
 import secrets
 import smtplib
 import ssl
 from email.message import EmailMessage
-from decimal import Decimal
 
-import pika
 import requests
 from PIL import Image
 from flask import url_for, current_app, flash, request, redirect
@@ -37,13 +34,6 @@ def parse_int(value):
     except (TypeError, ValueError, AttributeError):
         return None
 
-
-# Define a custom JSON encoder that handles Decimal objects
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, Decimal):
-            return float(o)
-        return super().default(o)
 
 
 # ---------------------------------------------------------------------------
@@ -97,75 +87,11 @@ def delete_record(record, label, blockers=()):
 
 
 # ---------------------------------------------------------------------------
-# Outside services: receipt printer queue, SMS, e-mail
+# Outside services: SMS, e-mail
 # ---------------------------------------------------------------------------
 
 class ServiceError(Exception):
-    """An outside service (printer queue, SMS, e-mail) failed. The message is safe to show to the user."""
-
-
-def printer_enabled():
-    return bool(app_settings.get('printer_enabled') and app_settings.get('rabbitmq_host'))
-
-
-def _rabbitmq_connection():
-    credentials = pika.PlainCredentials(
-        app_settings.get('rabbitmq_username'), app_settings.get('rabbitmq_password'))
-    parameters = pika.ConnectionParameters(
-        host=app_settings.get('rabbitmq_host'),
-        port=app_settings.get('rabbitmq_port'),
-        credentials=credentials,
-        connection_attempts=1,
-        socket_timeout=5,
-        blocked_connection_timeout=5,
-    )
-    return pika.BlockingConnection(parameters)
-
-
-def send_print_invoice(message, queue=None):
-    """Queue a receipt for the print agent. Returns True if it was queued.
-
-    Never raises: a printer or RabbitMQ outage must not stop a sale from
-    being saved.
-    """
-    if not printer_enabled():
-        logger.info("Receipt printer is switched off or has no host; skipping")
-        return False
-    queue = queue or app_settings.get('print_queue')
-    try:
-        connection = _rabbitmq_connection()
-        try:
-            channel = connection.channel()
-            channel.queue_declare(queue=queue)
-            channel.basic_publish(exchange='', routing_key=queue, body=message)
-        finally:
-            connection.close()
-    except Exception:
-        logger.exception("Could not queue the receipt for printing")
-        return False
-    return True
-
-
-def check_printer_connection():
-    """Connect to RabbitMQ and make sure the queue exists. Raises ServiceError on failure."""
-    if not app_settings.get('rabbitmq_host'):
-        raise ServiceError("Enter the RabbitMQ host first.")
-    try:
-        connection = _rabbitmq_connection()
-    except pika.exceptions.ProbableAuthenticationError:
-        raise ServiceError("RabbitMQ refused the username or password.")
-    except Exception as exc:
-        logger.warning("RabbitMQ test connection failed: %s", type(exc).__name__)
-        raise ServiceError("Could not connect to RabbitMQ. Check the host and port, and that it is running.")
-    try:
-        connection.channel().queue_declare(queue=app_settings.get('print_queue'))
-    except Exception:
-        raise ServiceError("Connected, but the print queue could not be opened. Check the user's permissions.")
-    finally:
-        try:
-            connection.close()
-        except Exception:
-            pass
+    """An outside service (SMS, e-mail) failed. The message is safe to show to the user."""
 
 
 def sms_ready():

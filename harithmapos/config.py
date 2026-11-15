@@ -33,10 +33,6 @@ class Config:
     REMEMBER_COOKIE_SECURE = _env_bool('HARITHMA_COOKIE_SECURE')
 
 
-RABBIT_MQ_HOST = os.environ.get('RABBIT_MQ_HOST')
-RABBIT_MQ_USERNAME = os.environ.get('RABBIT_MQ_USERNAME')
-RABBIT_MQ_PASSWORD = os.environ.get('RABBIT_MQ_PASSWORD')
-PRINT_QUEUE = os.environ.get('HARITHMA_PRINT_QUEUE', 'harithmaq')
 NOTIFYLK_USER_ID = os.environ.get('NOTIFYLK_USER_ID')
 NOTIFYLK_API_KEY = os.environ.get('NOTIFYLK_API_KEY')
 NOTIFYLK_API_URL = "https://app.notify.lk/api/v1/send"

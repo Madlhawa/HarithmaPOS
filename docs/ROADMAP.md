@@ -1,6 +1,6 @@
 # Harithma POS: improvement roadmap
 
-*Updated 14 November 2026.*
+*Updated 15 November 2026.*
 
 The site is now on HTTPS with nightly backups, and the owner has sales reporting and full staff payroll. What matters most next:
 
@@ -16,6 +16,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 15 Nov 2026 | **Browser printing; RabbitMQ removed.** Service invoices have an LQ-350 layout and item sales the 80 mm receipt; Complete opens Chrome's print window and Print prints without leaving the page. The RabbitMQ queue, its settings and the `pika` package are gone. |
 | 15 Nov 2026 | **Payments on completed invoices and purchase orders.** A completed service invoice, item sale or purchase order lists its payments and, while money is owed, has a **Record payment** (or **Pay supplier**) button for the rest, in full or in part. Open ones keep the Amount paid box. |
 | 15 Nov 2026 | **Security hardening.** Sign-in rate limit also covers `/app`; nginx hides its version and refuses framing by other sites; SSH keys only with fewer tries; SSH connection rate limit in the firewall. |
 | 14 Nov 2026 | **Developer page** (Menu → Developer → Monitor, developers only). Deploys with test results, GitHub Actions runs, users online and sign-ins (failed ones too), unique users per day, traffic per hour with attack and scanner requests, SSH break-in attempts, app errors with tracebacks, 5xx responses and server health, with a "Needs attention" list. |
@@ -45,7 +46,6 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 |---|---|---|---|
 | Off-server backup copy | **Needs the owner** | Nightly backups are still on the droplet itself. Choose a destination: DigitalOcean droplet backups (switch on in the DigitalOcean account), DigitalOcean Spaces, or Google Drive. | S |
 | Uptime alerts | **Needs the owner** | Create a free UptimeRobot or Better Stack account and point it at https://harithma.lk. | S |
-| RabbitMQ password | **Needs the owner** | The password equals the username. Change it on the RabbitMQ server, then on the Settings page. | S |
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
 | Error alerts | Partly done | Errors now show on the developer page. Still to do: an email or SMS to the developer when one happens, so nobody has to look. | S |
@@ -163,7 +163,7 @@ Attendance and payroll are live. Possible follow-ups:
 
 | Phase | Items |
 |---|---|
-| **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, RabbitMQ password, GitHub cache purge. |
+| **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, GitHub cache purge. |
 | **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export, stock movement log. |
 | **Later** | Packages and vehicle-type pricing, split payments and cash-up, staff clock-in and leave requests, loyalty and feedback, bookings and queue screen. |
 

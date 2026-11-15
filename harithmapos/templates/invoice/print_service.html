@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+    /* Service invoices: the Epson LQ-350 dot-matrix printer on continuous paper.
+       Solid black, no shading and nothing smaller than 10pt, so it stays readable
+       in the printer's draft modes. Pick the continuous paper size in the print window. */
+    body { font-family: Arial, "Helvetica Neue", sans-serif; font-size: 10.5pt; color: #000; margin: 0; }
+    .page { max-width: 190mm; margin: 0 auto; padding: 6mm 4mm; }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; }
+    .biz h1 { font-size: 16pt; margin: 0 0 1mm; }
+    .doc { text-align: right; }
+    .doc h2 { font-size: 14pt; margin: 0 0 1mm; letter-spacing: .08em; }
+    table { width: 100%; border-collapse: collapse; }
+    .facts { margin: 4mm 0; border: 1px solid #000; }
+    .facts td { padding: 1.2mm 2mm; width: 25%; vertical-align: top; }
+    .facts .k { font-size: 10pt; }
+    .facts .v { font-weight: 700; }
+    .lines th { text-align: left; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.2mm 1.5mm; font-size: 10pt; }
+    .lines td { padding: 1mm 1.5mm; vertical-align: top; }
+    .lines tbody tr:last-child td { border-bottom: 1px solid #000; padding-bottom: 2mm; }
+    .n { text-align: right; white-space: nowrap; }
+    .end { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-top: 3mm; }
+    .totals { width: 80mm; }
+    .totals td { padding: .8mm 1.5mm; }
+    .totals .tot td { font-size: 12.5pt; font-weight: 700; border-top: 1px solid #000; border-bottom: 3px double #000; padding: 1.5mm; }
+    .note { flex: 1; }
+    .next { font-weight: 700; border: 1px solid #000; padding: 1.5mm 3mm; display: inline-block; margin-bottom: 4mm; }
+    .sign { margin-top: 10mm; display: flex; gap: 20mm; }
+    .sign div { border-top: 1px dotted #000; padding-top: 1mm; width: 45mm; text-align: center; font-size: 10pt; }
+    .bar { text-align: center; margin: 12px 0; }
+    @media print { .bar { display: none; } @page { margin: 6mm 8mm; } .page { padding: 0; max-width: none; } }
+</style>
+</head>
+<body>
+<div class="bar"><button onclick="window.print()">Print</button> <button onclick="window.close()">Close</button></div>
+<div class="page">
+    <div class="top">
+        <div class="biz">
+            <h1>{{ BUSINESS.name }}</h1>
+            <div>{{ BUSINESS.address }}</div>
+            {% if BUSINESS.phone %}<div>Tel: {{ BUSINESS.phone }}</div>{% endif %}
+        </div>
+        <div class="doc">
+            <h2>INVOICE</h2>
+            <div>No. <b>{{ head.id }}</b></div>
+            <div>{{ head.created_dttm|local_dt('%d %b %Y %I:%M %p') }}</div>
+        </div>
+    </div>
+
+    <table class="facts">
+        <tr>
+            <td><div class="k">Customer</div><div class="v">{{ head.customer.name if head.customer else '' }}</div>{% if head.customer and head.customer.contact %}<div>{{ head.customer.contact }}</div>{% endif %}</td>
+            <td><div class="k">Vehicle</div><div class="v">{{ head.vehicle.number if head.vehicle else '' }}</div></td>
+            <td><div class="k">Mileage</div><div class="v">{{ head.current_milage|km ~ ' km' if head.current_milage else '-' }}</div></td>
+            <td><div class="k">Bay / served by</div><div class="v">{{ head.washbay.name if head.washbay else '' }}</div><div>{{ head.employee.name if head.employee else '' }}</div></td>
+        </tr>
+    </table>
+
+    <table class="lines">
+        <thead><tr><th style="width:8mm">#</th><th>Item / service</th><th class="n">Qty</th><th class="n">Unit price</th><th class="n">Discount</th><th class="n">Amount</th></tr></thead>
+        <tbody>
+        {% for d in details %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ d.item.name }}</td>
+            <td class="n">{{ d.quantity|qty }}</td>
+            <td class="n">{{ (d.total_price / d.quantity if d.quantity else 0)|money }}</td>
+            <td class="n">{{ d.discount_amount|money if (d.discount_amount or 0) > 0 else '' }}</td>
+            <td class="n">{{ d.gross_price|money }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="end">
+        <div class="note">
+            {% if head.next_milage_in and head.next_milage %}<div class="next">Next service at {{ head.next_milage|km }} km</div>{% endif %}
+            <div>Thank you, come again!</div>
+            <div class="sign"><div>Checked by</div><div>Customer</div></div>
+        </div>
+        <table class="totals">
+            <tr><td>Subtotal</td><td class="n">{{ head.total_price|money }}</td></tr>
+            {% if (head.total_discount or 0) > 0 %}<tr><td>Discounts</td><td class="n">-{{ head.total_discount|money }}</td></tr>{% endif %}
+            <tr class="tot"><td>Total {{ CURRENCY }}</td><td class="n">{{ head.gross_price|money }}</td></tr>
+            <tr><td>Paid ({{ PAYMENT_METHOD_LABELS.get(head.payment_method, head.payment_method or 'Cash') }})</td><td class="n">{{ head.paid_amount|money }}</td></tr>
+            {% if head.balance > 0 %}<tr><td><b>Balance due</b></td><td class="n"><b>{{ head.balance|money }}</b></td></tr>
+            {% elif head.balance < 0 %}<tr><td>Change</td><td class="n">{{ (0 - head.balance)|money }}</td></tr>{% endif %}
+        </table>
+    </div>
+</div>
+</body>
+</html>

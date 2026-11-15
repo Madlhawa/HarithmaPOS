@@ -1,9 +1,8 @@
-import json
 import logging
 
 from sqlalchemy import func, or_
 from flask_login import login_required
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 
 from harithmapos import db, config
 from harithmapos import settings as app_settings
@@ -245,7 +244,8 @@ def invoice_head_detail(invoice_head_id):
             _notify_customer(invoice_head, started=False)
         elif form.complete_invoice.data:
             _complete_documents(
-                invoice_head, 'invoice_id', convert_service_invoice_to_json,
+                invoice_head, 'invoice_id',
+                url_for('invoice_blueprint.print_invoice_head', invoice_head_id=invoice_head.id),
                 f"Invoice #{invoice_head.id} completed.")
             return redirect(url_for('dashboard_blueprint.dashboard'))
         else:
@@ -302,9 +302,8 @@ def print_invoice_head(invoice_head_id):
     invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
     invoice_details = InvoiceDetail.query.filter(InvoiceDetail.invoice_head_id == invoice_head.id).order_by(InvoiceDetail.id).all()
     return render_template(
-        'invoice/print.html',
+        'invoice/print_service.html',
         title=f"Invoice #{invoice_head.id}",
-        kind='service',
         head=invoice_head,
         details=invoice_details,
     )
@@ -351,7 +350,8 @@ def item_invoice_head_detail(item_invoice_head_id):
 
         if form.complete_item_invoice.data:
             _complete_documents(
-                item_invoice_head, 'item_invoice_id', convert_item_invoice_to_json,
+                item_invoice_head, 'item_invoice_id',
+                url_for('invoice_blueprint.print_item_invoice_head', item_invoice_head_id=item_invoice_head.id),
                 f"Item invoice #{item_invoice_head.id} completed.")
             return redirect(url_for('dashboard_blueprint.dashboard'))
 
@@ -375,7 +375,7 @@ def print_item_invoice_head(item_invoice_head_id):
     details = ItemInvoiceDetail.query.filter(
         ItemInvoiceDetail.item_invoice_head_id == item_invoice_head.id).order_by(ItemInvoiceDetail.id).all()
     return render_template(
-        'invoice/print.html',
+        'invoice/print_receipt.html',
         title=f"Item invoice #{item_invoice_head.id}",
         kind='item',
         head=item_invoice_head,
@@ -701,8 +701,8 @@ def _save_service_invoice(invoice_head, form):
         _log_status(invoice_head)
 
 
-def _complete_documents(head, link_field, to_json, success_message):
-    """After a successful save: record the payment and queue the receipt."""
+def _complete_documents(head, link_field, print_url, success_message):
+    """After a successful save: record the payment and open the print window on the next page."""
     try:
         sync_document_payment(head, link_field)
     except Exception:
@@ -712,21 +712,9 @@ def _complete_documents(head, link_field, to_json, success_message):
               category='danger')
         return
 
-    if not utils.printer_enabled():
-        flash(f"{success_message} Use Print on the invoice screen for a receipt.", category='success')
-        return
-
-    printed = False
-    try:
-        printed = utils.send_print_invoice(to_json(head))
-    except Exception:
-        logger.exception("Could not build the receipt for %s %s", link_field, head.id)
-
-    if printed:
-        flash(success_message, category='success')
-    else:
-        flash(f"{success_message} The receipt printer could not be reached: "
-              "use Print on the invoice screen instead.", category='warning')
+    flash(success_message, category='success')
+    if app_settings.get('print_on_complete'):
+        session['print_after'] = print_url
 
 
 def _notify_customer(invoice_head, started):
@@ -785,56 +773,3 @@ def _qty_text(value):
     if '.' in text:
         text = text.rstrip('0').rstrip('.')
     return text or '0'
-
-
-def convert_item_invoice_to_json(item_invoice):
-    invoice_dictionary = {
-        "invoice_number": item_invoice.id,
-        "invoice_type": 2,
-        "total_price": item_invoice.total_price,
-        "discount_amount": item_invoice.discount_amount,
-        "gross_price": item_invoice.gross_price,
-        "paid_amount": item_invoice.paid_amount,
-        "invoice_details": []
-    }
-
-    for detail in item_invoice.invoice_details:
-        item_detail = {
-            'item_name': detail.item.name,
-            'unit_price': detail.item.unit_price,
-            'quantity': detail.quantity,
-            'total_price': detail.total_price,
-            'discount_pct': detail.item.discount_pct
-        }
-        invoice_dictionary['invoice_details'].append(item_detail)
-
-    return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)
-
-
-def convert_service_invoice_to_json(service_invoice):
-    invoice_dictionary = {
-        "invoice_number": service_invoice.id,
-        "invoice_type": 1,
-        "customer_name": service_invoice.customer.name,
-        "employee_name": service_invoice.employee.name,
-        "vehicle_number": service_invoice.vehicle.number,
-        "wash_bay": service_invoice.washbay.name,
-        "current_milage": service_invoice.current_milage,
-        "next_milage": service_invoice.next_milage,
-        "total_price": service_invoice.total_price,
-        "total_discount": service_invoice.total_discount,
-        "gross_price": service_invoice.gross_price,
-        "paid_amount": service_invoice.paid_amount,
-        "invoice_details": []
-    }
-
-    for detail in service_invoice.invoice_details:
-        item_detail = {
-            'item_name': detail.item.name,
-            'unit_price': detail.item.unit_price,
-            'quantity': detail.quantity,
-            'total_price': detail.total_price
-        }
-        invoice_dictionary['invoice_details'].append(item_detail)
-
-    return json.dumps(invoice_dictionary, cls=utils.DecimalEncoder)

@@ -15,7 +15,7 @@
         {{ status_pill(inv.service_status) }}
     </div>
     <div class="page-actions">
-        <a class="btn btn-quiet" href="{{ url_for('invoice_blueprint.print_invoice_head', invoice_head_id=inv.id) }}" target="_blank" rel="noopener"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</a>
+        <a class="btn btn-quiet" href="{{ url_for('invoice_blueprint.print_invoice_head', invoice_head_id=inv.id) }}" target="_blank" rel="noopener" data-print><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</a>
     </div>
 </div>
 

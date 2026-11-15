@@ -213,7 +213,7 @@ Rules the board keeps:
 
 Opened from a plate, **Open**, **Bill and finish**, or the [Service invoices list](#5-service-invoices-list). Everything about one visit is here.
 
-**Header:** the number plate, customer and phone, invoice number, when it was opened and how long ago, and the current stage. **Print** opens the receipt in a new tab.
+**Header:** the number plate, customer and phone, invoice number, when it was opened and how long ago, and the current stage. **Print** opens the print window for the invoice (LQ-350 layout) without leaving the page.
 
 ### Adding services and items (left)
 
@@ -252,7 +252,7 @@ The SMS buttons are greyed out if the customer has no phone number or that text 
 | Bill discount | An amount off the whole bill. |
 | Amount paid | What the customer handed over. If they give Rs. 5,000 for a Rs. 4,300 bill, type 5000: the app records 4,300 and shows Rs. 700 change. |
 | Paid by | Cash, Card, Bank Transfer, Credit or QR. Use *Credit* when the customer will pay later. |
-| **Complete and print receipt** | Marks the job Done, records the payment on the Payments page, and sends the receipt to the printer (if one is set up; otherwise use **Print**). Returns you to the dashboard. |
+| **Complete and print receipt** | Marks the job Done, records the payment on the Payments page, and returns you to the dashboard with the print window open for the invoice. Choose the LQ-350 and print. Returns you to the dashboard. |
 | **Save** | Saves the job and bill panels without completing. |
 | **Cancel invoice** *(owners)* | Deletes the invoice after asking; its items go back into stock. |
 
@@ -304,10 +304,10 @@ The same **Add a service or item / Quantity / Extra discount / Add** row and lin
 |---|---|
 | Customer | Optional. Pick a customer or leave empty for a walk-in. |
 | Bill discount, Amount paid, Paid by | As on a service invoice. |
-| **Complete and print receipt** | Records the payment and prints. |
+| **Complete and print receipt** | Records the payment and opens the print window for the 80 mm receipt. |
 | **Record payment** | On a completed sale with money still owed: take the rest, in full or in part. See [taking a payment later](#taking-a-payment-later). |
 | **Save** | Saves without completing. |
-| **Print** | Opens the receipt in a new tab. |
+| **Print** | Opens the print window for the receipt without leaving the page. |
 | **Delete this sale** *(owners)* | Deletes it after asking; items go back into stock. |
 
 ---
@@ -648,7 +648,7 @@ A yellow warning appears if register days are **not marked**: those days are lef
 
 **Send a test SMS** sends one text to the number you type (uses one credit).
 
-**Receipt printer (RabbitMQ):** Send receipts to the printer (on/off), RabbitMQ host, Port, Username, Password, Queue name. **Test connection** checks the connection without printing. When the printer is off, use the **Print** button on invoices instead.
+**Receipt printing:** *Open the print window when an invoice is completed* (on by default). Switch it off if invoices are usually completed on a phone or tablet away from the printers; **Print** on the invoice still works. See [receipt printing](#receipt-printing).
 
 **Staff and payroll:**
 
@@ -666,6 +666,19 @@ A yellow warning appears if register days are **not marked**: those days are lef
 
 **General:** **Running low at** (the stock level that counts as low) and **Customer status link works for (hours)** (how long the link in the "started" SMS keeps working).
 
+### Receipt printing
+
+Receipts print from the browser on the counter computer, through Chrome's print window. There are two printers:
+
+| What | Printer | Paper |
+|---|---|---|
+| Service invoices | Epson LQ-350 (dot matrix) | Continuous paper. Choose its paper size in the print window. |
+| Item sales | Xprinter (80 mm thermal) | 80 mm roll. |
+
+- **Complete and print receipt** opens the print window straight away; so does **Print** on an invoice. Choose the printer and press **Print**. Chrome remembers the last printer chosen, so check it when switching between a service invoice and an item sale.
+- In the print window, under *More settings*, set **Margins** to *Default* and turn off **Headers and footers** once; Chrome remembers both.
+- Invoices completed on a phone open the print window on that phone. Reprint from the counter computer with **Print**, or switch the window off in Settings.
+
 ---
 
 ## 15. Your account
@@ -678,7 +691,8 @@ A yellow warning appears if register days are **not marked**: those days are lef
 
 - **Home page (https://harithma.lk):** the public website with services, how it works, contact details and a map. Contact details come from Settings → Business details.
 - **Status page:** the link in the "started" SMS. It shows the vehicle plate, where it is (Waiting → Vacuuming → Washing → Polishing → Done, updating every minute) and the bill so far. The link stops working after the number of hours set in Settings.
-- **Receipt:** printed by the receipt printer, or from **Print** on an invoice. It shows business details, invoice number and date, customer, vehicle, bay, mileage, the lines, totals, what was paid and change.
+- **Service invoice** (LQ-350): business details, invoice number and date, customer and phone, vehicle, mileage, bay and who served, the numbered lines with discounts, totals, what was paid, the balance or change, and the next service mileage.
+- **Item sale receipt** (80 mm): business details, sale number and date, customer, the lines, totals, what was paid and change.
 
 ---
 
@@ -726,7 +740,7 @@ A yellow warning appears if register days are **not marked**: those days are lef
 
 **The SMS buttons are greyed out.** The customer has no phone number (add one on the Customers page), or that text was already sent. If a text fails, the message at the top says why: often SMS is switched off or not set up in Settings.
 
-**The receipt didn't print.** The printer may be off or unreachable. Use **Print** on the invoice. Owners can use **Test connection** in Settings.
+**The receipt didn't print.** Check the right printer was chosen in the print window and that it is on and has paper, then press **Print** on the invoice. If no print window opened after Complete, the setting may be off (Settings → Receipt printing).
 
 **I can't see a page my colleague can.** It is owner-only. Ask an owner.
 

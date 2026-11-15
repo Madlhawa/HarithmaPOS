@@ -17,7 +17,7 @@
         {{ csrf() }}
         <div class="panel-body">
             {% if hint %}<p class="form-hint mt-0">{{ hint }}</p>{% endif %}
-            {% if key in unsaved_groups and key in ('email', 'sms', 'printer') %}
+            {% if key in unsaved_groups and key in ('email', 'sms') %}
             <p class="form-hint">Not saved here yet: these values come from the server's .env file. Saving this section stores them here instead.</p>
             {% endif %}
             <div class="row g-3">
@@ -39,7 +39,7 @@
                     <div class="form-hint">You can use {% for p in d.placeholders %}<code>{{ '{' ~ p ~ '}' }}</code>{{ ', ' if not loop.last }}{% endfor %}.</div>
                 </div>
                 {% else %}
-                <div class="{{ 'col-sm-4' if d.kind in ('int', 'time') else 'col-sm-6' if d.kind in ('choice', 'secret') or d.group in ('email', 'printer', 'sms') else 'col-12' }}">
+                <div class="{{ 'col-sm-4' if d.kind in ('int', 'time') else 'col-sm-6' if d.kind in ('choice', 'secret') or d.group in ('email', 'sms') else 'col-12' }}">
                     <label class="form-label" for="{{ fid }}">{{ d.label }}</label>
                     {% if d.kind == 'choice' %}
                     <select class="form-select {{ 'is-invalid' if err }}" id="{{ fid }}" name="{{ d.key }}">
@@ -98,12 +98,6 @@
             <button class="btn btn-quiet text-nowrap">Send test</button>
         </div>
         <div class="form-hint">Uses the saved settings, so save first. This uses one SMS credit.</div>
-    </form>
-    {% elif key == 'printer' %}
-    <form class="panel-body border-top d-flex align-items-center justify-content-between gap-2" method="post" action="{{ url_for('settings_blueprint.test_printer') }}">
-        {{ csrf() }}
-        <div class="form-hint m-0">Checks the saved settings can connect to RabbitMQ and open the queue. Nothing is printed.</div>
-        <button class="btn btn-quiet text-nowrap">Test connection</button>
     </form>
     {% endif %}
 </section>

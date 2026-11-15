@@ -20,7 +20,7 @@ def test_only_owners_can_open_or_save_settings(staff, owner, app):
     staff.post('/app/settings/business', data={'business_name': 'Hacked'})
     assert saved(app, 'business_name') != 'Hacked'
     assert owner.get('/app/settings').status_code == 200
-    for path in ['/app/settings/test/email', '/app/settings/test/sms', '/app/settings/test/printer']:
+    for path in ['/app/settings/test/email', '/app/settings/test/sms']:
         assert staff.post(path).status_code == 302  # sent back with a message, nothing sent
 
 
@@ -30,7 +30,7 @@ def test_unsaved_settings_fall_back_to_defaults(app):
     with app.test_request_context():
         assert app_settings.get('business_name') == config.BUSINESS_NAME
         assert app_settings.get('low_stock_threshold') == config.LOW_STOCK_THRESHOLD
-        assert app_settings.get('print_queue') == config.PRINT_QUEUE
+        assert app_settings.get('print_on_complete') is True
 
 
 def test_save_business_details(owner, app):
@@ -186,44 +186,6 @@ def test_test_email_reports_wrong_password(owner, app, monkeypatch):
     owner.post('/app/settings/email', data=email_form(mail_password='wrong'))
     response = owner.post('/app/settings/test/email', data={'to': 'me@example.com'}, follow_redirects=True)
     assert 'refused the username or password' in response.get_data(as_text=True)
-
-
-def test_printer_switched_off_does_not_connect(owner, app, monkeypatch):
-    monkeypatch.setattr(utils.pika, 'BlockingConnection', lambda *a, **k: pytest.fail('should not connect'))
-    owner.post('/app/settings/printer', data={'rabbitmq_host': 'printer.local', 'rabbitmq_port': '5672',
-                                              'rabbitmq_username': 'u', 'print_queue': 'q'})  # switch left off
-    with app.test_request_context():
-        assert not utils.printer_enabled()
-        assert utils.send_print_invoice('{}') is False
-
-
-def test_printer_uses_saved_connection(owner, app, monkeypatch):
-    seen = {}
-
-    class FakeChannel:
-        def queue_declare(self, queue):
-            seen['queue'] = queue
-
-        def basic_publish(self, exchange, routing_key, body):
-            seen['published'] = (routing_key, body)
-
-    class FakeConnection:
-        def __init__(self, parameters):
-            seen['host'], seen['port'] = parameters.host, parameters.port
-
-        def channel(self):
-            return FakeChannel()
-
-        def close(self):
-            pass
-
-    monkeypatch.setattr(utils.pika, 'BlockingConnection', FakeConnection)
-    owner.post('/app/settings/printer', data={'printer_enabled': 'on', 'rabbitmq_host': 'printer.local',
-                                              'rabbitmq_port': '5673', 'rabbitmq_username': 'u',
-                                              'rabbitmq_password': 'p', 'print_queue': 'receipts'})
-    with app.test_request_context():
-        assert utils.send_print_invoice('{"id": 1}')
-    assert seen == {'host': 'printer.local', 'port': 5673, 'queue': 'receipts', 'published': ('receipts', '{"id": 1}')}
 
 
 def test_links_use_https_behind_nginx(app):

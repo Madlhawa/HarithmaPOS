@@ -48,7 +48,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItRF0RcRzYO0X43G/sliz8rIh2XWzcEtsiAC1Dv9Og7
    Leave out `--restore` to start with an empty database. `--email you@example.com` adds
    a contact address for certificate expiry notices. `sudo bash deploy.sh --help` lists the options.
 2. **Fill in `.env`.** The script writes `/opt/harithma-pos/.env` with a new database
-   password and secret key. Copy the email, SMS (`NOTIFYLK_*`) and RabbitMQ values
+   password and secret key. Copy the email and SMS (`NOTIFYLK_*`) values
    from the old server's `.env`, then `systemctl restart harithma-pos`.
 3. **New, empty database only:** create the first owner account with the command the
    script prints at the end (`flask create-user`).
@@ -86,8 +86,7 @@ repository, run `deploy.sh` again or reinstall that file with `install -o root -
 
 Backups stay on the same server. Copy them somewhere else as well (see Security Recommendations).
 
-**RabbitMQ** (receipt printing queue) is not set up by `deploy.sh`; run
-`sudo bash /opt/harithma-pos/deployment/setup_rabbitmq.sh` if you need it.
+**Receipts** are printed from the browser at the counter (see "Receipt printing" in the user guide), so the server needs no printer setup.
 
 ---
 
@@ -167,11 +166,6 @@ HARITHMA_EMAIL=your-email@example.com
 HARITHMA_PASSWORD=your-email-password
 FLASK_APP=app.py
 FLASK_ENV=production
-
-# RabbitMQ (optional - add after RabbitMQ setup)
-RABBIT_MQ_HOST=localhost
-RABBIT_MQ_USERNAME=harithma_rabbitmq
-RABBIT_MQ_PASSWORD=your_rabbitmq_password
 ```
 
 **Generate secret key:**
@@ -262,88 +256,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Step 11: Setup RabbitMQ (Optional)
-
-#### Option A: Using Setup Script (Recommended)
-```bash
-cd /opt/harithma-pos/deployment
-chmod +x setup_rabbitmq.sh
-sudo ./setup_rabbitmq.sh
-```
-
-#### Option B: Manual Setup
-
-**1. Install RabbitMQ:**
-```bash
-# Install prerequisites
-sudo apt-get install -y curl gnupg apt-transport-https
-
-# Add Team RabbitMQ signing key
-curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-
-# Detect Ubuntu version
-CODENAME=$(lsb_release -cs)  # or manually: jammy, focal, noble
-
-# Add repositories (replace $CODENAME with your version)
-sudo tee /etc/apt/sources.list.d/rabbitmq.list <<EOF
-deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-erlang/ubuntu/$CODENAME $CODENAME main
-deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-erlang/ubuntu/$CODENAME $CODENAME main
-deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-server/ubuntu/$CODENAME $CODENAME main
-deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-server/ubuntu/$CODENAME $CODENAME main
-EOF
-
-# Update and install
-sudo apt-get update -y
-sudo apt-get install -y erlang-base erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
-                        erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
-                        erlang-runtime-tools erlang-snmp erlang-ssl \
-                        erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
-sudo apt-get install rabbitmq-server -y --fix-missing
-```
-
-**2. Start and Enable:**
-```bash
-sudo systemctl enable rabbitmq-server
-sudo systemctl start rabbitmq-server
-```
-
-**3. Wait for RabbitMQ to be ready:**
-```bash
-# Wait until this command succeeds
-sudo rabbitmqctl status
-```
-
-**4. Enable Management UI:**
-```bash
-sudo rabbitmq-plugins enable rabbitmq_management
-```
-
-**5. Create User:**
-```bash
-sudo rabbitmqctl add_user harithma_rabbitmq your_secure_password
-sudo rabbitmqctl set_user_tags harithma_rabbitmq administrator
-sudo rabbitmqctl set_permissions -p / harithma_rabbitmq ".*" ".*" ".*"
-```
-
-**6. Disable Guest User (Security):**
-```bash
-sudo rabbitmqctl delete_user guest
-```
-
-**7. Update .env File:**
-Add to `/opt/harithma-pos/.env`:
-```env
-RABBIT_MQ_HOST=localhost
-RABBIT_MQ_USERNAME=harithma_rabbitmq
-RABBIT_MQ_PASSWORD=your_secure_password
-```
-
-**8. Restart Application:**
-```bash
-sudo systemctl restart harithma-pos
-```
-
-### Step 12: Create Admin User
+### Step 11: Create Admin User
 ```bash
 cd /opt/harithma-pos
 source venv/bin/activate
@@ -418,24 +331,6 @@ It shows deploys and GitHub Actions runs (with test counts), users online and th
 
 **Library versions** are pinned in `requirements.txt` to what production runs. To upgrade, change a version, push, and let the tests pass before it is deployed.
 
-**RabbitMQ:**
-```bash
-# Check status
-sudo systemctl status rabbitmq-server
-
-# View logs
-sudo journalctl -u rabbitmq-server -f
-
-# List users
-sudo rabbitmqctl list_users
-
-# List queues
-sudo rabbitmqctl list_queues
-
-# Restart
-sudo systemctl restart rabbitmq-server
-```
-
 ### Security
 
 `deploy.sh` already sets up HTTPS, the firewall, key-only SSH, the sign-in rate limit,
@@ -452,7 +347,6 @@ Still worth doing:
   keep the GitHub deploy key only in the `DEPLOY_SSH_KEY` secret.
 - **Develop somewhere else.** Work on your own computer or a separate server and let
   GitHub deploy, rather than editing on the production server.
-- **RabbitMQ**, if you set it up: keep its ports closed in the firewall and use a strong password.
 
 ---
 
@@ -495,45 +389,6 @@ sudo chown -R harithma:harithma /opt/harithma-pos
 # Check service file has correct user
 ```
 
-### RabbitMQ Issues
-
-**RabbitMQ won't start:**
-```bash
-sudo systemctl status rabbitmq-server
-sudo journalctl -u rabbitmq-server -f
-# Check if Erlang is installed correctly
-```
-
-**Can't connect to RabbitMQ:**
-```bash
-# Check if service is running
-sudo systemctl status rabbitmq-server
-
-# Check if RabbitMQ is ready
-sudo rabbitmqctl status
-
-# Check Erlang cookie (if clustering)
-sudo cat /var/lib/rabbitmq/.erlang.cookie
-```
-
-**User creation fails:**
-```bash
-# Wait for RabbitMQ to be fully ready
-sudo rabbitmqctl status
-
-# Try again
-sudo rabbitmqctl add_user harithma_rabbitmq password
-```
-
-**Reset RabbitMQ (if needed):**
-```bash
-sudo systemctl stop rabbitmq-server
-sudo rabbitmqctl stop_app
-sudo rabbitmqctl reset
-sudo rabbitmqctl start_app
-sudo systemctl start rabbitmq-server
-```
-
 ---
 
 ## ✅ Production Checklist
@@ -552,10 +407,6 @@ sudo systemctl start rabbitmq-server
 - [ ] Nginx reverse proxy configured
 - [ ] Systemd service enabled and running
 - [ ] PostgreSQL secured (local access only)
-- [ ] RabbitMQ installed and configured (if needed)
-- [ ] RabbitMQ user created with strong password
-- [ ] RabbitMQ guest user disabled
-- [ ] Application restarted after RabbitMQ setup
 
 ---
 
@@ -571,14 +422,6 @@ sudo systemctl start rabbitmq-server
 - **Environment File:** `/opt/harithma-pos/.env`
 - **Nginx Config:** `/etc/nginx/sites-available/harithma-pos`
 - **Service Config:** `/etc/systemd/system/harithma-pos.service`
-
-**RabbitMQ:**
-- **Service:** `rabbitmq-server`
-- **AMQP Port:** `5672`
-- **Management UI:** `http://your-server-ip:15672`
-- **Logs:** `sudo journalctl -u rabbitmq-server -f`
-- **Queue Name:** `harithmaq` (created automatically)
-- **Config:** `/etc/rabbitmq/rabbitmq.conf`
 
 ---
 
@@ -603,21 +446,6 @@ cd /opt/harithma-pos
 source venv/bin/activate
 export $(grep -v '^#' .env | grep -v '^$' | xargs)
 python -c "from harithmapos import create_app, db; app = create_app(); app.app_context().push(); print('DB OK' if db.engine.connect() else 'DB FAIL')"
-```
-
-**RabbitMQ:**
-```bash
-# Stop
-sudo systemctl stop rabbitmq-server
-
-# Start
-sudo systemctl start rabbitmq-server
-
-# Check status
-sudo rabbitmqctl status
-
-# View logs
-sudo journalctl -u rabbitmq-server -f
 ```
 
 ---

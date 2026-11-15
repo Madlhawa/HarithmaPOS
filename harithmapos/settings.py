@@ -54,7 +54,7 @@ GROUPS = [
     ('business', 'Business details', 'Shown on receipts, the customer status page and in SMS texts.'),
     ('email', 'Email', 'Used to send password reset links.'),
     ('sms', 'SMS (notify.lk)', 'Texts customers when a service starts and finishes.'),
-    ('printer', 'Receipt printer (RabbitMQ)', 'Completed invoices are sent to this queue for the print agent at the counter.'),
+    ('printing', 'Receipt printing', 'Item sales print on the 80 mm receipt printer and service invoices on the LQ-350. Chrome asks which printer to use; it remembers the last one chosen.'),
     ('staff', 'Staff and payroll', 'Working hours, leave allowances and how pay is worked out.'),
     ('general', 'General', ''),
 ]
@@ -92,13 +92,9 @@ DEFINITIONS = [
                default="Hi {customer}, Your vehicle {vehicle}'s service has been completed.",
                placeholders=('customer', 'vehicle', 'business', 'link')),
 
-    # Printer
-    Definition('printer_enabled', 'Send receipts to the printer', 'printer', BOOL, default=True),
-    Definition('rabbitmq_host', 'RabbitMQ host', 'printer', default=config.RABBIT_MQ_HOST or ''),
-    Definition('rabbitmq_port', 'Port', 'printer', INT, default=5672, min_value=1, max_value=65535),
-    Definition('rabbitmq_username', 'Username', 'printer', default=config.RABBIT_MQ_USERNAME or ''),
-    Definition('rabbitmq_password', 'Password', 'printer', SECRET, default=config.RABBIT_MQ_PASSWORD or ''),
-    Definition('print_queue', 'Queue name', 'printer', default=config.PRINT_QUEUE, max_length=100),
+    # Receipt printing
+    Definition('print_on_complete', 'Open the print window when an invoice is completed', 'printing', BOOL, default=True,
+               hint='Switch off if invoices are usually completed on a phone or tablet away from the printers.'),
 
     # Staff and payroll
     Definition('work_start', 'Work starts', 'staff', TIME, default='07:30', max_length=5,

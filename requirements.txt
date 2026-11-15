@@ -35,6 +35,4 @@ pytz==2026.6
 # Production Server
 gunicorn==27.0.0
 
-# External Services (receipt printer queue, SMS gateway)
-pika==1.4.4
 requests==2.34.2

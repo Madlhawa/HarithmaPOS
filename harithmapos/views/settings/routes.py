@@ -1,4 +1,4 @@
-"""The Settings page: business details, email, SMS, receipt printer and general values. Owners only."""
+"""The Settings page: business details, email, SMS, receipt printing and general values. Owners only."""
 import logging
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
@@ -162,14 +162,3 @@ def test_sms():
         flash(f'The test SMS was not sent. {exc}', category='danger')
     return redirect(url_for('settings_blueprint.settings', _anchor='sms'))
 
-
-@settings_blueprint.route('/app/settings/test/printer', methods=['POST'])
-@owner_required
-def test_printer():
-    try:
-        utils.check_printer_connection()
-        flash(f"Connected to RabbitMQ and the queue \"{app_settings.get('print_queue')}\" is ready.",
-              category='success')
-    except utils.ServiceError as exc:
-        flash(f'The printer queue could not be reached. {exc}', category='danger')
-    return redirect(url_for('settings_blueprint.settings', _anchor='printer'))
