@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, rs, plate, status_pill, autocomplete, field, status_steps, payment_choice, totals, paid_history, pay_modal, post_button, doc_badge, void_banner, void_control %}
+{% from 'layout/macros.html' import csrf, rs, plate, status_pill, autocomplete, field, status_steps, payment_choice, totals, paid_history, pay_modal, post_button, doc_badge, void_banner, void_button, void_modal %}
 {% block body %}
 {% set inv = invoice_head %}
 <div class="page-head">
@@ -143,8 +143,9 @@
         <div class="panel-body">{{ totals(inv) }}</div>
     </div>
     {% endif %}
-    {{ void_control(inv, url_for('invoice_blueprint.void_invoice_head', invoice_head_id=inv.id), 'invoice') }}
+    {{ void_button(inv, 'invoice') }}
     </div>
 </div>
 {{ pay_modal(inv, 'payInvoice', url_for('payment_blueprint.pay_invoice', invoice_head_id=inv.id), title='Payment for invoice #' ~ inv.id, refund_action=url_for('payment_blueprint.refund_invoice', invoice_head_id=inv.id)) }}
+{{ void_modal(inv, url_for('invoice_blueprint.void_invoice_head', invoice_head_id=inv.id), 'invoice') }}
 {% endblock %}

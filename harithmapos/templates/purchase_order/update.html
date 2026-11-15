@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs, paid_history, pay_modal, doc_badge, void_banner, void_control %}
+{% from 'layout/macros.html' import csrf, field, autocomplete, post_button, payment_choice, rs, paid_history, pay_modal, doc_badge, void_banner, void_button, void_modal %}
 {% block body %}
 {% set po = purchase_order_head %}
 <div class="page-head">
@@ -101,8 +101,9 @@
             <dl class="totals"><div class="is-total"><dt>Was</dt><dd>{{ rs(po.gross_price) }}</dd></div></dl>
         </div></div>
         {% endif %}
-        {{ void_control(po, url_for('purchase_order_blueprint.void_purchase_order_head', purchase_order_head_id=po.id), 'purchase order') }}
+        {{ void_button(po, 'purchase order') }}
     </div>
 </div>
 {{ pay_modal(po, 'payOrder', url_for('payment_blueprint.pay_purchase_order', purchase_order_head_id=po.id), title='Pay supplier for order #' ~ po.id, verb='Record payment', refund_action=url_for('payment_blueprint.refund_purchase_order', purchase_order_head_id=po.id)) }}
+{{ void_modal(po, url_for('purchase_order_blueprint.void_purchase_order_head', purchase_order_head_id=po.id), 'purchase order') }}
 {% endblock %}

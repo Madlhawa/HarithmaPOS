@@ -327,12 +327,19 @@
 {% endif %}
 {%- endmacro %}
 
-{# Owners: void a draft or completed document (with a reason). Goes outside any other form. #}
-{% macro void_control(head, action, noun) -%}
+{# Owners: void a draft or completed document (with a reason).
+   void_button() goes where the button should be; void_modal() goes at the end of the page, outside the
+   sticky side column: a pop-up inside it would sit under the page's dimmed backdrop and not take clicks. #}
+{% macro void_button(head, noun) -%}
 {% if is_owner() and not head.is_void %}
 <div class="text-end">
     <button type="button" class="btn btn-danger-quiet btn-sm" data-bs-toggle="modal" data-bs-target="#voidModal">Void this {{ noun }}</button>
 </div>
+{% endif %}
+{%- endmacro %}
+
+{% macro void_modal(head, action, noun) -%}
+{% if is_owner() and not head.is_void %}
 {% call modal('voidModal', 'Void ' ~ noun ~ ' #' ~ head.id) %}
 <form method="post" action="{{ action }}">
     {{ csrf() }}

@@ -209,3 +209,43 @@ def test_customer_link_to_a_voided_visit(app, owner, ids):
         token = db.session.get(InvoiceHead, ids['inv']).get_customer_view_token()
     response = owner.get(f'/invoice/{token}')
     assert response.status_code == 404 and 'cancelled' in response.get_data(as_text=True)
+
+
+def _ancestors_classes(html, element_id):
+    """Classes of every element enclosing the one with this id (a tiny parser; no extra packages)."""
+    from html.parser import HTMLParser
+    void = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'}
+
+    class Finder(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.stack, self.found = [], None
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if attrs.get('id') == element_id and self.found is None:
+                self.found = [c for _, c in self.stack]
+            if tag not in void:
+                self.stack.append((tag, attrs.get('class') or ''))
+
+        def handle_endtag(self, tag):
+            for i in range(len(self.stack) - 1, -1, -1):
+                if self.stack[i][0] == tag:
+                    del self.stack[i:]
+                    break
+
+    finder = Finder()
+    finder.feed(html)
+    return finder.found
+
+
+def test_void_popup_is_not_inside_the_sticky_side_column(app, owner, ids):
+    """A pop-up inside .job-side sits under Bootstrap's backdrop and can't be clicked."""
+    _add(owner, ids)
+    owner.post(f"/app/item_invoice/detail/add/{ids['sale']}", data={'item_id': ids['item'], 'quantity': '1'})
+    for url in (f"/app/invoice/head/{ids['inv']}", f"/app/item_invoice/head/{ids['sale']}",
+                f"/app/purchase_order/head/{ids['po']}"):
+        html = owner.get(url).get_data(as_text=True)
+        classes = _ancestors_classes(html, 'voidModal')
+        assert classes is not None, url
+        assert not any('job-side' in c or 'job' in c.split() for c in classes), (url, classes)
