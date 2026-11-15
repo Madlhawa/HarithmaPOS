@@ -217,7 +217,8 @@
                 <div class="fl-field">
                     <label class="form-label" for="fl-requests">What the customer asked for <span class="text-muted">optional</span></label>
                     <textarea class="form-control" id="fl-requests" name="requests" rows="3" maxlength="3000"
-                              placeholder="One per line, for example:&#10;Full wash and vacuum&#10;Check the AC smell"></textarea>
+                              placeholder="Full wash and vacuum&#10;Check the AC smell" aria-describedby="fl-requests-hint"></textarea>
+                    <div class="form-hint" id="fl-requests-hint">One request per line.</div>
                 </div>
             </div>
             <div class="modal-footer">
