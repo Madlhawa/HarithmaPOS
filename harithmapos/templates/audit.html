@@ -1,0 +1,54 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import pager, search_box %}
+{% block body %}
+<div class="page-head">
+    <div><h1>Audit log</h1><p>Every change to prices, discounts, payments, pay, user roles and settings: who made it, when, and what it was before.</p></div>
+</div>
+<div class="toolbar">
+    <div class="filter-tabs">
+        {% for key, label in categories %}
+        <a href="{{ url_for('audit_blueprint.audit_log', category=key or none, user=user_id or none, query=query or none) }}" class="{{ 'active' if category == key }}">{{ label }}</a>
+        {% endfor %}
+    </div>
+    {{ search_box('Search: invoice #, item, amount', query, hidden={'category': category, 'user': user_id}) }}
+    <form method="get" class="audit-user">
+        {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+        {% if query %}<input type="hidden" name="query" value="{{ query }}">{% endif %}
+        <label class="visually-hidden" for="audit-user">Changed by</label>
+        <select class="form-select" id="audit-user" name="user" onchange="this.form.submit()">
+            <option value="">Anyone</option>
+            {% for u in users %}<option value="{{ u.id }}" {{ 'selected' if user_id == u.id }}>{{ u.name }}</option>{% endfor %}
+        </select>
+    </form>
+</div>
+<div class="panel">
+    {% if rows.items %}
+    <div class="table-responsive">
+    <table class="table table-list">
+        <thead><tr><th>When</th><th>Who</th><th>What</th><th>Change</th></tr></thead>
+        <tbody>
+        {% for r in rows.items %}
+        {% set href = link_for(r) %}
+        <tr>
+            <td class="nowrap">{{ r.created_dttm|local_dt('%d %b %Y, %I:%M %p') }}</td>
+            <td class="nowrap">{{ r.user.name if r.user else 'System' }}</td>
+            <td>
+                <div class="cell-main">{% if href %}<a href="{{ href }}">{{ r.label }}</a>{% else %}{{ r.label }}{% endif %}</div>
+                {% if r.field %}<div class="cell-sub">{{ r.field }}</div>{% endif %}
+            </td>
+            <td class="audit-change">
+                {% if r.action == 'created' %}<span class="audit-tag is-new">Added</span> {{ r.new_value or '' }}
+                {% elif r.action == 'deleted' %}<span class="audit-tag is-gone">Deleted</span> {{ r.old_value or '' }}
+                {% else %}<span class="audit-old">{{ r.old_value if r.old_value else '(empty)' }}</span> <i class="bi bi-arrow-right" aria-label="changed to"></i> <b>{{ r.new_value if r.new_value else '(empty)' }}</b>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {{ pager(rows, 'audit_blueprint.audit_log', 'changes', category=category or none, user=user_id or none, query=query or none) }}
+    {% else %}
+    <div class="empty"><i class="bi bi-journal-check" aria-hidden="true"></i><h3>Nothing recorded{{ ' here' if category or query or user_id }} yet</h3><p class="mb-0">Changes to prices, discounts, payments, pay, user roles and settings appear here as they are made.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

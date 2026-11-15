@@ -23,7 +23,7 @@ This guide explains every page, button and field. If you are new, read **Getting
 11. [Suppliers](#11-suppliers)
 12. [Staff: attendance, payroll, advances, employees](#12-staff)
 13. [Reports: Sales and Staff](#13-reports-sales)
-14. [Setup: wash bays, users, settings](#14-setup)
+14. [Setup: wash bays, users, settings, audit log](#14-setup)
 15. [Your account](#15-your-account)
 16. [What customers see](#16-what-customers-see)
 17. [How money and stock are worked out](#17-how-money-and-stock-are-worked-out)
@@ -692,6 +692,23 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 - **Complete and print receipt** opens the print window straight away; so does **Print** on an invoice. Choose the printer and press **Print**. Chrome remembers the last printer chosen, so check it when switching between a service invoice and an item sale.
 - In the print window, under *More settings*, set **Margins** to *Default* and turn off **Headers and footers** once; Chrome remembers both.
 - Invoices completed on a phone open the print window on that phone. Reprint from the counter computer with **Print**, or switch the window off in Settings.
+
+### Audit log
+
+*Menu → Setup → Audit log* (owners only). A record of every change to money and access: who made it, when, and what it was before.
+
+| Tab | What is recorded |
+|---|---|
+| **Prices** | An item's price, cost, discount % or name changed; items added (with their price) or deleted. |
+| **Discounts** | Bill discounts on service invoices and item sales, discount % on purchase orders, and extra discounts on lines (when added or changed). |
+| **Payments** | Payments added, and any change to their amount, method, direction, type, link or note. |
+| **Deletions** | Anything deleted: invoices, item sales, purchase orders, their lines, payments, items, employees, users and salary advances, with what they held. |
+| **Staff and pay** | An employee's pay rate, monthly/daily, EPF or active status; salary advances; allowances and other deductions on payslips. |
+| **Users and settings** | User roles, active status and email; every Settings change. Passwords and API keys show only as *(hidden)*. |
+
+- Each row shows when, who (*System* for changes made by the server itself), what (a link opens it while it still exists), and the change: the old value struck through and the new one in bold.
+- Search by invoice number, item name or amount, and pick one person under **Anyone** to see only their changes.
+- Rows can't be edited or deleted from the app. Changes made before 15 November 2026 were not recorded.
 
 ---
 

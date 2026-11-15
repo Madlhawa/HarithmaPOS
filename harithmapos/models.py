@@ -508,3 +508,26 @@ class UserActivityDay(db.Model):
     day = db.Column(db.Date, nullable=False, index=True)
     requests = db.Column(db.Integer, nullable=False, default=1)
     __table_args__ = (db.UniqueConstraint('user_id', 'day', name='uq_user_activity_day'),)
+
+
+class AuditLog(db.Model):
+    """Who changed a price, discount, payment, pay rate, role or setting, when, and from what to what.
+
+    Rows are written by harithmapos/audit.py whenever such a change is saved.
+    """
+    __tablename__ = 'audit_log'
+    id = db.Column(db.Integer, primary_key=True)
+    created_dttm = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    category = db.Column(db.String(20), nullable=False, index=True)   # prices, discounts, payments, staff, access
+    action = db.Column(db.String(10), nullable=False)                  # created, changed, deleted
+    entity = db.Column(db.String(30), nullable=False)
+    entity_id = db.Column(db.Integer)
+    link_entity = db.Column(db.String(30))                             # the page to open for it
+    link_id = db.Column(db.Integer)
+    label = db.Column(db.String(200), nullable=False)
+    field = db.Column(db.String(60))
+    old_value = db.Column(db.String(255))
+    new_value = db.Column(db.String(255))
+    path = db.Column(db.String(120))
+    user = db.relationship('User')

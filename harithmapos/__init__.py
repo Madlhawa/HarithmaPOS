@@ -39,6 +39,8 @@ def create_app(Config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
+    import harithmapos.audit  # noqa: F401  (records price, discount, payment and similar changes)
+
     from harithmapos.template_helpers import register_template_helpers
     register_template_helpers(app)
 
@@ -65,6 +67,7 @@ def create_app(Config_class=Config):
     from harithmapos.views.staff.routes import staff_blueprint
     from harithmapos.views.floor.routes import floor_blueprint
     from harithmapos.views.dev.routes import dev_blueprint
+    from harithmapos.views.audit.routes import audit_blueprint
 
     app.register_blueprint(error_blueprint)
     app.register_blueprint(user_blueprint)
@@ -85,5 +88,6 @@ def create_app(Config_class=Config):
     app.register_blueprint(staff_blueprint)
     app.register_blueprint(floor_blueprint)
     app.register_blueprint(dev_blueprint)
+    app.register_blueprint(audit_blueprint)
 
     return app
