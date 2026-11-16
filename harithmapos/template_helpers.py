@@ -136,7 +136,7 @@ def register_template_helpers(app):
         is_owner=user_is_owner,
         is_developer=user_is_developer,
         # Change this when app.css / app.js change so browsers fetch the new files.
-        ASSET_VERSION='26',
+        ASSET_VERSION='27',
     )
 
     @app.context_processor

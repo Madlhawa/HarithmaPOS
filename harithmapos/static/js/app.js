@@ -555,8 +555,9 @@
         settle(fresh);
         if (refocusNext) {
             refocusNext = false;
-            var first = fresh.querySelector('[autofocus]');
-            if (first) { first.focus(); }
+            // Back to the item search, ready for the next line without the mouse.
+            var first = fresh.querySelector('form[data-entry] [data-autofocus]');
+            if (first) { first.focus(); first.select(); }
         }
     });
 

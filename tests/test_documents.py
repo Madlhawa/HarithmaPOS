@@ -249,3 +249,16 @@ def test_void_popup_is_not_inside_the_sticky_side_column(app, owner, ids):
         classes = _ancestors_classes(html, 'voidModal')
         assert classes is not None, url
         assert not any('job-side' in c or 'job' in c.split() for c in classes), (url, classes)
+
+
+def test_item_search_gets_the_cursor_back_after_a_line_is_added():
+    """app.js puts the cursor back in the entry form's search box after an add;
+    the selector must match what the autocomplete macro actually renders."""
+    import pathlib
+    import re
+    js = (pathlib.Path(__file__).resolve().parents[1] / 'harithmapos/static/js/app.js').read_text()
+    assert "querySelector('form[data-entry] [data-autofocus]')" in js
+    macros = (pathlib.Path(__file__).resolve().parents[1] / 'harithmapos/templates/layout/macros.html').read_text()
+    assert re.search(r'autofocus %\}data-autofocus', macros)
+    lines = (pathlib.Path(__file__).resolve().parents[1] / 'harithmapos/templates/invoice/_lines.html').read_text()
+    assert 'data-entry' in lines and 'autofocus=true' in lines
