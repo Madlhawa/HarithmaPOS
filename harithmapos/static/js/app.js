@@ -615,6 +615,28 @@
     }
 
     /* ---------------------------------------------------------------------
+     * Idle sign-out on shared computers (<body data-idle-seconds>).
+     * The server signs the session out after that long without a request;
+     * this reloads the page just after, so the screen goes back to sign-in
+     * instead of showing the last person's work. Live-update refreshes are
+     * not activity (the server ignores them too).
+     * ------------------------------------------------------------------- */
+    function startIdleSignout() {
+        var limit = Number(document.body.dataset.idleSeconds || 0);
+        if (!limit) { return; }
+        var timer = null;
+        function arm() {
+            clearTimeout(timer);
+            timer = setTimeout(function () { window.location.reload(); }, (limit + 5) * 1000);
+        }
+        document.addEventListener('htmx:afterRequest', function (event) {
+            var headers = (event.detail.requestConfig || {}).headers || {};
+            if (headers['X-Live-Refresh'] !== '1') { arm(); }
+        });
+        arm();
+    }
+
+    /* ---------------------------------------------------------------------
      * Start-up
      * ------------------------------------------------------------------- */
     function start() {
@@ -644,6 +666,14 @@
         });
 
         startLive();
+        startIdleSignout();
+
+        // Tidy the address bar after an automatic reload (see below).
+        if (/[?&]_auto=1/.test(window.location.search) && window.history && window.history.replaceState) {
+            var clean = new URL(window.location.href);
+            clean.searchParams.delete('_auto');
+            window.history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+        }
 
         // Pages left open all day: a quiet full reload as a safety net, skipped while live updates are working.
         var refresh = Number(document.body.dataset.autoRefresh || 0);
@@ -652,7 +682,11 @@
                 var busy = live.ok || printing || document.querySelector('.modal.show') ||
                     document.hidden ||
                     /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
-                if (!busy) { window.location.reload(); }
+                if (busy) { return; }
+                // Marked as automatic, so it doesn't count as someone using the page (idle sign-out).
+                var url = new URL(window.location.href);
+                url.searchParams.set('_auto', '1');
+                window.location.replace(url.toString());
             }, refresh * 1000);
         }
     }

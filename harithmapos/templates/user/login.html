@@ -18,6 +18,7 @@
         <div class="form-check">{{ form.remember(class='form-check-input') }} {{ form.remember.label(class='form-check-label') }}</div>
         <a href="{{ url_for('user_blueprint.reset_request') }}">Forgot password?</a>
     </div>
+    <p class="form-hint mt-n2 mb-3">Tick only on your own phone or computer. On a shared computer, leave it unticked: you are signed out when the browser closes or after a while with nothing done.</p>
     <button type="submit" class="btn btn-primary btn-lg w-100">Sign in</button>
 </form>
 {% endblock %}

@@ -592,7 +592,7 @@ class LoginEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     email = db.Column(db.String(120))            # as typed, so failed attempts on unknown emails show too
-    outcome = db.Column(db.String(20), nullable=False)   # ok, bad_password, unknown_email, switched_off, logout
+    outcome = db.Column(db.String(20), nullable=False)   # ok, bad_password, unknown_email, switched_off, logout, timeout
     ip = db.Column(db.String(45))
     user_agent = db.Column(db.String(200))
     created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow, index=True)

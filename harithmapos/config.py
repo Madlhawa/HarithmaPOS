@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 
 def _env_bool(name, default=False):
@@ -28,6 +29,9 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = 'Lax'
+    # "Keep me signed in" lasts 30 days (Flask-Login's default is a year).
+    # Shared computers leave it unticked and sign out when idle: see sessions.py.
+    REMEMBER_COOKIE_DURATION = timedelta(days=30)
     # Set HARITHMA_COOKIE_SECURE=true in .env once the site is served over HTTPS.
     SESSION_COOKIE_SECURE = _env_bool('HARITHMA_COOKIE_SECURE')
     REMEMBER_COOKIE_SECURE = _env_bool('HARITHMA_COOKIE_SECURE')

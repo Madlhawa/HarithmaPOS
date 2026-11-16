@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Sign-in duration.** "Keep me signed in" lasts 30 days (it was a year) and is for your own phone or computer. Without it (the counter PC), the sign-in ends when the browser closes or after an hour with nothing done, and the screen goes back to sign-in by itself; the hour is set in Settings → General (0 = never). Live board updates don't count as activity. |
 | 16 Nov 2026 | **Sign-in emails ignore case.** `Owner@x.com` and `owner@x.com` are one account: emails are stored in lower case (a database check enforces it), and sign-in, password reset, adding and editing users all ignore case and stray spaces. |
 | 16 Nov 2026 | **Old database helper removed.** `utils/database.py` (which "repaired" id sequences after any failed insert and printed to the console) is gone; records are saved with plain inserts. Adding a customer, vehicle and job together from the floor board or the counter now saves all of them or none. `flask create-user` makes an owner by default (`--role staff` for counter staff). |
 | 16 Nov 2026 | **Keyboard-only item entry.** After a line is added on a service invoice or item sale, the cursor goes straight back to the item search. |
@@ -80,7 +81,6 @@ What is already right: CSRF on every form, role checks on every route, secure an
 | Reset links can be reused | A password reset link keeps working for its whole 30 minutes, even after use. Tie the token to the current password hash so it dies once used. | S |
 | Sign out other devices | Changing or resetting a password should end every other session (Flask-Login session protection plus a per-user session version). | S |
 | Account lockout | nginx limits attempts per IP address, but nothing limits attempts per account. Lock an account for a few minutes after repeated failures, and tell the owner. | S |
-| Shorter "keep me signed in" | It lasts a year (the library default). Set 30 days, and an idle timeout for counter PCs that are shared. | S |
 | Content-Security-Policy | The other security headers are set; this one isn't. Add a policy that allows only the app's own scripts. | S |
 | Serve Bootstrap, htmx and fonts locally | They load from public CDNs; the Bootstrap Icons stylesheet has no integrity hash. Serving them from the app removes the outside dependency. | S |
 | SMS API key in the URL | notify.lk is called with GET, so the key sits in the request URL and can end up in logs. Use POST if their API allows it. | S |

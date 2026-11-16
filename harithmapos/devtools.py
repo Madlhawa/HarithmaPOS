@@ -27,6 +27,7 @@ OUTCOMES = {
     'bad_password': ('Wrong password', 'bad'),
     'unknown_email': ('Unknown email', 'bad'),
     'switched_off': ('Account switched off', 'warn'),
+    'timeout': ('Signed out (idle)', 'muted'),
 }
 
 

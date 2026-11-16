@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from harithmapos import db, bcrypt, config
 from harithmapos.models import User
 from harithmapos.activity import record_login
+from harithmapos import sessions
 from harithmapos.timeutils import utcnow
 from harithmapos.views.utils import save_image, send_reset_email, is_safe_redirect_target
 from harithmapos.views.user.forms import (
@@ -59,6 +60,7 @@ def login():
                 flash('This account has been switched off. Ask an owner to switch it back on.', category='warning')
                 return render_template('user/login.html', title='Sign in', form=form)
             login_user(user, remember=form.remember.data)
+            sessions.start(remember=form.remember.data)
             record_login('ok', user)
             next_page = request.args.get('next')
             if is_safe_redirect_target(next_page):

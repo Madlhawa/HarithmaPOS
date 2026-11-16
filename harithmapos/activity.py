@@ -24,7 +24,7 @@ def _client():
 
 
 def record_login(outcome, user=None, email=None):
-    """outcome: ok, bad_password, unknown_email, switched_off or logout."""
+    """outcome: ok, bad_password, unknown_email, switched_off, logout or timeout."""
     from harithmapos.models import LoginEvent
     try:
         ip, agent = _client()

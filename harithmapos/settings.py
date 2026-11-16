@@ -120,6 +120,10 @@ DEFINITIONS = [
     # General
     Definition('low_stock_threshold', 'Running low at', 'general', INT, default=config.LOW_STOCK_THRESHOLD,
                min_value=0, max_value=100000, hint='Stock items at or below this quantity are flagged as running low.'),
+    Definition('idle_signout_minutes', 'Sign out shared computers after (minutes idle)', 'general', INT,
+               default=60, min_value=0, max_value=24 * 60,
+               hint='For sign-ins without "Keep me signed in": after this long with no page opened or button '
+                    'pressed, the screen goes back to sign-in. 0 = never.'),
     Definition('customer_link_hours', 'Customer status link works for (hours)', 'general', INT,
                default=config.CUSTOMER_LINK_MAX_AGE_SECONDS // 3600, min_value=1, max_value=24 * 30,
                hint='How long the link in the "service started" SMS keeps working.'),

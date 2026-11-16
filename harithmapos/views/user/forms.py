@@ -53,7 +53,7 @@ class UserRegisterForm(FlaskForm):
 class UserLoginForm(FlaskForm):
     email = StringField("Email", filters=[normalize_email], validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
-    remember = BooleanField("Keep me signed in")
+    remember = BooleanField("Keep me signed in for 30 days")
     submit = SubmitField('Sign in')
 
 

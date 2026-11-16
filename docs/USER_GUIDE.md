@@ -42,7 +42,7 @@ Open **https://harithma.lk** and click **Staff sign in** (top right), or go stra
 |---|---|
 | Email | The email address your owner set up for you. |
 | Password | Your password (at least 8 characters). |
-| Keep me signed in | Tick on the counter computer so you stay signed in. Leave unticked on a shared or public computer. |
+| Keep me signed in for 30 days | Tick only on your own phone or computer: you stay signed in for 30 days. Leave it unticked on the counter computer and any other shared one: you are signed out when the browser closes, or after an hour with no page opened or button pressed (owners change the hour in Settings → General; 0 switches it off). The screen then goes back to sign-in by itself. |
 
 **Forgot password?** Click it on the sign-in page, enter your email and press **Send reset link**. The email has a link that works for 30 minutes; it opens **Set a new password**, where you type the new password twice.
 

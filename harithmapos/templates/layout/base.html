@@ -18,7 +18,7 @@
     <meta name="htmx-config" content='{"historyCacheSize": 0, "includeIndicatorStyles": false, "allowScriptTags": false}'>
     {% block head %}{% endblock %}
 </head>
-<body data-currency="{{ CURRENCY }}" {% block body_attrs %}{% endblock %}>
+<body data-currency="{{ CURRENCY }}" {% if idle_limit_seconds() %}data-idle-seconds="{{ idle_limit_seconds() }}" {% endif %}{% block body_attrs %}{% endblock %}>
 {% block shell %}
 {% set ep = request.endpoint or '' %}
 {% macro nav_link(endpoint, icon, label, active) -%}

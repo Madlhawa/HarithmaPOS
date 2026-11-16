@@ -68,6 +68,8 @@ def create_app(Config_class=Config):
 
     from harithmapos.activity import configure_logging, touch_current_user
     configure_logging(app)
+    from harithmapos import sessions
+    sessions.register(app)   # idle sign-out runs first, before activity is recorded
     app.before_request(touch_current_user)
 
     from harithmapos.views.error.handlers import error_blueprint
