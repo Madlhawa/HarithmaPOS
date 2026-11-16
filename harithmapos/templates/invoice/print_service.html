@@ -63,9 +63,9 @@
         {% for d in details %}
         <tr>
             <td>{{ loop.index }}</td>
-            <td>{{ d.item.name }}</td>
+            <td>{{ d.item_name }}</td>
             <td class="n">{{ d.quantity|qty }}</td>
-            <td class="n">{{ (d.total_price / d.quantity if d.quantity else 0)|money }}</td>
+            <td class="n">{{ d.unit_price|money }}</td>
             <td class="n">{{ d.discount_amount|money if (d.discount_amount or 0) > 0 else '' }}</td>
             <td class="n">{{ d.gross_price|money }}</td>
         </tr>

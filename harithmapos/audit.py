@@ -54,6 +54,8 @@ def _name(obj, rel, attr='name'):
 
 def _item_name(line):
     """The item on an invoice or order line, also for a line that is not saved yet."""
+    if getattr(line, 'item_name', None):
+        return line.item_name          # the name it was sold under
     name = _name(line, 'item')
     if name or not getattr(line, 'item_id', None):
         return name

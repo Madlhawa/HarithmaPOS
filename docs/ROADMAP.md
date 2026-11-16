@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Lines keep the item as sold.** Each line on a service invoice, item sale or purchase order stores the item's name, unit cost, unit price and automatic discount from when it was added. Renaming or repricing an item never changes an existing invoice or its prints, and +/- on a draft line keeps the price it was added at; only new lines take the new price. |
 | 16 Nov 2026 | **Lines and stock in their own modules.** Adding, removing and changing lines on invoices, item sales and purchase orders, with their stock movements and totals, now live in `lines.py`; every stock change goes through `stock.py`, which locks the item's row first so two counters can't lose a sale; the job stage and its history are in `job_status.py`. The invoice routes went from 865 to about 710 lines and only read forms and show results. No change to how the screens work. |
 | 16 Nov 2026 | **Sign-in duration.** "Keep me signed in" lasts 30 days (it was a year) and is for your own phone or computer. Without it (the counter PC), the sign-in ends when the browser closes or after an hour with nothing done, and the screen goes back to sign-in by itself; the hour is set in Settings → General (0 = never). Live board updates don't count as activity. |
 | 16 Nov 2026 | **Sign-in emails ignore case.** `Owner@x.com` and `owner@x.com` are one account: emails are stored in lower case (a database check enforces it), and sign-in, password reset, adding and editing users all ignore case and stray spaces. |
@@ -96,7 +97,6 @@ What is already right: CSRF on every form, role checks on every route, secure an
 
 | Item | What to do | Effort |
 |---|---|---|
-| Lines keep the item as sold | Invoice lines store totals and a link to the item, so renaming an item changes how old bills print. Copy the item name and unit price onto each line when it is added. | S |
 | Unique plates and phones | Two vehicles can have the same plate and two customers the same phone. Normalise and make them unique (or warn on duplicates first, then enforce). | S |
 | Queue without a bay or employee | A service invoice must have a wash bay and an employee at the database level, even while the vehicle waits in the queue. Allow them to be empty until work starts. | S |
 | Archive instead of delete | Customers, items, suppliers and employees are hard-deleted. Give them an *archived* state, as invoices now have *void*. | M |

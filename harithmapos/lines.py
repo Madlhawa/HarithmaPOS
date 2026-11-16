@@ -11,6 +11,9 @@ the form, call one of these and show the result.
     its quantity undoes exactly that.
   * The head's totals always equal the sum of its lines (billing.py has the
     arithmetic and the rounding).
+  * A line keeps the item's name, cost, price and automatic discount as they
+    were when it was added (models.SoldAs). Changing the item later, or +/- on
+    a draft line, never reprices it.
 
 Nothing here commits: the caller does. Problems the person can fix raise
 documents.DocumentError or stock.StockError, with a message safe to show.
@@ -76,23 +79,20 @@ def _touch(document):
 # ---------------------------------------------------------------------------
 
 def set_sale_amounts(line, extra_discount=None):
-    """Fill a sale line's cost, price and discounts from its item and quantity."""
+    """Fill a sale line's totals and discounts from its own unit prices and quantity."""
     if extra_discount is None:
         extra_discount = line.additional_discount
-    amounts = line_amounts(line.quantity, line.item.unit_cost, line.item.unit_price,
-                           line.item.discount_pct, extra_discount)
+    amounts = line_amounts(line.quantity, line.unit_cost, line.unit_price,
+                           line.discount_pct, extra_discount)
     for key, value in amounts.items():
         setattr(line, key, value)
 
 
 def _set_purchase_quantity(line, quantity):
     """A purchase line keeps its own unit cost and price when its quantity changes."""
-    old = to_decimal(line.quantity)
-    unit_cost = to_decimal(line.total_cost) / old
-    unit_price = to_decimal(line.total_price) / old
     line.quantity = quantity
-    line.total_cost = money(unit_cost * quantity)
-    line.total_price = money(unit_price * quantity)
+    line.total_cost = money(to_decimal(line.unit_cost) * quantity)
+    line.total_price = money(to_decimal(line.unit_price) * quantity)
 
 
 # ---------------------------------------------------------------------------
@@ -107,8 +107,10 @@ def add_sale_line(document, item, quantity, extra_discount=0):
         raise DocumentError("Enter a quantity above zero.")
     stock.take(item, quantity)
     line_model = LINES[type(document)][0]
-    line = line_model(item_id=item.id, quantity=quantity,
-                      **line_amounts(quantity, item.unit_cost, item.unit_price, item.discount_pct, extra_discount))
+    line = line_model(item_id=item.id, quantity=quantity, item_name=item.name,
+                      unit_cost=money(to_decimal(item.unit_cost)), unit_price=money(to_decimal(item.unit_price)),
+                      discount_pct=to_decimal(item.discount_pct))
+    set_sale_amounts(line, extra_discount)
     setattr(line, HEAD_FIELD[type(document)], document.id)
     db.session.add(line)
     _touch(document)
@@ -129,11 +131,11 @@ def add_purchase_line(order, item, quantity, unit_cost=None):
     # Remember what the item costs now, so profit on later sales is right.
     item.unit_cost = money(unit_cost)
     line = LINES[PurchaseOrderHead][0](
-        purchase_order_head_id=order.id, item_id=item.id, quantity=quantity,
-        total_cost=money(unit_cost * quantity),
-        total_price=money(to_decimal(item.unit_price) * quantity),
+        purchase_order_head_id=order.id, item_id=item.id, quantity=quantity, item_name=item.name,
+        unit_cost=money(unit_cost), unit_price=money(to_decimal(item.unit_price)),
         discount_pct=0,
     )
+    _set_purchase_quantity(line, quantity)
     db.session.add(line)
     _touch(order)
     return line

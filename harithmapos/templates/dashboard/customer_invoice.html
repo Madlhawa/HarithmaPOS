@@ -37,7 +37,7 @@
             <tbody>
             {% for d in invoice_details %}
             <tr>
-                <td>{{ d.item.name }}{% if d.quantity != 1 %} <span class="text-muted">x {{ d.quantity|qty }}</span>{% endif %}
+                <td>{{ d.item_name }}{% if d.quantity != 1 %} <span class="text-muted">x {{ d.quantity|qty }}</span>{% endif %}
                     {% if (d.discount_amount or 0) > 0 %}<div class="line-discount">Discount -{{ d.discount_amount|money }}</div>{% endif %}</td>
                 <td class="num">{{ d.total_price|money }}</td>
             </tr>

@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from flask_login import UserMixin
 from flask import current_app
-from sqlalchemy import CheckConstraint, case, func, select, type_coerce
+from sqlalchemy import CheckConstraint, case, event, func, select, type_coerce
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import column_property, declared_attr, validates
 from harithmapos.textutils import normalize_email
@@ -190,7 +190,19 @@ class PurchaseOrderHead(DocumentState, db.Model):
         return _balance(self)
 
 
-class PurchaseOrderDetail(db.Model):
+class SoldAs:
+    """What a line's item was called and cost when it went on the document.
+
+    Copied from the item when the line is added, so renaming an item or
+    changing its price later never changes an invoice or order already made.
+    A draft's +/- keeps these too: only a new line takes today's price.
+    """
+    item_name = db.Column(db.String(100), nullable=False)
+    unit_cost = db.Column(db.Numeric(10,2), nullable=False)
+    unit_price = db.Column(db.Numeric(10,2), nullable=False)
+
+
+class PurchaseOrderDetail(SoldAs, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     purchase_order_head_id = db.Column(db.Integer, db.ForeignKey('purchase_order_head.id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
@@ -233,7 +245,7 @@ class ItemInvoiceHead(DocumentState, db.Model):
         return _balance(self)
 
 
-class ItemInvoiceDetail(db.Model):
+class ItemInvoiceDetail(SoldAs, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_invoice_head_id = db.Column(db.Integer, db.ForeignKey('item_invoice_head.id'))
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
@@ -241,6 +253,7 @@ class ItemInvoiceDetail(db.Model):
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
     total_price = db.Column(db.Numeric(10,2), nullable=False)
     discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
+    discount_pct = db.Column(db.Numeric(5,2), nullable=False, default=0)  # the item's automatic discount when sold
     additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
     created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
@@ -318,7 +331,7 @@ class InvoiceHead(DocumentState, db.Model):
         return cls.service_status.in_([1, 2])
 
 
-class InvoiceDetail(db.Model):
+class InvoiceDetail(SoldAs, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_head_id = db.Column(db.Integer, db.ForeignKey('invoice_head.id'))
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
@@ -326,6 +339,7 @@ class InvoiceDetail(db.Model):
     total_cost = db.Column(db.Numeric(10,2), nullable=False)
     total_price = db.Column(db.Numeric(10,2), nullable=False)
     discount_amount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Total discount (auto + additional)
+    discount_pct = db.Column(db.Numeric(5,2), nullable=False, default=0)  # the item's automatic discount when sold
     additional_discount = db.Column(db.Numeric(10,2), nullable=False, default=0)  # Manual additional discount
     gross_price = db.Column(db.Numeric(10,2), nullable=False)
     created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
@@ -629,3 +643,17 @@ class AuditLog(db.Model):
     new_value = db.Column(db.String(255))
     path = db.Column(db.String(120))
     user = db.relationship('User')
+
+
+@event.listens_for(SoldAs, 'before_insert', propagate=True)
+def _fill_sold_as(mapper, connection, line):
+    """A line saved without its sold-as values takes them from the item (and its own totals)."""
+    if line.item_name is None or line.unit_price is None or line.unit_cost is None:
+        item = db.session.get(Item, line.item_id) if line.item_id is not None else None
+        quantity = Decimal(str(line.quantity or 0))
+        if line.item_name is None:
+            line.item_name = item.name if item is not None else f'Item {line.item_id}'
+        if line.unit_price is None:
+            line.unit_price = (Decimal(str(line.total_price or 0)) / quantity).quantize(Decimal('0.01')) if quantity else 0
+        if line.unit_cost is None:
+            line.unit_cost = (Decimal(str(line.total_cost or 0)) / quantity).quantize(Decimal('0.01')) if quantity else 0

@@ -35,15 +35,15 @@
             <tbody>
             {% for d in purchase_order_details %}
             <tr>
-                <td class="cell-main">{{ d.item.name }}</td>
+                <td class="cell-main">{{ d.item_name }}</td>
                 <td class="text-center"><span class="qty-stepper">
                     {% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.decrease_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='dash', cls='btn btn-quiet btn-sm btn-icon', title='One less') }}{% endif %}
                     <span class="qty">{{ d.quantity|qty }}</span>
                     {% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.increase_quantity_purchase_order_detail', purchase_order_detail_id=d.id), icon='plus', cls='btn btn-quiet btn-sm btn-icon', title='One more') }}{% endif %}
                 </span></td>
-                <td class="num">{{ (d.total_cost / d.quantity if d.quantity else 0)|money }}</td>
+                <td class="num">{{ d.unit_cost|money }}</td>
                 <td class="num fw-semibold">{{ d.total_cost|money }}</td>
-                <td class="cell-actions">{% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.delete_purchase_order_detail', purchase_order_detail_id=d.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove ' ~ d.item.name, confirm='Remove ' ~ d.item.name ~ '? Its quantity comes off stock.') }}{% endif %}</td>
+                <td class="cell-actions">{% if po.is_draft %}{{ post_button(url_for('purchase_order_blueprint.delete_purchase_order_detail', purchase_order_detail_id=d.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Remove ' ~ d.item_name, confirm='Remove ' ~ d.item_name ~ '? Its quantity comes off stock.') }}{% endif %}</td>
             </tr>
             {% endfor %}
             </tbody>

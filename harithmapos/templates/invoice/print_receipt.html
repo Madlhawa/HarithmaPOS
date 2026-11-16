@@ -39,8 +39,8 @@
     <hr>
     <table>
         {% for d in details %}
-        <tr><td colspan="2">{{ d.item.name }}</td></tr>
-        <tr><td class="muted">&nbsp;&nbsp;{{ d.quantity|qty }} x {{ (d.total_price / d.quantity if d.quantity else 0)|money }}{% if (d.discount_amount or 0) > 0 %} (-{{ d.discount_amount|money }}){% endif %}</td><td class="n">{{ d.gross_price|money }}</td></tr>
+        <tr><td colspan="2">{{ d.item_name }}</td></tr>
+        <tr><td class="muted">&nbsp;&nbsp;{{ d.quantity|qty }} x {{ d.unit_price|money }}{% if (d.discount_amount or 0) > 0 %} (-{{ d.discount_amount|money }}){% endif %}</td><td class="n">{{ d.gross_price|money }}</td></tr>
         {% endfor %}
     </table>
     <hr>
