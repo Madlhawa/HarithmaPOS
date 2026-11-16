@@ -404,7 +404,7 @@ Customer payments are taken on the invoice (**Complete**, **Record payment**), s
 | **All / Running low / Services** | Filters. *Running low* = stock at or below the level set in Settings. |
 | Pencil / bin *(owners)* | Edit or delete. |
 
-Columns: item (with description and unit), **In stock** (red when low; *Service* for things without stock), cost and margin *(owners only)*, price, and automatic discount.
+Columns: item (with description and unit), **In stock** (red when low; *Service* for things without stock; click the figure to see the item's stock history), cost and margin *(owners only)*, price, and automatic discount.
 
 ### Item form
 
@@ -420,6 +420,10 @@ Columns: item (with description and unit), **In stock** (red when low; *Service*
 | Discount % | Optional automatic discount on every sale, e.g. 10. |
 
 Stock changes automatically: down when added to an invoice or sale, back up when a line is removed or an invoice is cancelled, and up when added to a purchase order. Editing the quantity here sets it directly (use this after a stock count).
+
+### Stock history
+
+*Items → click a stock figure.* Every change to that item's stock, newest first: when, what happened (*Sold*, *Sale taken back*, *Bought in*, *Purchase taken back*, *Voided*, *Stock count*, *Opening stock*), with a link to the invoice, sale or purchase order, the change, the stock left after it, and who did it. A stock count shows the difference between what the system had and what you typed. History starts on 16 November 2026, with each item's stock on that day as its opening stock.
 
 ---
 

@@ -1,0 +1,46 @@
+{% extends 'layout/base.html' %}
+{% from 'layout/macros.html' import pager %}
+{% block body %}
+<div class="page-head">
+    <div>
+        <h1>{{ item.name }}</h1>
+        <p>{% if item.tracks_stock %}{{ item.quantity|qty }}{% if item.unit_of_measure %} {{ item.unit_of_measure }}{% endif %} in stock now.{% else %}A service: no stock is kept.{% endif %} Every change to its stock, newest first.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-quiet" href="{{ url_for('item_blueprint.item', query=item.name) }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Items</a>
+    </div>
+</div>
+<div class="panel">
+    {% if movements.items %}
+    <div class="table-responsive">
+    <table class="table table-list">
+        <thead><tr><th>When</th><th>What</th><th class="num">Change</th><th class="num">In stock after</th><th>By</th></tr></thead>
+        <tbody>
+        {% for m in movements.items %}
+        <tr>
+            <td>{{ m.created_dttm|local_dt }}</td>
+            <td>
+                <div class="cell-main">{{ kinds.get(m.kind, m.kind) }}
+                {% if m.doc_type == 'invoice' %}<a href="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=m.doc_id) }}">invoice #{{ m.doc_id }}</a>
+                {% elif m.doc_type == 'item_sale' %}<a href="{{ url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=m.doc_id) }}">item sale #{{ m.doc_id }}</a>
+                {% elif m.doc_type == 'purchase_order' %}{% if is_owner() %}<a href="{{ url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=m.doc_id) }}">purchase order #{{ m.doc_id }}</a>{% else %}purchase order #{{ m.doc_id }}{% endif %}
+                {% endif %}</div>
+                {% if m.note %}<div class="cell-sub">{{ m.note }}</div>{% endif %}
+            </td>
+            <td class="num {{ 'text-danger' if m.change < 0 }}">{{ '+' if m.change > 0 }}{{ m.change|qty }}</td>
+            <td class="num fw-semibold">{{ m.quantity_after|qty }}</td>
+            <td>{{ m.user.name if m.user else '' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {{ pager(movements, 'item_blueprint.item_stock', 'changes', item_id=item.id) }}
+    {% else %}
+    <div class="empty">
+        <i class="bi bi-clock-history" aria-hidden="true"></i>
+        <h3>No stock changes yet</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

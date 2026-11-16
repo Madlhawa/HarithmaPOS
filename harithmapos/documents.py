@@ -85,7 +85,7 @@ def void(document, reason, user=None):
                             "Refund or reverse those payments first, then void it.")
     _, _, sign = LINES[type(document)]
     for line in lines_of(document):
-        stock.adjust(line.item, -sign * line.quantity)       # undo what adding the line did
+        stock.adjust(line.item, -sign * line.quantity, 'void', document, user=user)   # undo what adding the line did
     document.doc_status = DOC_VOID
     document.voided_dttm = document.update_dttm = utcnow()
     document.voided_by_id = getattr(user, 'id', None)

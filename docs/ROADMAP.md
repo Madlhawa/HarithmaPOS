@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Stock history.** Every change to an item's stock is written down with when, why (sold, sale taken back, bought in, purchase taken back, voided, stock count, opening stock), which invoice or order, who, and the stock left after. Click an item's stock figure on the Items page to see it. Each item's history starts with its stock on 16 Nov, so its quantity always equals the sum of its history. |
 | 16 Nov 2026 | **Lines keep the item as sold.** Each line on a service invoice, item sale or purchase order stores the item's name, unit cost, unit price and automatic discount from when it was added. Renaming or repricing an item never changes an existing invoice or its prints, and +/- on a draft line keeps the price it was added at; only new lines take the new price. |
 | 16 Nov 2026 | **Lines and stock in their own modules.** Adding, removing and changing lines on invoices, item sales and purchase orders, with their stock movements and totals, now live in `lines.py`; every stock change goes through `stock.py`, which locks the item's row first so two counters can't lose a sale; the job stage and its history are in `job_status.py`. The invoice routes went from 865 to about 710 lines and only read forms and show results. No change to how the screens work. |
 | 16 Nov 2026 | **Sign-in duration.** "Keep me signed in" lasts 30 days (it was a year) and is for your own phone or computer. Without it (the counter PC), the sign-in ends when the browser closes or after an hour with nothing done, and the screen goes back to sign-in by itself; the hour is set in Settings → General (0 = never). Live board updates don't count as activity. |
@@ -162,7 +163,6 @@ The sales dashboard is done. Still to do:
 
 | Idea | What it gives | Effort |
 |---|---|---|
-| Stock movement log | Every change to an item's quantity with who, when and why: a ledger for stock, like the payment ledger. The item's quantity becomes the sum of its movements. | M |
 | Adjustments with a reason | Breakage, spills and count corrections recorded separately from sales. | S |
 | Stock take | Enter a physical count; the system shows and records differences. | M |
 | Reorder suggestions | Low items grouped by supplier, turned into a draft purchase order. | M |
@@ -241,8 +241,8 @@ Attendance and payroll are live. Possible follow-ups:
 | Phase | Items |
 |---|---|
 | **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, GitHub cache purge. |
-| **Then** (~1–2 weeks) | Tests on PostgreSQL, stock race, edit conflicts, indexes, error tracker, health check, backup restore test, the small security items (1a), lines keep the item as sold. |
-| **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export, stock movement log. |
+| **Then** (~1–2 weeks) | Tests on PostgreSQL, stock race, edit conflicts, indexes, error tracker, health check, backup restore test, the small security items (1a) |
+| **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export. |
 | **Soon after** | PostgreSQL and Python upgrade, background jobs, staging copy, browser tests, linting and coverage, unique plates and phones, archive instead of delete, gapless invoice numbers. |
 | **Later** | Packages and vehicle-type pricing, split payments and cash-up, staff clock-in and leave requests, loyalty and feedback, bookings and queue screen. |
 

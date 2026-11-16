@@ -363,6 +363,34 @@ class Employee(db.Model):
     payments = db.relationship('Payment', backref='employee', lazy=True)
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='employee', lazy=True)
 
+class StockMovement(db.Model):
+    """One change to an item's stock. Append-only: the item's quantity is the sum of these.
+
+    item.quantity is kept as the running balance (so pages stay fast);
+    quantity_after is the balance right after this movement, and stock.py
+    writes both in the same transaction. A wrong movement is never edited:
+    another one corrects it.
+    """
+    __table_args__ = (
+        CheckConstraint("kind IN ('opening', 'count', 'sale', 'sale_undo', 'purchase', 'purchase_undo', 'void')",
+                        name='ck_stock_movement_kind'),
+        CheckConstraint("doc_type IS NULL OR doc_type IN ('invoice', 'item_sale', 'purchase_order')",
+                        name='ck_stock_movement_doc_type'),
+        db.Index('ix_stock_movement_item_time', 'item_id', 'id'),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id', ondelete='CASCADE'), nullable=False)
+    change = db.Column(db.Numeric(10,4), nullable=False)
+    quantity_after = db.Column(db.Numeric(10,4), nullable=False)
+    kind = db.Column(db.String(20), nullable=False)
+    doc_type = db.Column(db.String(20))          # the document that moved it, if any
+    doc_id = db.Column(db.Integer)
+    note = db.Column(db.String(200))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+    user = db.relationship('User', lazy='joined')
+
+
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -377,6 +405,8 @@ class Item(db.Model):
     invoice_details = db.relationship('InvoiceDetail', backref='item', lazy=True)
     item_invoice_details = db.relationship('ItemInvoiceDetail', backref='item', lazy=True)
     purchase_order_details = db.relationship('PurchaseOrderDetail', backref='item', lazy=True)
+    stock_movements = db.relationship('StockMovement', backref='item', lazy='dynamic',
+                                      cascade='all, delete-orphan')
 
     @property
     def tracks_stock(self):

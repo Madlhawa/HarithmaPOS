@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db, stock
 from harithmapos import settings as app_settings
-from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail
+from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail, StockMovement
 from harithmapos.timeutils import utcnow
 from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
 from harithmapos.permissions import owner_required
@@ -60,15 +60,15 @@ def insert_item():
     form = ItemCreateForm()
     if form.validate_on_submit():
         try:
-            db.session.add(Item(
+            item = Item(
                 name=form.name.data,
                 description=form.description.data,
                 unit_of_measure=form.unit_of_measure.data,
-                quantity=form.quantity.data,
                 unit_cost=form.unit_cost.data,
                 unit_price=form.unit_price.data,
                 discount_pct=form.discount_pct.data or 0,
-            ))
+            )
+            stock.set_count(item, form.quantity.data)     # saves it, with its opening stock
             db.session.commit()
             flash(f"{form.name.data} added.", category='success')
         except Exception:
@@ -110,3 +110,16 @@ def delete_item(item_id):
         (PurchaseOrderDetail.query.filter(PurchaseOrderDetail.item_id == item.id).count(), 'purchase order lines'),
     ])
     return utils.redirect_back('item_blueprint.item')
+
+
+@item_blueprint.route('/app/item/<int:item_id>/stock', methods=['GET'])
+@login_required
+def item_stock(item_id):
+    """Every change to an item's stock, newest first."""
+    item = db.get_or_404(Item, item_id)
+    page = request.args.get('page', 1, type=int)
+    movements = (StockMovement.query.filter_by(item_id=item.id)
+                 .order_by(StockMovement.id.desc())
+                 .paginate(page=page, per_page=50))
+    return render_template('item_stock.html', title=f"Stock of {item.name}", item=item,
+                           movements=movements, kinds=stock.KINDS)

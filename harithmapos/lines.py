@@ -105,7 +105,7 @@ def add_sale_line(document, item, quantity, extra_discount=0):
     quantity = to_decimal(quantity)
     if quantity <= 0:
         raise DocumentError("Enter a quantity above zero.")
-    stock.take(item, quantity)
+    stock.take(item, quantity, document)
     line_model = LINES[type(document)][0]
     line = line_model(item_id=item.id, quantity=quantity, item_name=item.name,
                       unit_cost=money(to_decimal(item.unit_cost)), unit_price=money(to_decimal(item.unit_price)),
@@ -127,7 +127,7 @@ def add_purchase_line(order, item, quantity, unit_cost=None):
     if quantity <= 0:
         raise DocumentError("Enter a quantity above zero.")
     unit_cost = to_decimal(item.unit_cost if unit_cost is None else unit_cost)
-    stock.receive(item, quantity)
+    stock.receive(item, quantity, order)
     # Remember what the item costs now, so profit on later sales is right.
     item.unit_cost = money(unit_cost)
     line = LINES[PurchaseOrderHead][0](
@@ -145,9 +145,9 @@ def remove_line(document, line):
     """Take a line off the document and undo its stock movement."""
     require_draft(document)
     if is_purchase(document):
-        stock.unreceive(line.item, line.quantity)
+        stock.unreceive(line.item, line.quantity, document)
     else:
-        stock.put_back(line.item, line.quantity)
+        stock.put_back(line.item, line.quantity, document)
     db.session.delete(line)
     _touch(document)
 
@@ -161,25 +161,17 @@ def change_quantity(document, line, step):
         raise DocumentError("Quantity is already at the minimum. Remove the item instead.")
     if is_purchase(document):
         if step > 0:
-            stock.receive(line.item, step)
+            stock.receive(line.item, step, document)
         else:
-            stock.unreceive(line.item, -step)
+            stock.unreceive(line.item, -step, document)
         _set_purchase_quantity(line, new_quantity)
     else:
         if step > 0:
-            stock.take(line.item, step)
+            stock.take(line.item, step, document)
         else:
-            stock.put_back(line.item, -step)
+            stock.put_back(line.item, -step, document)
         line.quantity = new_quantity
         set_sale_amounts(line)
     line.update_dttm = utcnow()
     _touch(document)
 
-
-def undo_stock(document):
-    """Put back everything a document's lines did to stock (used when it is voided)."""
-    for line in lines_of(document):
-        if is_purchase(document):
-            stock.unreceive(line.item, line.quantity)
-        else:
-            stock.put_back(line.item, line.quantity)

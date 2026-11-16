@@ -31,8 +31,7 @@
             <td><div class="cell-main">{{ i.name }}</div><div class="cell-sub">{{ i.description or '' }}{% if i.description and i.unit_of_measure %}, {% endif %}{{ i.unit_of_measure or '' }}</div></td>
             <td class="num">
                 {% if not i.tracks_stock %}<span class="tag">Service</span>
-                {% elif i.is_low_stock %}<span class="tag {{ 'tag-bad' if i.quantity <= 0 else 'tag-warn' }}">{{ i.quantity|qty }}</span>
-                {% else %}{{ i.quantity|qty }}{% endif %}
+                {% else %}<a href="{{ url_for('item_blueprint.item_stock', item_id=i.id) }}" title="Stock history of {{ i.name }}">{% if i.is_low_stock %}<span class="tag {{ 'tag-bad' if i.quantity <= 0 else 'tag-warn' }}">{{ i.quantity|qty }}</span>{% else %}{{ i.quantity|qty }}{% endif %}</a>{% endif %}
             </td>
             {% if is_owner() %}<td class="num">{{ i.unit_cost|money }}</td>{% endif %}
             <td class="num fw-semibold">{{ i.unit_price|money }}</td>
