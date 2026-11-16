@@ -45,7 +45,7 @@ def test_save_business_details(owner, app):
 def test_low_stock_threshold_is_used(owner, app):
     with app.test_request_context():
         assert not Item.query.one().is_low_stock          # 10 in stock, threshold 5
-    owner.post('/app/settings/general', data={'low_stock_threshold': '12', 'customer_link_hours': '10'})
+    owner.post('/app/settings/general', data={'low_stock_threshold': '12', 'customer_link_hours': '10', 'idle_signout_minutes': '60'})
     with app.test_request_context():
         assert Item.query.one().is_low_stock
     assert 'Engine oil' in owner.get('/app/item?stock=low').get_data(as_text=True)
