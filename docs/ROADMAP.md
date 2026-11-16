@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Sign-in emails ignore case.** `Owner@x.com` and `owner@x.com` are one account: emails are stored in lower case (a database check enforces it), and sign-in, password reset, adding and editing users all ignore case and stray spaces. |
 | 16 Nov 2026 | **Old database helper removed.** `utils/database.py` (which "repaired" id sequences after any failed insert and printed to the console) is gone; records are saved with plain inserts. Adding a customer, vehicle and job together from the floor board or the counter now saves all of them or none. `flask create-user` makes an owner by default (`--role staff` for counter staff). |
 | 16 Nov 2026 | **Keyboard-only item entry.** After a line is added on a service invoice or item sale, the cursor goes straight back to the item search. |
 | 15 Nov 2026 | **Times and money.** Every timestamp is `timestamptz` and every time in the code is aware UTC, shown in Colombo time; a day means the Colombo day. Money is Decimal end to end with one rounding rule (half up, per stored amount, totals never re-rounded); the screen formatting, payroll and reports use it, and floats appear only in chart data. |
@@ -84,7 +85,6 @@ What is already right: CSRF on every form, role checks on every route, secure an
 | Serve Bootstrap, htmx and fonts locally | They load from public CDNs; the Bootstrap Icons stylesheet has no integrity hash. Serving them from the app removes the outside dependency. | S |
 | SMS API key in the URL | notify.lk is called with GET, so the key sits in the request URL and can end up in logs. Use POST if their API allows it. | S |
 | Upload checks | Profile pictures are checked by file name only. Check the image content, and set an upload size limit in Flask (only nginx caps it, at 10 MB). | S |
-| Email addresses ignore case | Sign-in treats `Owner@x.com` and `owner@x.com` as different accounts. Store and compare them in lower case. | S |
 | Deploy as a non-root user | The GitHub deploy key signs in as root (locked to one script). A dedicated deploy user with only the sudo rights it needs is the standard. | S |
 | Sandbox the service | Add systemd hardening to the app service: `NoNewPrivileges`, `ProtectSystem`, `PrivateTmp` and similar. | S |
 | Dependency vulnerability checks | Dependabot and `pip-audit` in CI, so a library with a known hole is flagged. | S |

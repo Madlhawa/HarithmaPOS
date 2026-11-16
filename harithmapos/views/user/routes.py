@@ -51,7 +51,7 @@ def login():
         return redirect(url_for('dashboard_blueprint.dashboard'))
     form = UserLoginForm()
     if form.validate_on_submit():
-        typed_email = form.email.data.strip()
+        typed_email = form.email.data   # already lower case (see the form)
         user = User.query.filter_by(email=typed_email).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             if not user.is_active:
@@ -151,7 +151,7 @@ def reset_request():
         return redirect(url_for('dashboard_blueprint.dashboard'))
     form = RequestPasswordResetFrom()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.strip()).first()
+        user = User.query.filter_by(email=form.email.data).first()
         if user:
             try:
                 send_reset_email(user)

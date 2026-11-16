@@ -3,6 +3,7 @@ import click
 from flask.cli import with_appcontext
 
 from harithmapos import bcrypt, config, db
+from harithmapos.textutils import normalize_email
 
 
 @click.command("create-user")
@@ -15,6 +16,7 @@ from harithmapos import bcrypt, config, db
 def create_user(name, email, password, role):
     """Create a user (the first owner of a new install)."""
     from harithmapos.models import User
+    email = normalize_email(email)
     if User.query.filter_by(email=email).first():
         raise click.ClickException(f"A user with the email {email} already exists.")
     hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')

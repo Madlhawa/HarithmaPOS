@@ -7,7 +7,8 @@ from flask_login import UserMixin
 from flask import current_app
 from sqlalchemy import CheckConstraint, case, func, select, type_coerce
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import column_property, declared_attr
+from sqlalchemy.orm import column_property, declared_attr, validates
+from harithmapos.textutils import normalize_email
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
 @login_manager.user_loader
@@ -383,6 +384,10 @@ class Supplier(db.Model):
     purchse_orders = db.relationship('PurchaseOrderHead', backref='supplier', lazy=True)
 
 class User(db.Model, UserMixin):
+    __table_args__ = (
+        # One account per mailbox: emails are kept in lower case (see normalize_email).
+        CheckConstraint('email = lower(email)', name='ck_user_email_lower'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(50), nullable=False)
@@ -394,6 +399,10 @@ class User(db.Model, UserMixin):
     last_seen_dttm = db.Column(UTCDateTime())      # UTC; updated at most once a minute
     create_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
+
+    @validates('email')
+    def _lower_case_email(self, key, value):
+        return normalize_email(value)
 
     @property
     def is_owner(self):

@@ -11,6 +11,17 @@ def strip_or_none(value):
     return value or None
 
 
+def normalize_email(value):
+    """Sign-in emails are stored and compared in lower case, without spaces.
+
+    'Owner@Example.com ' and 'owner@example.com' are the same mailbox for
+    every real mail provider, so they must be the same account here.
+    """
+    if value is None:
+        return None
+    return str(value).strip().lower() or None
+
+
 def normalize_phone(value):
     """Store Sri Lankan numbers as 9 digits (no leading 0, no +94).
 

@@ -7,6 +7,7 @@ from wtforms import StringField, EmailField, PasswordField, SubmitField, Boolean
 from wtforms.validators import DataRequired, Length, Email, EqualTo, Optional
 
 from harithmapos.models import User
+from harithmapos.textutils import normalize_email
 import harithmapos.config as config
 
 
@@ -17,13 +18,13 @@ class ResetPasswordForm(FlaskForm):
 
 
 class RequestPasswordResetFrom(FlaskForm):
-    email = EmailField("Email", validators=[DataRequired(), Email()])
+    email = EmailField("Email", filters=[normalize_email], validators=[DataRequired(), Email()])
     submit = SubmitField('Send reset link')
 
 
 class UserUpdateForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    email = EmailField("Email", filters=[normalize_email], validators=[DataRequired(), Email(), Length(max=120)])
     image = FileField('Profile picture', validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Use a JPG or PNG image.')])
     ui_theme = SelectField('Theme', choices=config.UI_THEME_FORM_LIST)
     submit = SubmitField('Save account')
@@ -37,7 +38,7 @@ class UserUpdateForm(FlaskForm):
 
 class UserRegisterForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    email = EmailField("Email", filters=[normalize_email], validators=[DataRequired(), Email(), Length(max=120)])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=8, message='Use at least 8 characters.')])
     confirm_password = PasswordField("Confirm password", validators=[DataRequired(), EqualTo('password', message='The two passwords do not match.')])
     role = SelectField('Role', choices=config.ROLE_FORM_LIST, default=config.ROLE_STAFF)
@@ -50,7 +51,7 @@ class UserRegisterForm(FlaskForm):
 
 
 class UserLoginForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email()])
+    email = StringField("Email", filters=[normalize_email], validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
     remember = BooleanField("Keep me signed in")
     submit = SubmitField('Sign in')
@@ -59,7 +60,7 @@ class UserLoginForm(FlaskForm):
 class UserAdminForm(FlaskForm):
     """An owner editing someone's account: details, role, on/off and an optional new password."""
     name = StringField("Name", validators=[DataRequired(), Length(min=2, max=50)])
-    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    email = EmailField("Email", filters=[normalize_email], validators=[DataRequired(), Email(), Length(max=120)])
     role = SelectField('Role', choices=config.ROLE_FORM_LIST)
     active = BooleanField('Can sign in')
     password = PasswordField("New password", validators=[Optional(), Length(min=8, message='Use at least 8 characters.')])
