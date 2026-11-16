@@ -1,12 +1,13 @@
 # Harithma POS: improvement roadmap
 
-*Updated 15 November 2026.*
+*Updated 16 November 2026.*
 
 The site is now on HTTPS with nightly backups, and the owner has sales reporting and full staff payroll. What matters most next:
 
 1. Finish the last safety items that need an account or decision from the owner (off-server backups, uptime alerts, the GitHub deploy workflow).
-2. Bring customers back with **service reminder SMS** and **vehicle history**.
-3. Add the remaining money views (profit after expenses, exports).
+2. Close the gaps from the 16 November code review that can silently produce wrong data: tests on PostgreSQL, stock changes that can race, and two people editing the same invoice (section 1).
+3. Bring customers back with **service reminder SMS** and **vehicle history**.
+4. Add the remaining money views (profit after expenses, exports).
 
 **Effort:** **S** = under a day, **M** = one to three days, **L** = a week or more.
 
@@ -16,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Keyboard-only item entry.** After a line is added on a service invoice or item sale, the cursor goes straight back to the item search. |
 | 15 Nov 2026 | **Times and money.** Every timestamp is `timestamptz` and every time in the code is aware UTC, shown in Colombo time; a day means the Colombo day. Money is Decimal end to end with one rounding rule (half up, per stored amount, totals never re-rounded); the screen formatting, payroll and reports use it, and floats appear only in chart data. |
 | 15 Nov 2026 | **Draft, completed and void.** Invoices, item sales and purchase orders have an explicit state with who and when. A finished job is not a billed one: the counter completes the bill. Completed bills are locked (items, prices, discounts); owners void instead of deleting, with a reason, after refunding any payment; voids put stock back and count nowhere. Refunds up to what was paid. |
 | 15 Nov 2026 | **Payment ledger.** Payments are an append-only ledger (enforced by the database): mistakes are reversed, never edited or deleted. Invoices, sales and orders no longer store what was paid; it is summed from their payments. Change is noted on the payment, refunds for overpaid bills, typed entries for expenses, income and the owner's money; *Credit* is gone. |
@@ -51,12 +53,54 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 | Item | Status | What is left | Effort |
 |---|---|---|---|
 | Off-server backup copy | **Needs the owner** | Nightly backups are still on the droplet itself. Choose a destination: DigitalOcean droplet backups (switch on in the DigitalOcean account), DigitalOcean Spaces, or Google Drive. | S |
+| Backup restore test | Not started | Nobody has proved a backup can be restored. A weekly job that restores the latest dump into a scratch database and checks row counts, with an alert if it fails. | S |
 | Uptime alerts | **Needs the owner** | Create a free UptimeRobot or Better Stack account and point it at https://harithma.lk. | S |
 | Purge cached old commits on GitHub | **Needs the owner** | Old commits with the removed database files can still be fetched by ID. Ask GitHub Support to purge cached views for Madlhawa/HarithmaPOS. Change the owner password if it was reused. | S |
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
-| Error alerts | Partly done | Errors now show on the developer page. Still to do: an email or SMS to the developer when one happens, so nobody has to look. | S |
+| Error alerts | Partly done | Errors now show on the developer page. Still to do: an error tracker (Sentry or similar) that emails the developer with the traceback and the request, so nobody has to look. | S |
+| Tests on PostgreSQL | Not started | The tests run on SQLite but production runs PostgreSQL, so the payment append-only trigger, `timestamptz` behaviour and the migrations are never tested. Add a PostgreSQL service to GitHub Actions, run the tests on it, and run `flask db upgrade` from an empty database. | S |
+| Stock changes can race | Not started | Adding a line reads the stock, subtracts in Python and writes it back; two counters selling the same item at the same moment can lose a deduction. Lock the item row (or update with `quantity = quantity - n`) and add a database check that stock can't go below zero. | S |
+| Two people editing one invoice | Not started | The last save silently wins. Add a version number to invoices, sales and orders; a save based on an older version is refused with "someone else changed this, reload". | M |
+| Database indexes | Not started | Only primary keys exist on invoices, lines, customers and vehicles. Index invoice dates and status, customer and vehicle links, invoice-to-line links, plate number and customer phone. Fast now at ~1,000 invoices; slows steadily as data grows. | S |
+| Upgrade PostgreSQL and Python | Not started | PostgreSQL 14 stopped getting fixes on 12 Nov 2026 and Python 3.10 in Oct 2026. Ubuntu 22.04 still patches its own packages until Apr 2027. Plan a move to PostgreSQL 17 and Python 3.12 (or Ubuntu 24.04), tested on a copy first. | M |
+| Health check endpoint | Not started | Deploys and uptime checks use the login page, which doesn't prove the database answers. Add `/healthz` that runs a one-row query. | S |
 | Zero-downtime deploys | Not started | Reload gunicorn instead of restarting; a 502 was seen during one restart. | S |
 | Two-step sign-in for owners | Not started | An authenticator-app code on top of the password. | M |
+
+---
+
+## 1a. Security (from the 16 Nov review)
+
+What is already right: CSRF on every form, role checks on every route, secure and HttpOnly cookies, rate-limited sign-in, encrypted secrets in Settings, an audit log, HTTPS with HSTS. Still missing:
+
+| Item | What to do | Effort |
+|---|---|---|
+| Reset links can be reused | A password reset link keeps working for its whole 30 minutes, even after use. Tie the token to the current password hash so it dies once used. | S |
+| Sign out other devices | Changing or resetting a password should end every other session (Flask-Login session protection plus a per-user session version). | S |
+| Account lockout | nginx limits attempts per IP address, but nothing limits attempts per account. Lock an account for a few minutes after repeated failures, and tell the owner. | S |
+| Shorter "keep me signed in" | It lasts a year (the library default). Set 30 days, and an idle timeout for counter PCs that are shared. | S |
+| Content-Security-Policy | The other security headers are set; this one isn't. Add a policy that allows only the app's own scripts. | S |
+| Serve Bootstrap, htmx and fonts locally | They load from public CDNs; the Bootstrap Icons stylesheet has no integrity hash. Serving them from the app removes the outside dependency. | S |
+| SMS API key in the URL | notify.lk is called with GET, so the key sits in the request URL and can end up in logs. Use POST if their API allows it. | S |
+| Upload checks | Profile pictures are checked by file name only. Check the image content, and set an upload size limit in Flask (only nginx caps it, at 10 MB). | S |
+| Email addresses ignore case | Sign-in treats `Owner@x.com` and `owner@x.com` as different accounts. Store and compare them in lower case. | S |
+| Deploy as a non-root user | The GitHub deploy key signs in as root (locked to one script). A dedicated deploy user with only the sudo rights it needs is the standard. | S |
+| Sandbox the service | Add systemd hardening to the app service: `NoNewPrivileges`, `ProtectSystem`, `PrivateTmp` and similar. | S |
+| Dependency vulnerability checks | Dependabot and `pip-audit` in CI, so a library with a known hole is flagged. | S |
+
+---
+
+## 1b. Data model (from the 16 Nov review)
+
+| Item | What to do | Effort |
+|---|---|---|
+| Lines keep the item as sold | Invoice lines store totals and a link to the item, so renaming an item changes how old bills print. Copy the item name and unit price onto each line when it is added. | S |
+| Unique plates and phones | Two vehicles can have the same plate and two customers the same phone. Normalise and make them unique (or warn on duplicates first, then enforce). | S |
+| Queue without a bay or employee | A service invoice must have a wash bay and an employee at the database level, even while the vehicle waits in the queue. Allow them to be empty until work starts. | S |
+| Archive instead of delete | Customers, items, suppliers and employees are hard-deleted. Give them an *archived* state, as invoices now have *void*. | M |
+| Gapless invoice numbers | Invoice numbers are database ids, so an abandoned draft leaves a gap. Give completed bills their own sequential number (needed for tax, and for a second station later). | M |
+| More database checks | Only the payment table has checks. Add them for quantity above zero, discount not above the price, and similar rules. | S |
+| Configurable stages | Service stages are hardcoded as 0–4 in code and data (also in section 2). | M |
 
 ---
 
@@ -92,7 +136,9 @@ The register already stores mileage and "next service in" on every visit, but no
 | WhatsApp | Updates and receipts over WhatsApp Business. | M |
 | Digital receipt | Send the receipt as a link by SMS or email. | S |
 | Before/after photos | Attach photos to a job; shown on the customer status page. | M |
-| Sinhala and Tamil | SMS texts and the status page in the customer's language. | M |
+| Sinhala and Tamil | SMS texts and the status page in the customer's language; later the app's own screens (needs a translation framework, none today). | M |
+| SMS opt-out | A per-customer switch, and a STOP reply where the gateway supports it. Needed before win-back messages. | S |
+| Customer data rights | Export or erase one customer's data on request, and a privacy notice, as the Personal Data Protection Act expects. | M |
 
 ---
 
@@ -114,7 +160,7 @@ The sales dashboard is done. Still to do:
 
 | Idea | What it gives | Effort |
 |---|---|---|
-| Stock movement log | Every change to an item's quantity with who, when and why. | M |
+| Stock movement log | Every change to an item's quantity with who, when and why: a ledger for stock, like the payment ledger. The item's quantity becomes the sum of its movements. | M |
 | Adjustments with a reason | Breakage, spills and count corrections recorded separately from sales. | S |
 | Stock take | Enter a physical count; the system shows and records differences. | M |
 | Reorder suggestions | Low items grouped by supplier, turned into a draft purchase order. | M |
@@ -138,7 +184,6 @@ Attendance and payroll are live. Possible follow-ups:
 | Bank transfer file | Payroll export for bulk salary transfer. | S |
 | Holidays calendar | Public and Poya holidays marked once for everyone, with holiday pay rules. | M |
 | Hide "Salary Advance" in the general payment form | It records an expense but not a trackable advance; the Salary advances page is the right place. | S |
-| Audit trail | Who cancelled, deleted, discounted or changed a price or payslip, and when. | M |
 
 ---
 
@@ -149,7 +194,7 @@ Attendance and payroll are live. Possible follow-ups:
 | Home page content in Settings | Services, prices, opening hours and photos changed without a code change. | M |
 | Contact email in Settings | The public email address is fixed in the code. | S |
 | Editable receipt footer | Message, hours and social links on receipts. | S |
-| Second branch | More than one location in one system, with reports per branch. | L |
+| Second branch | More than one location in one system, with reports per branch. Covered by "Multi-station SaaS" in section 10. | L |
 
 ---
 
@@ -157,11 +202,37 @@ Attendance and payroll are live. Possible follow-ups:
 
 | Idea | What it gives | Effort |
 |---|---|---|
-| Database indexes | On plate number, customer phone and invoice dates, so searches stay fast as data grows. | S |
 | Paging everywhere | Invoices, customers and payments pages as lists grow. | S |
 | Remove unused images | The original photos in `static/frontpage/images` (43 MB) and the old carousel files are no longer used. | S |
-| Staging copy | A small second instance to try changes on before production. | M |
-| More server memory | The 1 GB droplet now has swap; move to 2 GB if it stays tight. | S |
+| More server memory | The 1 GB droplet has swap and about 80 MB free; move to 2 GB before adding anything that runs in the background. | S |
+| Linting and type checks | ruff (lint and format) and mypy in CI, with pre-commit hooks. | S |
+| Test coverage | Measure coverage in CI so untested code is visible. | S |
+| Browser tests | A few Playwright tests of the counter flow (add items, complete, print, void). The Void pop-up and search-focus bugs were browser behaviour no Python test could see. | M |
+| Remove the old database helper | `utils/database.py` prints with `print()` and "repairs" database sequences after a failed insert; user registration still uses it. Replace with a plain insert. | S |
+| Split the invoice routes | `views/invoice/routes.py` is 865 lines mixing pages and business rules. Move line and stock rules into a module, as `ledger.py` and `documents.py` did for payments and states. | M |
+| README | Setup, running locally, tests and deploy, at the top of the repository. | S |
+
+---
+
+## 9. Operations
+
+| Idea | What it gives | Effort |
+|---|---|---|
+| Background jobs | SMS and email are sent inside the page request, so a slow gateway freezes the counter for up to 10 s, with no retry. A small job queue (for example RQ, or a database-backed queue) and a log of every message sent. | M |
+| Scheduled tasks | One place for timed jobs: reminder SMS, daily summary, backup checks. Builds on background jobs. | S |
+| Staging copy | A second instance with a copy of the data to try changes and migrations on before production. | M |
+| Database connection safeguards | `pool_pre_ping`, a statement timeout, and recycling gunicorn workers after a number of requests. | S |
+| Log retention and search | Logs stay in the systemd journal only. Set a retention policy, and ship them somewhere searchable if the error tracker isn't enough. | S |
+
+---
+
+## 10. Platform
+
+| Idea | What it gives | Effort |
+|---|---|---|
+| Works offline | If the internet drops, the counter stops. Decide whether bills must keep working offline (queued and sent later); this is a product decision as much as a technical one. | L |
+| API | A documented, authenticated API for the future print agent, a mobile app or integrations. | M |
+| Multi-station SaaS | Sell the app to other service stations: a station on every row, enforced in the app and by PostgreSQL row-level security, per-station settings and invoice numbers, a platform admin area. Replaces "Second branch" in section 7. | L |
 
 ---
 
@@ -170,7 +241,9 @@ Attendance and payroll are live. Possible follow-ups:
 | Phase | Items |
 |---|---|
 | **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, GitHub cache purge. |
+| **Then** (~1–2 weeks) | Tests on PostgreSQL, stock race, edit conflicts, indexes, error tracker, health check, backup restore test, the small security items (1a), lines keep the item as sold. |
 | **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export, stock movement log. |
+| **Soon after** | PostgreSQL and Python upgrade, background jobs, staging copy, browser tests, linting and coverage, unique plates and phones, archive instead of delete, gapless invoice numbers. |
 | **Later** | Packages and vehicle-type pricing, split payments and cash-up, staff clock-in and leave requests, loyalty and feedback, bookings and queue screen. |
 
 Estimates are rough, not quotes.
