@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db, stock
 from harithmapos import settings as app_settings
-from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail, StockMovement
+from harithmapos.models import Item, StockMovement
 from harithmapos.timeutils import utcnow
 from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
 from harithmapos.permissions import owner_required
@@ -27,7 +27,7 @@ def item():
     query = (request.args.get('query') or '').strip()
     stock = request.args.get('stock', '')
 
-    items = Item.query
+    items = Item.query.filter(Item.is_archived if stock == 'archived' else ~Item.is_archived)
     if query:
         pattern = f"%{query}%"
         conditions = [Item.name.ilike(pattern), Item.description.ilike(pattern)]
@@ -100,15 +100,19 @@ def update_item(item_id):
     return utils.redirect_back('item_blueprint.item')
 
 
-@item_blueprint.route('/app/item/<int:item_id>/delete', methods=['POST'])
+@item_blueprint.route('/app/item/<int:item_id>/archive', methods=['POST'])
 @owner_required
-def delete_item(item_id):
-    item = Item.query.get_or_404(item_id)
-    utils.delete_record(item, item.name, blockers=[
-        (InvoiceDetail.query.filter(InvoiceDetail.item_id == item.id).count(), 'service invoice lines'),
-        (ItemInvoiceDetail.query.filter(ItemInvoiceDetail.item_id == item.id).count(), 'item invoice lines'),
-        (PurchaseOrderDetail.query.filter(PurchaseOrderDetail.item_id == item.id).count(), 'purchase order lines'),
-    ])
+def archive_item(item_id):
+    item = db.get_or_404(Item, item_id)
+    utils.archive_record(item, item.name)
+    return utils.redirect_back('item_blueprint.item')
+
+
+@item_blueprint.route('/app/item/<int:item_id>/restore', methods=['POST'])
+@owner_required
+def restore_item(item_id):
+    item = db.get_or_404(Item, item_id)
+    utils.restore_record(item, item.name)
     return utils.redirect_back('item_blueprint.item')
 
 

@@ -6,7 +6,13 @@
     <div><h1>Suppliers</h1><p>Where you buy oil, filters and other stock.</p></div>
     <div class="page-actions"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add supplier</button></div>
 </div>
-<div class="toolbar">{{ search_box('Search suppliers', query) }}</div>
+<div class="toolbar">
+    {{ search_box('Search suppliers', query, hidden={'show': show}) }}
+    <nav class="filter-tabs" aria-label="Show">
+        <a href="{{ url_for('supplier_blueprint.supplier', query=query or none) }}" class="{{ 'active' if not show }}">Suppliers</a>
+        <a href="{{ url_for('supplier_blueprint.supplier', show='archived', query=query or none) }}" class="{{ 'active' if show }}">Archived</a>
+    </nav>
+</div>
 <div class="panel">
     {% if suppliers.items %}
     <div class="table-responsive">
@@ -23,14 +29,14 @@
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ s.name }}" aria-label="Edit {{ s.name }}" data-edit-modal="#supModal"
                     data-action="{{ url_for('supplier_blueprint.update_supplier', supplier_id=s.id) }}"
                     data-values='{{ {"name": s.name, "contact": s.contact|phone, "address": s.address}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                {{ post_button(url_for('supplier_blueprint.delete_supplier', supplier_id=s.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ s.name, confirm='Delete ' ~ s.name ~ '?', next=here) }}
+                {% if s.is_archived %}{{ post_button(url_for('supplier_blueprint.restore_supplier', supplier_id=s.id), icon='arrow-counterclockwise', cls='btn btn-quiet btn-sm btn-icon', title='Restore ' ~ s.name, next=here) }}{% else %}{{ post_button(url_for('supplier_blueprint.archive_supplier', supplier_id=s.id), icon='archive', cls='btn btn-quiet btn-sm btn-icon', title='Archive ' ~ s.name, confirm='Archive ' ~ s.name ~ '? They leave the list and search; their purchase orders are kept.', next=here) }}{% endif %}
             </td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
     </div>
-    {{ pager(suppliers, 'supplier_blueprint.supplier', 'suppliers', query=query or none) }}
+    {{ pager(suppliers, 'supplier_blueprint.supplier', 'suppliers', query=query or none, show=show or none) }}
     {% else %}
     <div class="empty"><i class="bi bi-building" aria-hidden="true"></i><h3>{{ 'No supplier matches "' ~ query ~ '"' if query else 'No suppliers yet' }}</h3><p>{{ 'Check the spelling.' if query else 'Add a supplier before recording a purchase order.' }}</p></div>
     {% endif %}

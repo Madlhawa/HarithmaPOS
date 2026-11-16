@@ -1,12 +1,11 @@
 import logging
 
 from sqlalchemy import func, or_
-from sqlalchemy.exc import IntegrityError
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required
 
 from harithmapos import db
-from harithmapos.models import Customer, InvoiceHead, ItemInvoiceHead, Payment, Vehicle
+from harithmapos.models import Customer, Vehicle
 from harithmapos.textutils import normalize_phone
 from harithmapos.timeutils import utcnow
 from harithmapos.views.customer.forms import CustomerForm, QuickRegisterForm
@@ -27,8 +26,9 @@ GENERAL_CUSTOMER_ID = -1
 def customer():
     page = request.args.get('page', 1, type=int)
     query = (request.args.get('query') or '').strip()
+    show = 'archived' if request.args.get('show') == 'archived' else ''
 
-    customers = Customer.query
+    customers = Customer.query.filter(Customer.is_archived if show else ~Customer.is_archived)
     if query:
         pattern = f"%{query}%"
         conditions = [
@@ -44,7 +44,7 @@ def customer():
         customers = customers.filter(or_(*conditions))
 
     customers = customers.order_by(Customer.name).paginate(page=page, per_page=PER_PAGE)
-    return render_template('customer.html', title='Customers', customers=customers, query=query)
+    return render_template('customer.html', title='Customers', customers=customers, query=query, show=show)
 
 
 @customer_blueprint.route('/app/insert_customer/', methods=['POST'])
@@ -139,32 +139,17 @@ def update_customer(customer_id):
     return utils.redirect_back('customer_blueprint.customer')
 
 
-@customer_blueprint.route('/app/delete_customer/<int:customer_id>', methods=['POST'])
+@customer_blueprint.route('/app/customer/<int:customer_id>/archive', methods=['POST'])
 @owner_required
-def delete_customer(customer_id):
+def archive_customer(customer_id):
     customer = db.session.get(Customer, customer_id) or abort(404)
-    if customer.id == GENERAL_CUSTOMER_ID:
-        flash("The General Customer is used for walk-in sales and can't be deleted.", category='warning')
-        return utils.redirect_back('customer_blueprint.customer')
+    utils.archive_record(customer, customer.name)
+    return utils.redirect_back('customer_blueprint.customer')
 
-    blockers = [
-        (InvoiceHead.query.filter(InvoiceHead.customer_id == customer.id).count(), 'service invoices'),
-        (ItemInvoiceHead.query.filter(ItemInvoiceHead.customer_id == customer.id).count(), 'item invoices'),
-        (Payment.query.filter(Payment.customer_id == customer.id).count(), 'payments'),
-    ]
-    in_use = [description for count, description in blockers if count]
-    if in_use:
-        flash(f"{customer.name} can't be deleted because they have {', '.join(in_use)}.", category='warning')
-        return utils.redirect_back('customer_blueprint.customer')
 
-    name = customer.name
-    try:
-        for vehicle in list(customer.vehicles):
-            db.session.delete(vehicle)
-        db.session.delete(customer)
-        db.session.commit()
-        flash(f"{name} deleted.", category='success')
-    except IntegrityError:
-        db.session.rollback()
-        flash(f"{name} can't be deleted because one of their vehicles has invoices.", category='warning')
+@customer_blueprint.route('/app/customer/<int:customer_id>/restore', methods=['POST'])
+@owner_required
+def restore_customer(customer_id):
+    customer = db.session.get(Customer, customer_id) or abort(404)
+    utils.restore_record(customer, customer.name)
     return utils.redirect_back('customer_blueprint.customer')

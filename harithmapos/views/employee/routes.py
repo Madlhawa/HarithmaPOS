@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db, config, payroll
-from harithmapos.models import Employee, InvoiceHead, Payment, AttendanceDay, ShortLeave, SalaryAdvance, Payslip
+from harithmapos.models import Employee, AttendanceDay, ShortLeave, SalaryAdvance, Payslip
 from harithmapos.timeutils import utcnow
 from harithmapos.views.employee.forms import EmployeeCreateForm, EmployeeUpdateForm
 from harithmapos.permissions import owner_required
@@ -92,17 +92,16 @@ def update_employee(employee_id):
     return utils.redirect_back('employee_blueprint.employee')
 
 
-@employee_blueprint.route('/app/employee/<int:employee_id>/delete', methods=['POST'])
+@employee_blueprint.route('/app/employee/<int:employee_id>/left', methods=['POST'])
 @owner_required
-def delete_employee(employee_id):
-    employee = Employee.query.get_or_404(employee_id)
-    utils.delete_record(employee, employee.name, blockers=[
-        (InvoiceHead.query.filter(InvoiceHead.employee_id == employee.id).count(), 'service invoices'),
-        (Payment.query.filter(Payment.employee_id == employee.id).count(), 'payments'),
-        (AttendanceDay.query.filter(AttendanceDay.employee_id == employee.id).count(), 'attendance days'),
-        (Payslip.query.filter(Payslip.employee_id == employee.id).count(), 'payslips'),
-        (SalaryAdvance.query.filter(SalaryAdvance.employee_id == employee.id).count(), 'salary advances'),
-    ])
+def mark_employee_left(employee_id):
+    """Employees are never deleted: their invoices, attendance and pay stay on record."""
+    employee = db.get_or_404(Employee, employee_id)
+    employee.active = False
+    employee.update_dttm = utcnow()
+    db.session.commit()
+    flash(f"{employee.name} marked as left. Their records are kept; choose All to see them, "
+          "and tick Active on the edit form if they come back.", category='success')
     return utils.redirect_back('employee_blueprint.employee')
 
 

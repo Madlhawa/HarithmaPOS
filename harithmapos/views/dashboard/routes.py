@@ -72,7 +72,7 @@ def dashboard():
         'paid_out_today': ledger.paid_out(day_start, day_end),
         'unpaid_total': unpaid_total,
         'low_stock': Item.query.filter(
-            Item.quantity.isnot(None), Item.quantity <= app_settings.low_stock_threshold()).count(),
+            Item.archived_dttm.is_(None), Item.quantity.isnot(None), Item.quantity <= app_settings.low_stock_threshold()).count(),
     }
 
     # First-run hints: a service invoice needs a bay, an employee and something to sell.

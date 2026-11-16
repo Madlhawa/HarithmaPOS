@@ -99,9 +99,15 @@ def _set_purchase_quantity(line, quantity):
 # Changing lines
 # ---------------------------------------------------------------------------
 
+def _require_current(item):
+    if item.is_archived:
+        raise DocumentError(f"{item.name} is archived. Restore it on the Items page before using it again.")
+
+
 def add_sale_line(document, item, quantity, extra_discount=0):
     """Sell `quantity` of `item` on a service invoice or item sale. Returns the new line."""
     require_draft(document)
+    _require_current(item)
     quantity = to_decimal(quantity)
     if quantity <= 0:
         raise DocumentError("Enter a quantity above zero.")
@@ -120,6 +126,7 @@ def add_sale_line(document, item, quantity, extra_discount=0):
 def add_purchase_line(order, item, quantity, unit_cost=None):
     """Buy in `quantity` of `item` at `unit_cost` (default: the item's cost). Returns the new line."""
     require_draft(order)
+    _require_current(item)
     if not item.tracks_stock:
         raise DocumentError(f"{item.name} is set up as a service with no stock. "
                             "Give it a stock quantity on the Items page before buying it in.")

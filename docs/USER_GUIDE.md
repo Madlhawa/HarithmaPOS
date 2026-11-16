@@ -57,7 +57,7 @@ If your account has been switched off you will see a message saying so; ask an o
 | Add and edit customers and vehicles | Yes | Yes |
 | Record money coming in | Yes | Yes |
 | See items and prices | Yes (no cost price or margin) | Yes, with cost and margin |
-| Void invoices, sales and orders; refund customers; delete customers or vehicles | No | Yes |
+| Void invoices, sales and orders; refund customers; archive customers, items and suppliers; delete vehicles | No | Yes |
 | Record money going out, or reverse a payment | No | Yes |
 | Items (add/change), purchase orders, suppliers | No | Yes |
 | Staff (attendance, payroll, advances, employees) | No | Yes |
@@ -356,11 +356,11 @@ The same **Add a service or item / Quantity / Extra discount / Add** row and lin
 | Plate buttons | Each of the customer's vehicles. Click one to **edit the vehicle**, **Start a service** for it, or (owners) **Delete vehicle**. |
 | **Add vehicle** | Adds a vehicle to that customer. |
 | Pencil | Edit the customer. |
-| Bin *(owners)* | Delete the customer and their vehicles. Refused if they have invoices or payments. |
+| Archive box *(owners)* | Archive the customer: they leave the list and search, and their invoices, payments and vehicles are kept. **Archived** at the top shows them, with **Restore**. Starting a job, a sale or a vehicle for them brings them back by itself. |
 
 **Vehicle fields:** **Owner** (pick a customer, which also moves a vehicle to a new owner), **Vehicle number** (required, up to 8 characters), **Year**, **Make**, **Model**.
 
-The special customer *Walk-in* is used for anonymous counter sales and cannot be deleted.
+The special customer *Walk-in* is used for anonymous counter sales and cannot be archived.
 
 ---
 
@@ -402,7 +402,7 @@ Customer payments are taken on the invoice (**Complete**, **Record payment**), s
 | **Add item** *(owners)* | Opens the item form. |
 | Search | By name. |
 | **All / Running low / Services** | Filters. *Running low* = stock at or below the level set in Settings. |
-| Pencil / bin *(owners)* | Edit or delete. |
+| Pencil / archive box *(owners)* | Edit, or archive: the item leaves the list and search and can't be sold or bought, while old invoices and its stock history are kept. **Archived** (next to *Services*) shows archived items, with **Restore**. |
 
 Columns: item (with description and unit), **In stock** (red when low; *Service* for things without stock; click the figure to see the item's stock history), cost and margin *(owners only)*, price, and automatic discount.
 
@@ -455,7 +455,7 @@ Stock changes automatically: down when added to an invoice or sale, back up when
 
 ## 11. Suppliers
 
-*Menu → Suppliers (owners).* Where you buy stock. **Add supplier** asks for Name (required), Phone and Address. The **Orders** column counts purchase orders; click it to see them. A supplier with orders cannot be deleted.
+*Menu → Suppliers (owners).* Where you buy stock. **Add supplier** asks for Name (required), Phone and Address. The **Orders** column counts purchase orders; click it to see them. The archive box hides a supplier you no longer use (their orders are kept); **Archived** shows them, with **Restore**, and a new purchase order for them restores them by itself.
 
 ---
 
@@ -565,7 +565,7 @@ A printable A5 page with the business name, employee details and EPF number, att
 
 ### 12.6 Employees
 
-*Staff → Employees.* **Working here / Everyone** filters out people who have left. Click a name (or the person icon) to open their page; the pencil edits; the bin deletes (refused once they have invoices, attendance, payments, payslips or advances).
+*Staff → Employees.* **Working here / Everyone** filters out people who have left. Click a name (or the person icon) to open their page; the pencil edits; the door icon marks someone as left. Nobody is deleted: their invoices, attendance and pay stay on record, and they drop out of the employee pickers. If they come back, tick *Active* on the edit form.
 
 | Field | What to enter |
 |---|---|
@@ -720,10 +720,10 @@ Receipts print from the browser on the counter computer, through Chrome's print 
 
 | Tab | What is recorded |
 |---|---|
-| **Prices** | An item's price, cost, discount % or name changed; items added (with their price) or deleted. |
+| **Prices** | An item's price, cost, discount % or name changed; items added (with their price) or archived. |
 | **Discounts** | Bill discounts on service invoices and item sales, discount % on purchase orders, and extra discounts on lines (when added or changed). |
 | **Payments** | Every payment and reversal added, with its amount, direction, method and type (payments can't be changed or deleted). |
-| **Deletions** | Voided invoices, item sales and purchase orders (with the reason), lines removed from drafts, and anything deleted: items, employees, users and salary advances, with what they held. |
+| **Deletions** | Voided invoices, item sales and purchase orders (with the reason), lines removed from drafts, and anything deleted: users and salary advances, with what they held. |
 | **Staff and pay** | An employee's pay rate, monthly/daily, EPF or active status; salary advances; allowances and other deductions on payslips. |
 | **Users and settings** | User roles, active status and email; every Settings change. Passwords and API keys show only as *(hidden)*. |
 

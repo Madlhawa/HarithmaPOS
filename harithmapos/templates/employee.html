@@ -35,7 +35,7 @@
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ e.name }}" aria-label="Edit {{ e.name }}" data-edit-modal="#empModal"
                     data-action="{{ url_for('employee_blueprint.update_employee', employee_id=e.id) }}"
                     data-values='{{ {"name": e.name, "contact": e.contact|phone, "address": e.address, "designation": e.designation, "joined_date": e.joined_date.isoformat() if e.joined_date else "", "wage": e.wage|money if e.wage is not none else "", "pay_type": e.pay_type, "epf_enabled": e.epf_enabled, "epf_number": e.epf_number or "", "active": e.active}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                {{ post_button(url_for('employee_blueprint.delete_employee', employee_id=e.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ e.name, confirm='Delete ' ~ e.name ~ '?', next=here) }}
+                {% if e.active %}{{ post_button(url_for('employee_blueprint.mark_employee_left', employee_id=e.id), icon='box-arrow-right', cls='btn btn-quiet btn-sm btn-icon', title='Mark ' ~ e.name ~ ' as left', confirm='Mark ' ~ e.name ~ ' as left? They leave the lists and pickers; their invoices, attendance and pay are kept.', next=here) }}{% endif %}
             </td>
         </tr>
         {% endfor %}

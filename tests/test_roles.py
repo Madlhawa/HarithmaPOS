@@ -58,15 +58,15 @@ def test_staff_do_not_see_costs_or_margins(staff, owner):
 
 # --- actions ---------------------------------------------------------------
 
-def test_staff_cannot_delete_customers(app, staff, owner):
+def test_staff_cannot_archive_customers(app, staff, owner):
     with app.app_context():
         customer_id = Customer.query.filter_by(name='Kamal Perera').one().id
-    staff.post(f'/app/delete_customer/{customer_id}')
+    staff.post(f'/app/customer/{customer_id}/archive')
     with app.app_context():
-        assert db.session.get(Customer, customer_id) is not None
-    owner.post(f'/app/delete_customer/{customer_id}')
+        assert not db.session.get(Customer, customer_id).is_archived
+    owner.post(f'/app/customer/{customer_id}/archive')
     with app.app_context():
-        assert db.session.get(Customer, customer_id) is None
+        assert db.session.get(Customer, customer_id).is_archived
 
 
 def test_staff_cannot_change_items(app, staff):
@@ -74,10 +74,10 @@ def test_staff_cannot_change_items(app, staff):
         item_id = Item.query.one().id
     staff.post(f'/app/item/{item_id}/update', data={
         'name': 'Cheap oil', 'unit_of_measure': 'L', 'unit_cost': '1', 'unit_price': '1'})
-    staff.post(f'/app/item/{item_id}/delete')
+    staff.post(f'/app/item/{item_id}/archive')
     with app.app_context():
         item = db.session.get(Item, item_id)
-        assert item is not None and item.name == 'Engine oil'
+        assert item is not None and item.name == 'Engine oil' and not item.is_archived
 
 
 def payment_form(direction):

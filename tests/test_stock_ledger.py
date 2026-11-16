@@ -113,13 +113,3 @@ def test_the_stock_page_lists_the_history(app, owner, staff):
         assert 'Sold' in page and f'item sale #{sale_id}' in page and '-2' in page
     assert f'/app/item/{oil_id}/stock' in owner.get('/app/item').get_data(as_text=True)
     assert owner.get('/app/item/99999/stock').status_code == 404
-
-
-def test_deleting_an_item_takes_its_history_with_it(app, owner):
-    owner.post('/app/item/create', data=_item_form(name='Spare bulb'))
-    with app.app_context():
-        item_id = Item.query.filter_by(name='Spare bulb').one().id
-    owner.post(f'/app/item/{item_id}/delete')
-    with app.app_context():
-        assert db.session.get(Item, item_id) is None
-        assert StockMovement.query.filter_by(item_id=item_id).count() == 0

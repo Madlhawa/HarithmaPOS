@@ -58,6 +58,7 @@ def create_app(Config_class=Config):
     csrf.init_app(app)
 
     import harithmapos.audit  # noqa: F401  (records price, discount, payment and similar changes)
+    import harithmapos.archive  # noqa: F401  (using an archived customer or supplier again restores them)
     import harithmapos.ledger  # noqa: F401  (payments are append-only)
 
     from harithmapos.commands import register_commands

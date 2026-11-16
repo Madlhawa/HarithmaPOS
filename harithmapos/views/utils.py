@@ -64,6 +64,30 @@ def redirect_back(default_endpoint, **values):
     return redirect(url_for(default_endpoint, **values))
 
 
+def archive_record(record, label):
+    """Archive a customer, item or supplier (archive.py) and say so."""
+    from flask_login import current_user
+    from harithmapos import archive
+    try:
+        archive.archive(record, current_user)
+        db.session.commit()
+    except archive.ArchiveError as exc:
+        db.session.rollback()
+        flash(str(exc), category='warning')
+        return False
+    flash(f"{label} archived. Their invoices and history are kept; choose Archived on this page to see or restore them.",
+          category='success')
+    return True
+
+
+def restore_record(record, label):
+    from harithmapos import archive
+    archive.restore(record)
+    db.session.commit()
+    flash(f"{label} restored.", category='success')
+    return True
+
+
 def delete_record(record, label, blockers=()):
     """Delete a row, but refuse politely when other records still depend on it.
 

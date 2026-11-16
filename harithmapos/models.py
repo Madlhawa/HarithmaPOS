@@ -363,6 +363,27 @@ class Employee(db.Model):
     payments = db.relationship('Payment', backref='employee', lazy=True)
     invoice_statuses = db.relationship('InvoiceStatusLog', backref='employee', lazy=True)
 
+class Archivable:
+    """A customer, item or supplier is archived, never deleted (see archive.py).
+
+    Archived records keep every invoice, order and payment that names them,
+    but drop out of the lists and search boxes. Restoring brings them back.
+    """
+    archived_dttm = db.Column(UTCDateTime())
+
+    @declared_attr
+    def archived_by_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    @hybrid_property
+    def is_archived(self):
+        return self.archived_dttm is not None
+
+    @is_archived.expression
+    def is_archived(cls):
+        return cls.archived_dttm.isnot(None)
+
+
 class StockMovement(db.Model):
     """One change to an item's stock. Append-only: the item's quantity is the sum of these.
 
@@ -391,7 +412,7 @@ class StockMovement(db.Model):
     user = db.relationship('User', lazy='joined')
 
 
-class Item(db.Model):
+class Item(Archivable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(255))
@@ -418,7 +439,7 @@ class Item(db.Model):
         from harithmapos import settings as app_settings
         return self.quantity is not None and self.quantity <= app_settings.low_stock_threshold()
 
-class Supplier(db.Model):
+class Supplier(Archivable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     contact = db.Column(db.String(10))
@@ -482,7 +503,7 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.name}','{self.email}')"
 
-class Customer(db.Model):
+class Customer(Archivable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     contact = db.Column(db.String(10))

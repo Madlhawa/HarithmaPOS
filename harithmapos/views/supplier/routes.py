@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, render_template, request, flash
 
 from harithmapos import db
-from harithmapos.models import PurchaseOrderHead, Supplier
+from harithmapos.models import Supplier
 from harithmapos.timeutils import utcnow
 from harithmapos.views.supplier.forms import SupplierCreateForm, SupplierUpdateForm
 from harithmapos.permissions import owner_required
@@ -23,11 +23,12 @@ def supplier():
     page = request.args.get('page', 1, type=int)
     query = (request.args.get('query') or '').strip()
 
-    suppliers = Supplier.query
+    show = 'archived' if request.args.get('show') == 'archived' else ''
+    suppliers = Supplier.query.filter(Supplier.is_archived if show else ~Supplier.is_archived)
     if query:
         suppliers = suppliers.filter(Supplier.name.ilike(f"%{query}%"))
     suppliers = suppliers.order_by(Supplier.name).paginate(page=page, per_page=PER_PAGE)
-    return render_template('supplier.html', title='Suppliers', suppliers=suppliers, query=query)
+    return render_template('supplier.html', title='Suppliers', suppliers=suppliers, query=query, show=show)
 
 
 @supplier_blueprint.route("/app/supplier/create", methods=['POST'])
@@ -74,11 +75,17 @@ def update_supplier(supplier_id):
     return utils.redirect_back('supplier_blueprint.supplier')
 
 
-@supplier_blueprint.route('/app/supplier/<int:supplier_id>/delete', methods=['POST'])
+@supplier_blueprint.route('/app/supplier/<int:supplier_id>/archive', methods=['POST'])
 @owner_required
-def delete_supplier(supplier_id):
-    supplier = Supplier.query.get_or_404(supplier_id)
-    utils.delete_record(supplier, supplier.name, blockers=[
-        (PurchaseOrderHead.query.filter(PurchaseOrderHead.supplier_id == supplier.id).count(), 'purchase orders'),
-    ])
+def archive_supplier(supplier_id):
+    supplier = db.get_or_404(Supplier, supplier_id)
+    utils.archive_record(supplier, supplier.name)
+    return utils.redirect_back('supplier_blueprint.supplier')
+
+
+@supplier_blueprint.route('/app/supplier/<int:supplier_id>/restore', methods=['POST'])
+@owner_required
+def restore_supplier(supplier_id):
+    supplier = db.get_or_404(Supplier, supplier_id)
+    utils.restore_record(supplier, supplier.name)
     return utils.redirect_back('supplier_blueprint.supplier')

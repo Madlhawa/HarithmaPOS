@@ -16,6 +16,7 @@
         <a href="{{ url_for('item_blueprint.item', query=query or none) }}" class="{{ 'active' if not stock }}">All</a>
         <a href="{{ url_for('item_blueprint.item', stock='low', query=query or none) }}" class="{{ 'active' if stock == 'low' }}">Running low</a>
         <a href="{{ url_for('item_blueprint.item', stock='services', query=query or none) }}" class="{{ 'active' if stock == 'services' }}">Services</a>
+        <a href="{{ url_for('item_blueprint.item', stock='archived', query=query or none) }}" class="{{ 'active' if stock == 'archived' }}">Archived</a>
     </div>
 </div>
 
@@ -42,7 +43,7 @@
                 <button type="button" class="btn btn-quiet btn-sm btn-icon" title="Edit {{ i.name }}" aria-label="Edit {{ i.name }}" data-edit-modal="#itemModal"
                     data-action="{{ url_for('item_blueprint.update_item', item_id=i.id) }}"
                     data-values='{{ {"name": i.name, "description": i.description, "unit_of_measure": i.unit_of_measure, "quantity": i.quantity|qty if i.tracks_stock else none, "unit_cost": i.unit_cost|money, "unit_price": i.unit_price|money, "discount_pct": i.discount_pct|qty if i.discount_pct else ""}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                {{ post_button(url_for('item_blueprint.delete_item', item_id=i.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ i.name, confirm='Delete ' ~ i.name ~ '?', next=here) }}
+                {% if i.is_archived %}{{ post_button(url_for('item_blueprint.restore_item', item_id=i.id), icon='arrow-counterclockwise', cls='btn btn-quiet btn-sm btn-icon', title='Restore ' ~ i.name, next=here) }}{% else %}{{ post_button(url_for('item_blueprint.archive_item', item_id=i.id), icon='archive', cls='btn btn-quiet btn-sm btn-icon', title='Archive ' ~ i.name, confirm='Archive ' ~ i.name ~ '? It leaves the list and search and can no longer be sold or bought; old invoices and its stock history are kept.', next=here) }}{% endif %}
             </td>
             {% endif %}
         </tr>

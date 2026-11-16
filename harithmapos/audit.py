@@ -129,7 +129,7 @@ WATCHES = {
     models.Item: Watch(
         'item', 'prices',
         {'unit_price': ('Price', MONEY), 'unit_cost': ('Cost', MONEY), 'discount_pct': ('Discount %', PCT),
-         'name': ('Name', TEXT)},
+         'name': ('Name', TEXT), 'archived_dttm': ('Archived', BOOL)},
         on_create=True, on_delete=True,
         describe=lambda o: (f"Item: {o.name}", 'item', o.id),
         summary=lambda o: f"price {_money(o.unit_price)}, cost {_money(o.unit_cost)}"

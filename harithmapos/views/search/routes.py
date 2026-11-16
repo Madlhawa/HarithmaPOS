@@ -8,6 +8,7 @@ from sqlalchemy import or_
 from flask_login import login_required
 from flask import Blueprint, request, jsonify
 
+from harithmapos import archive
 from harithmapos.models import InvoiceHead, Customer, Employee, Vehicle, WashBay, Item, Supplier
 from harithmapos.template_helpers import money_filter, quantity_filter
 from harithmapos.textutils import format_phone, normalize_phone
@@ -22,9 +23,9 @@ def _query_text():
     return request.args.get("q", "").strip()
 
 
-def _name_search(model, query):
+def _name_search(model, query, rows=None):
     """Rows of a simple named model matching the text (or the id, if a number was typed)."""
-    rows = model.query
+    rows = model.query if rows is None else rows
     if query:
         conditions = [model.name.ilike(f"%{query}%")]
         if query.isdigit():
@@ -58,7 +59,7 @@ def search_vehicles():
 @search_blueprint.route("/app/search/employees", methods=["GET"])
 @login_required
 def search_employees():
-    employees = _name_search(Employee, _query_text())
+    employees = _name_search(Employee, _query_text(), Employee.query.filter(Employee.active.is_(True)))
     return jsonify([{
         "id": employee.id,
         "name": employee.name,
@@ -83,7 +84,7 @@ def search_washbays():
 @login_required
 def search_customers():
     query = _query_text()
-    customers = Customer.query
+    customers = archive.current(Customer.query, Customer)
     if query:
         conditions = [
             Customer.name.ilike(f"%{query}%"),
@@ -131,7 +132,7 @@ def search_invoices():
 @login_required
 def search_Items():
     query = _query_text()
-    items = Item.query
+    items = archive.current(Item.query, Item)
     if query:
         pattern = f"%{query}%"
         conditions = [Item.name.ilike(pattern), Item.description.ilike(pattern)]
@@ -157,7 +158,7 @@ def search_Items():
 @search_blueprint.route("/app/search/suppliers", methods=["GET"])
 @login_required
 def search_suppliers():
-    suppliers = _name_search(Supplier, _query_text())
+    suppliers = _name_search(Supplier, _query_text(), archive.current(Supplier.query, Supplier))
     return jsonify([{
         "id": supplier.id,
         "name": supplier.name,

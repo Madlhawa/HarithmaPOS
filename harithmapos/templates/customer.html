@@ -8,7 +8,13 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerNewModal"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add customer</button>
     </div>
 </div>
-<div class="toolbar">{{ search_box('Search by name, phone or vehicle number', query) }}</div>
+<div class="toolbar">
+    {{ search_box('Search by name, phone or vehicle number', query, hidden={'show': show}) }}
+    <nav class="filter-tabs" aria-label="Show">
+        <a href="{{ url_for('customer_blueprint.customer', query=query or none) }}" class="{{ 'active' if not show }}">Customers</a>
+        <a href="{{ url_for('customer_blueprint.customer', show='archived', query=query or none) }}" class="{{ 'active' if show }}">Archived</a>
+    </nav>
+</div>
 
 <div class="panel">
     {% if customers.items %}
@@ -39,7 +45,7 @@
                     data-action="{{ url_for('customer_blueprint.update_customer', customer_id=c.id) }}"
                     data-values='{{ {"name": c.name, "contact": c.contact|phone, "address": c.address, "email": c.email}|tojson|forceescape }}'><i class="bi bi-pencil" aria-hidden="true"></i></button>
                 {% if c.id != -1 and is_owner() %}
-                {{ post_button(url_for('customer_blueprint.delete_customer', customer_id=c.id), icon='trash3', cls='btn btn-danger-quiet btn-sm btn-icon', title='Delete ' ~ c.name, confirm='Delete ' ~ c.name ~ ' and their vehicles?', next=here) }}
+                {% if c.is_archived %}{{ post_button(url_for('customer_blueprint.restore_customer', customer_id=c.id), icon='arrow-counterclockwise', cls='btn btn-quiet btn-sm btn-icon', title='Restore ' ~ c.name, next=here) }}{% elif c.id != -1 %}{{ post_button(url_for('customer_blueprint.archive_customer', customer_id=c.id), icon='archive', cls='btn btn-quiet btn-sm btn-icon', title='Archive ' ~ c.name, confirm='Archive ' ~ c.name ~ '? They leave the lists and search; their invoices and vehicles are kept. Starting a job for one of their vehicles brings them back.', next=here) }}{% endif %}
                 {% endif %}
             </td>
         </tr>
@@ -47,7 +53,7 @@
         </tbody>
     </table>
     </div>
-    {{ pager(customers, 'customer_blueprint.customer', 'customers', query=query or none) }}
+    {{ pager(customers, 'customer_blueprint.customer', 'customers', query=query or none, show=show or none) }}
     {% else %}
     <div class="empty"><i class="bi bi-people" aria-hidden="true"></i>
         {% if query %}<h3>No customer matches "{{ query }}"</h3><p>Check the spelling, or search by phone or vehicle number.</p>
