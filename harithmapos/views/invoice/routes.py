@@ -7,18 +7,18 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from harithmapos import db, config
 from harithmapos import settings as app_settings
 from harithmapos import job_requests
-from harithmapos.billing import invoice_totals, line_amounts, money, to_decimal
+from harithmapos.billing import money
 from harithmapos.timeutils import utcnow
 from harithmapos.models import DOC_COMPLETED, DOC_DRAFT, DOC_VOID
 from harithmapos.models import (
     InvoiceHead, InvoiceDetail, ItemInvoiceHead, ItemInvoiceDetail, Customer, Vehicle,
-    WashBay, Employee, Item, InvoiceStatusLog, InvoiceRequest,
+    WashBay, Employee, Item, InvoiceRequest,
 )
 from harithmapos.views.invoice.forms import (
     InvoiceHeadCreateForm, InvoiceHeadUpdateForm, ItemInvoiceHeadCreateForm,
     ItemInvoiceHeadUpdateForm, InvoiceDetailCreateForm, InvoiceStatusForm,
 )
-from harithmapos import documents, ledger
+from harithmapos import documents, job_status, ledger, lines, stock
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
@@ -155,7 +155,7 @@ def insert_invoice_head():
         )
         db.session.add(invoice)
         db.session.commit()
-        _log_status(invoice, previous_log_id=None)
+        job_status.log(invoice, previous_log_id=None)
     except Exception:
         db.session.rollback()
         logger.exception("Could not create service invoice")
@@ -267,7 +267,7 @@ def invoice_head_detail(invoice_head_id):
     # A draft is recalculated on every view so its totals can never drift from the lines;
     # a completed or void bill is fixed.
     if invoice_head.is_draft:
-        invoice_details = _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
+        invoice_details = lines.recalculate(invoice_head)
         db.session.commit()
     else:
         invoice_details = documents.lines_of(invoice_head)
@@ -300,11 +300,11 @@ def set_invoice_status(invoice_head_id):
               category='warning')
     elif form.validate_on_submit():
         try:
-            changed = _change_status(invoice_head, form.status.data)
+            changed = job_status.change(invoice_head, form.status.data)
             invoice_head.update_dttm = utcnow()
             db.session.commit()
             if changed:
-                _log_status(invoice_head)
+                job_status.log(invoice_head)
                 flash(f"{invoice_head.vehicle.number} is now {invoice_head.service_status_str.lower()}.",
                       category='success')
         except Exception:
@@ -414,7 +414,7 @@ def item_invoice_head_detail(item_invoice_head_id):
                     item_invoice_head.customer_id = customer.id
             item_invoice_head.discount_amount = form.discount_amount.data or 0
             item_invoice_head.update_dttm = utcnow()
-            _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
+            lines.recalculate(item_invoice_head)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -435,7 +435,7 @@ def item_invoice_head_detail(item_invoice_head_id):
         return redirect(here)
 
     if item_invoice_head.is_draft:
-        item_invoice_details = _recalculate(item_invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
+        item_invoice_details = lines.recalculate(item_invoice_head)
         db.session.commit()
     else:
         item_invoice_details = documents.lines_of(item_invoice_head)
@@ -500,126 +500,106 @@ def void_item_invoice_head(item_invoice_head_id):
 
 
 # ---------------------------------------------------------------------------
-# Lines
+# Lines (the rules are in harithmapos/lines.py; these read the form and report)
 # ---------------------------------------------------------------------------
+
+def _invoice_page(head):
+    if isinstance(head, InvoiceHead):
+        return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=head.id))
+    return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=head.id))
+
+
+def _apply(head, change, failure):
+    """Run one change to the lines and commit, or roll back and say why."""
+    try:
+        change()
+        db.session.commit()
+    except (documents.DocumentError, stock.StockError) as exc:
+        db.session.rollback()
+        flash(str(exc), category='warning')
+    except Exception:
+        db.session.rollback()
+        logger.exception("%s: %s", documents.label(head), failure)
+        flash(f"{failure} Please try again.", category='danger')
+    return _invoice_page(head)
+
+
+def _add_line(head):
+    form = InvoiceDetailCreateForm()
+    if not form.validate_on_submit():
+        utils.flash_form_errors(form)
+        return _invoice_page(head)
+    item = db.session.get(Item, form.item_id.data)
+    if item is None:
+        flash("Choose the item from the list.", category='danger')
+        return _invoice_page(head)
+    return _apply(head, lambda: lines.add_sale_line(head, item, form.quantity.data, form.discount_amount.data),
+                  "The item could not be added.")
+
 
 @invoice_blueprint.route("/app/invoice/detail/add/<int:invoice_head_id>", methods=['POST'])
 @login_required
 def add_invoice_detail(invoice_head_id):
-    invoice_head = InvoiceHead.query.get_or_404(invoice_head_id)
-    _add_line(invoice_head, InvoiceDetail, 'invoice_head_id', InvoiceDetail.invoice_head_id)
-    return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head_id))
+    return _add_line(db.get_or_404(InvoiceHead, invoice_head_id))
 
 
 @invoice_blueprint.route("/app/item_invoice/detail/add/<int:item_invoice_head_id>", methods=['POST'])
 @login_required
 def add_item_invoice_detail(item_invoice_head_id):
-    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_head_id)
-    _add_line(item_invoice_head, ItemInvoiceDetail, 'item_invoice_head_id', ItemInvoiceDetail.item_invoice_head_id)
-    return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head_id))
+    return _add_line(db.get_or_404(ItemInvoiceHead, item_invoice_head_id))
+
+
+def _remove_line(line_model, line_id):
+    line = db.get_or_404(line_model, line_id)
+    head = lines.head_of(line)
+    return _apply(head, lambda: lines.remove_line(head, line), "The item could not be removed.")
+
+
+def _step_line(line_model, line_id, step):
+    line = db.get_or_404(line_model, line_id)
+    head = lines.head_of(line)
+    return _apply(head, lambda: lines.change_quantity(head, line, step), "The quantity could not be changed.")
 
 
 @invoice_blueprint.route("/app/invoice/detail/delete/<int:invoice_detail_id>", methods=['POST'])
 @login_required
 def delete_invoice_detail(invoice_detail_id):
-    invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
-    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
-    _remove_line(invoice_head, invoice_detail, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id))
+    return _remove_line(InvoiceDetail, invoice_detail_id)
 
 
 @invoice_blueprint.route("/app/item_invoice/detail/delete/<int:item_invoice_detail_id>", methods=['POST'])
 @login_required
 def delete_item_invoice_detail(item_invoice_detail_id):
-    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
-    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
-    _remove_line(item_invoice_head, item_invoice_detail, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-    return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id))
+    return _remove_line(ItemInvoiceDetail, item_invoice_detail_id)
 
 
 @invoice_blueprint.route("/app/invoice/detail/quantity/add/<int:invoice_detail_id>", methods=['POST'])
 @login_required
 def increase_quantity_invoice_detail(invoice_detail_id):
-    invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
-    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
-    _change_line_quantity(invoice_head, invoice_detail, 1, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id))
+    return _step_line(InvoiceDetail, invoice_detail_id, 1)
 
 
 @invoice_blueprint.route("/app/item_invoice/detail/quantity/add/<int:item_invoice_detail_id>", methods=['POST'])
 @login_required
 def increase_quantity_item_invoice_detail(item_invoice_detail_id):
-    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
-    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
-    _change_line_quantity(item_invoice_head, item_invoice_detail, 1, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-    return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id))
+    return _step_line(ItemInvoiceDetail, item_invoice_detail_id, 1)
 
 
 @invoice_blueprint.route("/app/invoice/detail/quantity/remove/<int:invoice_detail_id>", methods=['POST'])
 @login_required
 def decrease_quantity_invoice_detail(invoice_detail_id):
-    invoice_detail = InvoiceDetail.query.get_or_404(invoice_detail_id)
-    invoice_head = InvoiceHead.query.get_or_404(invoice_detail.invoice_head_id)
-    _change_line_quantity(invoice_head, invoice_detail, -1, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice_head.id))
+    return _step_line(InvoiceDetail, invoice_detail_id, -1)
 
 
 @invoice_blueprint.route("/app/item_invoice/detail/quantity/remove/<int:item_invoice_detail_id>", methods=['POST'])
 @login_required
 def decrease_quantity_item_invoice_detail(item_invoice_detail_id):
-    item_invoice_detail = ItemInvoiceDetail.query.get_or_404(item_invoice_detail_id)
-    item_invoice_head = ItemInvoiceHead.query.get_or_404(item_invoice_detail.item_invoice_head_id)
-    _change_line_quantity(item_invoice_head, item_invoice_detail, -1, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-    return redirect(url_for('invoice_blueprint.item_invoice_head_detail', item_invoice_head_id=item_invoice_head.id))
+    return _step_line(ItemInvoiceDetail, item_invoice_detail_id, -1)
 
 
 # ---------------------------------------------------------------------------
 # Supporting functions
 # ---------------------------------------------------------------------------
-
-def _recalculate(head, detail_model, head_column):
-    """Recompute the head totals from its lines. Returns the lines. Does not commit."""
-    details = detail_model.query.filter(head_column == head.id).order_by(detail_model.id).all()
-    totals = invoice_totals(details, bill_discount=head.discount_amount)
-    head.total_cost = totals['total_cost']
-    head.total_price = totals['total_price']
-    head.total_discount = totals['total_discount']
-    head.discount_amount = totals['discount_amount']
-    head.gross_price = totals['gross_price']
-    return details
-
-
-def update_total_values(invoice_head):
-    """Recompute and save the totals of a service or item invoice."""
-    if isinstance(invoice_head, InvoiceHead):
-        _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
-    else:
-        _recalculate(invoice_head, ItemInvoiceDetail, ItemInvoiceDetail.item_invoice_head_id)
-    db.session.commit()
-
-
-def _set_line_amounts(detail, extra_discount=None):
-    """Fill a line's cost / price / discount columns from its item and quantity."""
-    if extra_discount is None:
-        extra_discount = detail.additional_discount
-    amounts = line_amounts(
-        detail.quantity, detail.item.unit_cost, detail.item.unit_price,
-        detail.item.discount_pct, extra_discount)
-    detail.total_cost = amounts['total_cost']
-    detail.total_price = amounts['total_price']
-    detail.discount_amount = amounts['discount_amount']
-    detail.additional_discount = amounts['additional_discount']
-    detail.gross_price = amounts['gross_price']
-
-
-def _draft_or_flash(head):
-    try:
-        documents.require_draft(head)
-    except documents.DocumentError as exc:
-        flash(str(exc), category='warning')
-        return False
-    return True
-
 
 def _complete(head):
     """Draft -> completed (and the job Done). Returns False, with a message, if it cannot be."""
@@ -631,137 +611,7 @@ def _complete(head):
         flash(str(exc), category='warning')
         return False
     if job_done:
-        _log_status(head)
-    return True
-
-
-def _add_line(head, detail_model, head_field, head_column):
-    if not _draft_or_flash(head):
-        return False
-    form = InvoiceDetailCreateForm()
-    if not form.validate_on_submit():
-        utils.flash_form_errors(form)
-        return False
-
-    item = db.session.get(Item, form.item_id.data)
-    if item is None:
-        flash("Choose the item from the list.", category='danger')
-        return False
-
-    quantity = form.quantity.data
-    if item.tracks_stock and item.quantity < quantity:
-        flash(f"Not enough stock of {item.name}: {_qty_text(item.quantity)} left, {_qty_text(quantity)} asked for.",
-              category='danger')
-        return False
-
-    try:
-        amounts = line_amounts(quantity, item.unit_cost, item.unit_price, item.discount_pct, form.discount_amount.data)
-        detail = detail_model(item_id=item.id, quantity=quantity, **amounts)
-        setattr(detail, head_field, head.id)
-        db.session.add(detail)
-        if item.tracks_stock:
-            item.quantity = item.quantity - quantity
-        db.session.flush()
-        _recalculate(head, detail_model, head_column)
-        head.update_dttm = utcnow()
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not add an item to an invoice")
-        flash("The item could not be added. Please try again.", category='danger')
-        return False
-    return True
-
-
-def _remove_line(head, detail, detail_model, head_column):
-    if not _draft_or_flash(head):
-        return False
-    try:
-        item = detail.item
-        if item is not None and item.tracks_stock:
-            item.quantity = item.quantity + detail.quantity
-        db.session.delete(detail)
-        db.session.flush()
-        _recalculate(head, detail_model, head_column)
-        head.update_dttm = utcnow()
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not remove an invoice line")
-        flash("The item could not be removed. Please try again.", category='danger')
-        return False
-    return True
-
-
-def _change_line_quantity(head, detail, step, detail_model, head_column):
-    if not _draft_or_flash(head):
-        return False
-    item = detail.item
-    if step < 0 and detail.quantity <= 1:
-        flash("Quantity is already at the minimum. Remove the item instead.", category='warning')
-        return False
-    if step > 0 and item.tracks_stock and item.quantity < step:
-        flash(f"No more {item.name} in stock.", category='danger')
-        return False
-    try:
-        if item.tracks_stock:
-            item.quantity = item.quantity - step
-        detail.quantity = detail.quantity + step
-        detail.update_dttm = utcnow()
-        _set_line_amounts(detail)
-        db.session.flush()
-        _recalculate(head, detail_model, head_column)
-        head.update_dttm = utcnow()
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not change an invoice line quantity")
-        flash("The quantity could not be changed. Please try again.", category='danger')
-        return False
-    return True
-
-
-def update_invoice_detail_values(invoice_detail):
-    """Recompute and save one line after its quantity changed."""
-    _set_line_amounts(invoice_detail)
-    db.session.commit()
-
-
-def _latest_status_log_id(invoice_head):
-    latest = (
-        InvoiceStatusLog.query
-        .filter(InvoiceStatusLog.invoice_id == invoice_head.id)
-        .order_by(InvoiceStatusLog.id.desc())
-        .first()
-    )
-    return latest.id if latest else None
-
-
-def _log_status(invoice_head, previous_log_id='lookup'):
-    """Write a status history row. Runs in its own transaction and never raises."""
-    try:
-        if previous_log_id == 'lookup':
-            previous_log_id = _latest_status_log_id(invoice_head)
-        db.session.add(InvoiceStatusLog(
-            previous_invoice_status_log_id=previous_log_id,
-            invoice_id=invoice_head.id,
-            service_status=invoice_head.service_status,
-            employee_id=invoice_head.employee_id,
-        ))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not write status log for invoice %s", invoice_head.id)
-
-
-def _change_status(invoice_head, new_status):
-    """Set the status. Returns True if it actually changed. Does not commit."""
-    if new_status is None:
-        return False
-    new_status = int(new_status)
-    if new_status == (invoice_head.service_status or 0):
-        return False
-    invoice_head.service_status = new_status
+        job_status.log(head)
     return True
 
 
@@ -791,12 +641,12 @@ def _save_service_invoice(invoice_head, form):
         # The bill is still open: its discount can change, and the job can move between stages.
         invoice_head.discount_amount = form.discount_amount.data or 0
         if not form.complete_invoice.data:
-            status_changed = _change_status(invoice_head, form.service_status.data)
-        _recalculate(invoice_head, InvoiceDetail, InvoiceDetail.invoice_head_id)
+            status_changed = job_status.change(invoice_head, form.service_status.data)
+        lines.recalculate(invoice_head)
     db.session.commit()
 
     if status_changed:
-        _log_status(invoice_head)
+        job_status.log(invoice_head)
 
 
 def _complete_documents(head, form, print_url, success_message):
@@ -861,11 +711,3 @@ def _notify_customer(invoice_head, started):
     db.session.commit()
     flash(f"SMS sent to {customer.name}.", category='success')
     return True
-
-
-def _qty_text(value):
-    """Quantity without trailing zeros, for messages."""
-    text = f"{to_decimal(value):f}"
-    if '.' in text:
-        text = text.rstrip('0').rstrip('.')
-    return text or '0'

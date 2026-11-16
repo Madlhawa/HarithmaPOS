@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from flask_login import login_required
 from flask import Blueprint, render_template, request, flash
 
-from harithmapos import db, config
+from harithmapos import db, stock
 from harithmapos import settings as app_settings
 from harithmapos.models import Item, InvoiceDetail, ItemInvoiceDetail, PurchaseOrderDetail
 from harithmapos.timeutils import utcnow
@@ -48,7 +48,7 @@ def _apply_form(item, form):
     item.description = form.description.data
     item.unit_of_measure = form.unit_of_measure.data
     # An empty quantity means "not stock-tracked" (a service or labour charge).
-    item.quantity = form.quantity.data
+    stock.set_count(item, form.quantity.data)
     item.unit_cost = form.unit_cost.data
     item.unit_price = form.unit_price.data
     item.discount_pct = form.discount_pct.data or 0

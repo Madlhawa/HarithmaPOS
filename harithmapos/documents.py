@@ -16,9 +16,9 @@ Nothing here commits: the caller does.
 """
 from decimal import Decimal
 
-from harithmapos import config, db
+from harithmapos import config, stock
 from harithmapos.models import (
-    DOC_COMPLETED, DOC_DRAFT, DOC_VOID, InvoiceDetail, InvoiceHead, ItemInvoiceDetail, ItemInvoiceHead,
+    DOC_COMPLETED, DOC_VOID, InvoiceDetail, InvoiceHead, ItemInvoiceDetail, ItemInvoiceHead,
     PurchaseOrderDetail, PurchaseOrderHead,
 )
 from harithmapos.timeutils import utcnow
@@ -85,9 +85,7 @@ def void(document, reason, user=None):
                             "Refund or reverse those payments first, then void it.")
     _, _, sign = LINES[type(document)]
     for line in lines_of(document):
-        item = line.item
-        if item is not None and item.tracks_stock:
-            item.quantity = item.quantity - sign * line.quantity       # undo what adding the line did
+        stock.adjust(line.item, -sign * line.quantity)       # undo what adding the line did
     document.doc_status = DOC_VOID
     document.voided_dttm = document.update_dttm = utcnow()
     document.voided_by_id = getattr(user, 'id', None)

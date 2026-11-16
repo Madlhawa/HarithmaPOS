@@ -16,7 +16,8 @@ from harithmapos import config, db, job_requests
 from harithmapos.models import Customer, Employee, InvoiceHead, InvoiceStatusLog, Vehicle, WashBay
 from harithmapos.textutils import normalize_phone, normalize_plate
 from harithmapos.timeutils import local_day_bounds_utc, utcnow
-from harithmapos.views.invoice.routes import _change_status, _log_status, save_start_requests
+from harithmapos import job_status
+from harithmapos.views.invoice.routes import save_start_requests
 
 logger = logging.getLogger(__name__)
 floor_blueprint = Blueprint('floor_blueprint', __name__)
@@ -159,7 +160,7 @@ def move(invoice_id):
             job_requests.set_done(item, item.id in ticked, current_user)
 
     try:
-        changed = _change_status(invoice, status)
+        changed = job_status.change(invoice, status)
         invoice.update_dttm = utcnow()
         db.session.commit()
     except Exception:
@@ -169,7 +170,7 @@ def move(invoice_id):
         return _here()
 
     if changed:
-        _log_status(invoice)
+        job_status.log(invoice)
         label = 'ready to collect' if status == DONE else invoice.service_status_str.lower()
         flash(f"{invoice.vehicle.number} is now {label}.", category='success')
     else:
@@ -249,7 +250,7 @@ def add():
         )
         db.session.add(invoice)
         db.session.commit()   # customer, vehicle and invoice together, or none of them
-        _log_status(invoice, previous_log_id=None)
+        job_status.log(invoice, previous_log_id=None)
     except Exception:
         db.session.rollback()
         logger.exception("Could not add a vehicle from the floor board")

@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Lines and stock in their own modules.** Adding, removing and changing lines on invoices, item sales and purchase orders, with their stock movements and totals, now live in `lines.py`; every stock change goes through `stock.py`, which locks the item's row first so two counters can't lose a sale; the job stage and its history are in `job_status.py`. The invoice routes went from 865 to about 710 lines and only read forms and show results. No change to how the screens work. |
 | 16 Nov 2026 | **Sign-in duration.** "Keep me signed in" lasts 30 days (it was a year) and is for your own phone or computer. Without it (the counter PC), the sign-in ends when the browser closes or after an hour with nothing done, and the screen goes back to sign-in by itself; the hour is set in Settings → General (0 = never). Live board updates don't count as activity. |
 | 16 Nov 2026 | **Sign-in emails ignore case.** `Owner@x.com` and `owner@x.com` are one account: emails are stored in lower case (a database check enforces it), and sign-in, password reset, adding and editing users all ignore case and stray spaces. |
 | 16 Nov 2026 | **Old database helper removed.** `utils/database.py` (which "repaired" id sequences after any failed insert and printed to the console) is gone; records are saved with plain inserts. Adding a customer, vehicle and job together from the floor board or the counter now saves all of them or none. `flask create-user` makes an owner by default (`--role staff` for counter staff). |
@@ -62,7 +63,7 @@ Tests: 144 automated tests cover billing, roles, settings, reports and payroll.
 | www.harithma.lk | **Needs the owner** | Add a DNS A record for `www` → 143.110.179.155, then add it to the certificate. | S |
 | Error alerts | Partly done | Errors now show on the developer page. Still to do: an error tracker (Sentry or similar) that emails the developer with the traceback and the request, so nobody has to look. | S |
 | Tests on PostgreSQL | Not started | The tests run on SQLite but production runs PostgreSQL, so the payment append-only trigger, `timestamptz` behaviour and the migrations are never tested. Add a PostgreSQL service to GitHub Actions, run the tests on it, and run `flask db upgrade` from an empty database. | S |
-| Stock changes can race | Not started | Adding a line reads the stock, subtracts in Python and writes it back; two counters selling the same item at the same moment can lose a deduction. Lock the item row (or update with `quantity = quantity - n`) and add a database check that stock can't go below zero. | S |
+| Stock changes can race | Partly done | Every stock change now goes through `stock.py`, which locks the item's row and re-reads the quantity first (16 Nov). Still to do: a database check that stock can't go below zero, and a test on PostgreSQL proving two simultaneous sales can't both take the last one. | S |
 | Two people editing one invoice | Not started | The last save silently wins. Add a version number to invoices, sales and orders; a save based on an older version is refused with "someone else changed this, reload". | M |
 | Database indexes | Not started | Only primary keys exist on invoices, lines, customers and vehicles. Index invoice dates and status, customer and vehicle links, invoice-to-line links, plate number and customer phone. Fast now at ~1,000 invoices; slows steadily as data grows. | S |
 | Upgrade PostgreSQL and Python | Not started | PostgreSQL 14 stopped getting fixes on 12 Nov 2026 and Python 3.10 in Oct 2026. Ubuntu 22.04 still patches its own packages until Apr 2027. Plan a move to PostgreSQL 17 and Python 3.12 (or Ubuntu 24.04), tested on a copy first. | M |
@@ -209,7 +210,6 @@ Attendance and payroll are live. Possible follow-ups:
 | Linting and type checks | ruff (lint and format) and mypy in CI, with pre-commit hooks. | S |
 | Test coverage | Measure coverage in CI so untested code is visible. | S |
 | Browser tests | A few Playwright tests of the counter flow (add items, complete, print, void). The Void pop-up and search-focus bugs were browser behaviour no Python test could see. | M |
-| Split the invoice routes | `views/invoice/routes.py` is 865 lines mixing pages and business rules. Move line and stock rules into a module, as `ledger.py` and `documents.py` did for payments and states. | M |
 | README | Setup, running locally, tests and deploy, at the top of the repository. | S |
 
 ---

@@ -5,10 +5,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import current_user
 
 from harithmapos import db, config
-from harithmapos.billing import money, purchase_totals, to_decimal
+from harithmapos.billing import money, to_decimal
 from harithmapos.timeutils import utcnow
 from harithmapos.models import PurchaseOrderHead, PurchaseOrderDetail, Supplier, Item
-from harithmapos import documents, ledger
+from harithmapos import documents, ledger, lines, stock
 from harithmapos.views.purchase_order.forms import (
     PurchaseOrderHeadCreateForm, PurchaseOrderHeadUpdateForm, PurchaseOrderDetailCreateForm,
 )
@@ -107,7 +107,7 @@ def purchase_order_head_detail(purchase_order_head_id):
                     if supplier:
                         purchase_order_head.supplier_id = supplier.id
                 purchase_order_head.discount_pct = form.discount_pct.data or 0
-                _recalculate(purchase_order_head)
+                lines.recalculate(purchase_order_head)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -132,7 +132,7 @@ def purchase_order_head_detail(purchase_order_head_id):
             flash("Purchase order saved.", category='success')
         return redirect(here)
 
-    purchase_order_details = _recalculate(purchase_order_head)
+    purchase_order_details = lines.recalculate(purchase_order_head)
     db.session.commit()
     return render_template(
         'purchase_order/update.html',
@@ -163,134 +163,65 @@ def void_purchase_order_head(purchase_order_head_id):
     return redirect(here)
 
 
-def _draft_or_flash(order):
+def _order_page(order_id):
+    return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail', purchase_order_head_id=order_id))
+
+
+def _apply(order, change, failure):
+    """Run one change to the lines and commit, or roll back and say why."""
     try:
-        documents.require_draft(order)
-    except documents.DocumentError as exc:
+        change()
+        db.session.commit()
+    except (documents.DocumentError, stock.StockError) as exc:
+        db.session.rollback()
         flash(str(exc), category='warning')
-        return False
-    return True
+    except Exception:
+        db.session.rollback()
+        logger.exception("Purchase order #%s: %s", order.id, failure)
+        flash(f"{failure} Please try again.", category='danger')
+    return _order_page(order.id)
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/add/<int:purchase_order_head_id>", methods=['POST'])
 @owner_required
 def add_purchase_order_detail(purchase_order_head_id):
-    purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_head_id)
-    here = redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
-                            purchase_order_head_id=purchase_order_head_id))
-    if not _draft_or_flash(purchase_order_head):
-        return here
-
+    order = db.get_or_404(PurchaseOrderHead, purchase_order_head_id)
     form = PurchaseOrderDetailCreateForm()
     if not form.validate_on_submit():
         utils.flash_form_errors(form)
-        return here
-
+        return _order_page(order.id)
     item = db.session.get(Item, form.item_id.data)
     if item is None:
         flash("Choose the item from the list.", category='danger')
-        return here
-    if not item.tracks_stock:
-        flash(f"{item.name} is set up as a service with no stock. "
-              "Give it a stock quantity on the Items page before buying it in.", category='warning')
-        return here
-
-    quantity = form.quantity.data
-    unit_cost = form.unit_cost.data if form.unit_cost.data is not None else to_decimal(item.unit_cost)
-    try:
-        detail = PurchaseOrderDetail(
-            purchase_order_head_id=purchase_order_head.id,
-            item_id=item.id,
-            quantity=quantity,
-            total_cost=money(unit_cost * quantity),
-            total_price=money(to_decimal(item.unit_price) * quantity),
-            discount_pct=0,
-        )
-        db.session.add(detail)
-        item.quantity = item.quantity + quantity
-        # Remember what the item costs now, so profit on later sales is right.
-        item.unit_cost = money(unit_cost)
-        item.update_dttm = utcnow()
-        db.session.flush()
-        _recalculate(purchase_order_head)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not add an item to purchase order %s", purchase_order_head_id)
-        flash("The item could not be added. Please try again.", category='danger')
-    return here
+        return _order_page(order.id)
+    return _apply(order, lambda: lines.add_purchase_line(order, item, form.quantity.data, form.unit_cost.data),
+                  "The item could not be added.")
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/delete/<int:purchase_order_detail_id>", methods=['POST'])
 @owner_required
 def delete_purchase_order_detail(purchase_order_detail_id):
-    purchase_order_detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)
-    purchase_order_head = PurchaseOrderHead.query.get_or_404(purchase_order_detail.purchase_order_head_id)
-    if not _draft_or_flash(purchase_order_head):
-        return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
-                                purchase_order_head_id=purchase_order_head.id))
-    try:
-        item = purchase_order_detail.item
-        if item is not None and item.tracks_stock:
-            item.quantity = item.quantity - purchase_order_detail.quantity
-        db.session.delete(purchase_order_detail)
-        db.session.flush()
-        _recalculate(purchase_order_head)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not remove purchase order line %s", purchase_order_detail_id)
-        flash("The item could not be removed. Please try again.", category='danger')
-    return redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
-                            purchase_order_head_id=purchase_order_head.id))
+    line = db.get_or_404(PurchaseOrderDetail, purchase_order_detail_id)
+    order = lines.head_of(line)
+    return _apply(order, lambda: lines.remove_line(order, line), "The item could not be removed.")
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/quantity/add/<int:purchase_order_detail_id>", methods=['POST'])
 @owner_required
 def increase_quantity_purchase_order_detail(purchase_order_detail_id):
-    return _change_line_quantity(purchase_order_detail_id, 1)
+    return _step_line(purchase_order_detail_id, 1)
 
 
 @purchase_order_blueprint.route("/app/purchase_order/detail/quantity/remove/<int:purchase_order_detail_id>", methods=['POST'])
 @owner_required
 def decrease_quantity_purchase_order_detail(purchase_order_detail_id):
-    return _change_line_quantity(purchase_order_detail_id, -1)
+    return _step_line(purchase_order_detail_id, -1)
 
 
-# supporting functions
-
-def _change_line_quantity(purchase_order_detail_id, step):
-    detail = PurchaseOrderDetail.query.get_or_404(purchase_order_detail_id)
-    purchase_order_head = PurchaseOrderHead.query.get_or_404(detail.purchase_order_head_id)
-    here = redirect(url_for('purchase_order_blueprint.purchase_order_head_detail',
-                            purchase_order_head_id=purchase_order_head.id))
-    if not _draft_or_flash(purchase_order_head):
-        return here
-
-    if step < 0 and detail.quantity <= 1:
-        flash("Quantity is already at the minimum. Remove the item instead.", category='warning')
-        return here
-    try:
-        old_quantity = to_decimal(detail.quantity)
-        new_quantity = old_quantity + step
-        # Keep this line's own unit cost and price; the item's may have changed since.
-        unit_cost = to_decimal(detail.total_cost) / old_quantity
-        unit_price = to_decimal(detail.total_price) / old_quantity
-        detail.quantity = new_quantity
-        detail.total_cost = money(unit_cost * new_quantity)
-        detail.total_price = money(unit_price * new_quantity)
-        detail.update_dttm = utcnow()
-        item = detail.item
-        if item is not None and item.tracks_stock:
-            item.quantity = item.quantity + step
-        db.session.flush()
-        _recalculate(purchase_order_head)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        logger.exception("Could not change purchase order line %s", purchase_order_detail_id)
-        flash("The quantity could not be changed. Please try again.", category='danger')
-    return here
+def _step_line(purchase_order_detail_id, step):
+    line = db.get_or_404(PurchaseOrderDetail, purchase_order_detail_id)
+    order = lines.head_of(line)
+    return _apply(order, lambda: lines.change_quantity(order, line, step), "The quantity could not be changed.")
 
 
 def _pay_on_completion(order, form):
@@ -315,24 +246,3 @@ def _pay_on_completion(order, form):
         return
     left = money(order.balance)
     flash(label + (f" Still to pay: {config.CURRENCY} {left:,.2f}." if left > 0 else " Paid in full."), category='success')
-
-
-def _recalculate(purchase_order_head):
-    """Recompute the head totals from its lines. Returns the lines. Does not commit."""
-    details = (
-        PurchaseOrderDetail.query
-        .filter(PurchaseOrderDetail.purchase_order_head_id == purchase_order_head.id)
-        .order_by(PurchaseOrderDetail.id)
-        .all()
-    )
-    totals = purchase_totals(details, purchase_order_head.discount_pct)
-    # total_cost is not a column on the head; it is set here for the screen to show.
-    purchase_order_head.total_cost = totals['total_cost']
-    purchase_order_head.total_price = totals['total_price']
-    purchase_order_head.gross_price = totals['gross_price']
-    return details
-
-
-def update_total_values(purchase_order_head):
-    _recalculate(purchase_order_head)
-    db.session.commit()
