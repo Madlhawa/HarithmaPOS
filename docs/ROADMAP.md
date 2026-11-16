@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **One vehicle per plate.** A plate can be registered once: CAB-1234, CAB 1234 and cab1234 count as the same plate, and the database refuses a second vehicle with it. Typing a known plate on the floor board or quick register uses the registered vehicle (bringing back an archived owner), and the vehicle search finds plates typed without the dash. A phone number may be shared (family, company cars), so saving a customer whose number another customer has only shows a warning naming them. |
 | 16 Nov 2026 | **Archive instead of delete.** Customers, items and suppliers are archived, never deleted: they leave the lists and search boxes but stay on every invoice, order and payment, and each list has an *Archived* view with **Restore**. A returning customer or supplier comes back by itself when a job, sale, vehicle or order is made for them; archived items can't be sold or bought until restored. Employees are marked as left instead of deleted, and people who left no longer appear in the employee picker. |
 | 16 Nov 2026 | **Stock history.** Every change to an item's stock is written down with when, why (sold, sale taken back, bought in, purchase taken back, voided, stock count, opening stock), which invoice or order, who, and the stock left after. Click an item's stock figure on the Items page to see it. Each item's history starts with its stock on 16 Nov, so its quantity always equals the sum of its history. |
 | 16 Nov 2026 | **Lines keep the item as sold.** Each line on a service invoice, item sale or purchase order stores the item's name, unit cost, unit price and automatic discount from when it was added. Renaming or repricing an item never changes an existing invoice or its prints, and +/- on a draft line keeps the price it was added at; only new lines take the new price. |
@@ -99,7 +100,6 @@ What is already right: CSRF on every form, role checks on every route, secure an
 
 | Item | What to do | Effort |
 |---|---|---|
-| Unique plates and phones | Two vehicles can have the same plate and two customers the same phone. Normalise and make them unique (or warn on duplicates first, then enforce). | S |
 | Queue without a bay or employee | A service invoice must have a wash bay and an employee at the database level, even while the vehicle waits in the queue. Allow them to be empty until work starts. | S |
 | Gapless invoice numbers | Invoice numbers are database ids, so an abandoned draft leaves a gap. Give completed bills their own sequential number (needed for tax, and for a second station later). | M |
 | More database checks | Only the payment table has checks. Add them for quantity above zero, discount not above the price, and similar rules. | S |
@@ -243,7 +243,7 @@ Attendance and payroll are live. Possible follow-ups:
 | **Now** (owner actions, ~1 day) | Off-server backups, uptime alerts, GitHub cache purge. |
 | **Then** (~1–2 weeks) | Tests on PostgreSQL, stock race, edit conflicts, indexes, error tracker, health check, backup restore test, the small security items (1a) |
 | **Next** (~3–4 weeks) | Service reminder SMS, vehicle history and customer profile, profit after expenses, daily summary, export. |
-| **Soon after** | PostgreSQL and Python upgrade, background jobs, staging copy, browser tests, linting and coverage, unique plates and phones, gapless invoice numbers. |
+| **Soon after** | PostgreSQL and Python upgrade, background jobs, staging copy, browser tests, linting and coverage, gapless invoice numbers. |
 | **Later** | Packages and vehicle-type pricing, split payments and cash-up, staff clock-in and leave requests, loyalty and feedback, bookings and queue screen. |
 
 Estimates are rough, not quotes.

@@ -64,6 +64,33 @@ def redirect_back(default_endpoint, **values):
     return redirect(url_for(default_endpoint, **values))
 
 
+def plate_taken_message(vehicle):
+    """Say who already has this plate."""
+    owner = vehicle.owner
+    text = f"{vehicle.number} is already registered to {owner.name}."
+    if owner.is_archived:
+        text += " They are archived; starting a job for the vehicle brings them back."
+    return text
+
+
+def warn_shared_phone(customer):
+    """A phone number may be shared (family, a company car), so this only warns."""
+    from harithmapos.models import Customer
+    from harithmapos.textutils import format_phone, normalize_phone
+    number = normalize_phone(customer.contact)
+    if not number:
+        return
+    same = [number, '0' + number]          # older numbers are stored with the leading 0
+    others = (Customer.query.filter(Customer.contact.in_(same), Customer.id != customer.id)
+              .order_by(Customer.name).limit(4).all())
+    if not others:
+        return
+    names = ', '.join(o.name + (' (archived)' if o.is_archived else '') for o in others[:3])
+    more = ' and others' if len(others) > 3 else ''
+    flash(f"Note: {format_phone(customer.contact)} is also the phone number of {names}{more}. "
+          "If this is the same person, use one customer for both.", category='warning')
+
+
 def archive_record(record, label):
     """Archive a customer, item or supplier (archive.py) and say so."""
     from flask_login import current_user

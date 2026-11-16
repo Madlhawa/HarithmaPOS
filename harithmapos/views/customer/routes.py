@@ -53,14 +53,16 @@ def insert_customer():
     form = CustomerForm()
     if form.validate_on_submit():
         try:
-            db.session.add(Customer(
+            customer = Customer(
                 name=form.name.data,
                 contact=form.contact.data,
                 address=form.address.data,
                 email=form.email.data,
-            ))
+            )
+            db.session.add(customer)
             db.session.commit()
             flash(f"{form.name.data} added.", category='success')
+            utils.warn_shared_phone(customer)
         except Exception:
             db.session.rollback()
             logger.exception("Could not add customer")
@@ -80,11 +82,12 @@ def quick_register():
         return redirect(url_for('dashboard_blueprint.dashboard'))
 
     number = form.number.data
-    existing = Vehicle.query.filter(func.upper(Vehicle.number) == number).first()
+    existing = Vehicle.with_plate(number)
     if existing:
-        flash(f"{existing.number} is already registered to {existing.owner.name}.", category='info')
+        flash(utils.plate_taken_message(existing), category='info')
         return redirect(url_for('dashboard_blueprint.dashboard', new_service_vehicle=existing.id))
 
+    new_customer = None
     try:
         customer = None
         if form.contact.data:
@@ -94,7 +97,7 @@ def quick_register():
                 func.lower(Customer.name) == form.name.data.lower(),
             ).first()
         if customer is None:
-            customer = Customer(name=form.name.data, contact=form.contact.data)
+            customer = new_customer = Customer(name=form.name.data, contact=form.contact.data)
             db.session.add(customer)
             db.session.flush()
         vehicle = Vehicle(
@@ -113,6 +116,8 @@ def quick_register():
         return redirect(url_for('dashboard_blueprint.dashboard'))
 
     flash(f"{vehicle.number} registered for {customer.name}.", category='success')
+    if new_customer is not None:
+        utils.warn_shared_phone(new_customer)
     return redirect(url_for('dashboard_blueprint.dashboard', new_service_vehicle=vehicle.id))
 
 
@@ -123,6 +128,7 @@ def update_customer(customer_id):
     form = CustomerForm()
     if form.validate_on_submit():
         try:
+            phone_changed = customer.contact != form.contact.data
             customer.name = form.name.data
             customer.contact = form.contact.data
             customer.address = form.address.data
@@ -130,6 +136,8 @@ def update_customer(customer_id):
             customer.update_dttm = utcnow()
             db.session.commit()
             flash(f"{customer.name} saved.", category='success')
+            if phone_changed:
+                utils.warn_shared_phone(customer)
         except Exception:
             db.session.rollback()
             logger.exception("Could not update customer %s", customer_id)

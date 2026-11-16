@@ -522,6 +522,8 @@ class Customer(Archivable, db.Model):
 class Vehicle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     number = db.Column(db.String(8), nullable=False)
+    # The plate with only its letters and digits: one vehicle per plate (CAB-1234 = CAB 1234).
+    plate_key = db.Column(db.String(8), nullable=False, unique=True)
     make = db.Column(db.String(20))
     model = db.Column(db.String(20))
     year = db.Column(db.String(4))
@@ -529,6 +531,24 @@ class Vehicle(db.Model):
     update_dttm = db.Column(UTCDateTime(), nullable=False, default=utcnow)
     owner_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     invoices = db.relationship('InvoiceHead', backref='vehicle', lazy=True)
+
+    @validates('number')
+    def _set_plate_key(self, key, value):
+        from harithmapos.textutils import plate_key
+        self.plate_key = plate_key(value)
+        return value
+
+    @classmethod
+    def with_plate(cls, number, except_id=None):
+        """The vehicle already registered under this plate, however it was typed."""
+        from harithmapos.textutils import plate_key
+        key = plate_key(number)
+        if not key:
+            return None
+        query = cls.query.filter(cls.plate_key == key)
+        if except_id is not None:
+            query = query.filter(cls.id != except_id)
+        return query.first()
 
     def __repr__(self):
         return f"Vehicle('{self.number}','{self.make}','{self.model}','{self.year}')"

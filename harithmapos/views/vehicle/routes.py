@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from flask import Blueprint, flash, abort
 from flask_login import login_required
 
@@ -17,24 +17,17 @@ logger = logging.getLogger(__name__)
 vehicle_blueprint = Blueprint('vehicle_blueprint', __name__)
 
 
-def _number_taken(number, except_id=None):
-    query = Vehicle.query.filter(func.upper(Vehicle.number) == number)
-    if except_id is not None:
-        query = query.filter(Vehicle.id != except_id)
-    return query.first()
-
-
 @vehicle_blueprint.route('/app/insert_vehicle/', methods=['POST'])
 @login_required
 def insert_vehicle():
     form = VehicleForm()
     if form.validate_on_submit():
         owner = db.session.get(Customer, form.owner_id.data)
-        duplicate = _number_taken(form.number.data)
+        duplicate = Vehicle.with_plate(form.number.data)
         if owner is None:
             flash("Choose the owner from the list.", category='danger')
         elif duplicate:
-            flash(f"{duplicate.number} is already registered to {duplicate.owner.name}.", category='warning')
+            flash(utils.plate_taken_message(duplicate), category='warning')
         else:
             try:
                 db.session.add(Vehicle(
@@ -46,6 +39,9 @@ def insert_vehicle():
                 ))
                 db.session.commit()
                 flash(f"{form.number.data} added for {owner.name}.", category='success')
+            except IntegrityError:
+                db.session.rollback()       # someone registered the same plate a moment ago
+                flash(f"{form.number.data} is already registered.", category='warning')
             except Exception:
                 db.session.rollback()
                 logger.exception("Could not add vehicle")
@@ -62,11 +58,11 @@ def update_vehicle(vehicle_id):
     form = VehicleForm()
     if form.validate_on_submit():
         owner = db.session.get(Customer, form.owner_id.data)
-        duplicate = _number_taken(form.number.data, except_id=vehicle.id)
+        duplicate = Vehicle.with_plate(form.number.data, except_id=vehicle.id)
         if owner is None:
             flash("Choose the owner from the list.", category='danger')
         elif duplicate:
-            flash(f"{duplicate.number} is already registered to {duplicate.owner.name}.", category='warning')
+            flash(utils.plate_taken_message(duplicate), category='warning')
         else:
             try:
                 vehicle.number = form.number.data
@@ -77,6 +73,9 @@ def update_vehicle(vehicle_id):
                 vehicle.update_dttm = utcnow()
                 db.session.commit()
                 flash(f"{vehicle.number} saved.", category='success')
+            except IntegrityError:
+                db.session.rollback()
+                flash(f"{form.number.data} is already registered.", category='warning')
             except Exception:
                 db.session.rollback()
                 logger.exception("Could not update vehicle %s", vehicle_id)

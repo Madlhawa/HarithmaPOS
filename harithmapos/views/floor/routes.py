@@ -18,6 +18,7 @@ from harithmapos.textutils import normalize_phone, normalize_plate
 from harithmapos.timeutils import local_day_bounds_utc, utcnow
 from harithmapos import job_status
 from harithmapos.views.invoice.routes import save_start_requests
+import harithmapos.views.utils as utils
 
 logger = logging.getLogger(__name__)
 floor_blueprint = Blueprint('floor_blueprint', __name__)
@@ -191,7 +192,7 @@ def add():
     vehicle = db.session.get(Vehicle, _int('vehicle_id') or 0)
     number = normalize_plate(request.form.get('number'))
     if vehicle is None and number:
-        vehicle = Vehicle.query.filter(func.upper(Vehicle.number) == number).first()
+        vehicle = Vehicle.with_plate(number)
 
     name = (request.form.get('name') or '').strip()
     phone_raw = (request.form.get('contact') or '').strip()
@@ -226,6 +227,7 @@ def add():
     mileage = request.form.get('current_milage', '').replace(',', '').strip()
     mileage = int(mileage) if mileage.isdigit() else None
 
+    new_customer = None
     try:
         if vehicle is None:
             customer = None
@@ -233,7 +235,7 @@ def add():
                 customer = Customer.query.filter(
                     Customer.contact == phone, func.lower(Customer.name) == name.lower()).first()
             if customer is None:
-                customer = Customer(name=name[:100], contact=phone)
+                customer = new_customer = Customer(name=name[:100], contact=phone)
                 db.session.add(customer)
                 db.session.flush()
             vehicle = Vehicle(number=number, owner_id=customer.id)
@@ -260,4 +262,6 @@ def add():
     save_start_requests(invoice)
     where = f"into {washbay.name}" if start_now else "to the queue"
     flash(f"{vehicle.number} added {where}.", category='success')
+    if new_customer is not None:
+        utils.warn_shared_phone(new_customer)
     return _here()

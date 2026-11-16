@@ -4,14 +4,14 @@ Every result has an id, a label (what goes into the box when it is picked)
 and optional sub / meta text shown in the list.
 """
 
-from sqlalchemy import or_
+from sqlalchemy import false, or_
 from flask_login import login_required
 from flask import Blueprint, request, jsonify
 
 from harithmapos import archive
 from harithmapos.models import InvoiceHead, Customer, Employee, Vehicle, WashBay, Item, Supplier
 from harithmapos.template_helpers import money_filter, quantity_filter
-from harithmapos.textutils import format_phone, normalize_phone
+from harithmapos.textutils import format_phone, normalize_phone, plate_key
 from harithmapos.permissions import user_is_owner
 
 search_blueprint = Blueprint('search_blueprint', __name__)
@@ -41,8 +41,10 @@ def search_vehicles():
     vehicles = Vehicle.query
     if query:
         pattern = f"%{query}%"
+        key = plate_key(query)
         vehicles = vehicles.join(Customer, Vehicle.owner_id == Customer.id).filter(or_(
             Vehicle.number.ilike(pattern),
+            Vehicle.plate_key.like(f"%{key}%") if key else false(),
             Customer.name.ilike(pattern),
             Customer.contact.ilike(f"%{normalize_phone(query) or query}%"),
         ))

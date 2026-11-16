@@ -55,6 +55,13 @@ def format_phone(value):
     return str(value)
 
 
+def plate_key(value):
+    """What makes two plates the same: letters and digits only. 'CAB-1234', 'cab 1234' -> 'CAB1234'."""
+    if value is None:
+        return None
+    return re.sub(r'[^A-Z0-9]', '', str(value).upper()) or None
+
+
 def normalize_plate(value):
     """Vehicle numbers are stored upper-case with single spaces: 'cab-1234 ' -> 'CAB-1234'."""
     if value is None:
