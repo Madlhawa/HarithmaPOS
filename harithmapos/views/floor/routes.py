@@ -164,6 +164,10 @@ def move(invoice_id):
         changed = job_status.change(invoice, status)
         invoice.update_dttm = utcnow()
         db.session.commit()
+    except job_status.JobError as exc:
+        db.session.rollback()
+        flash(f"{exc} Tap the vehicle to choose.", category='warning')
+        return _here()
     except Exception:
         db.session.rollback()
         logger.exception("Could not move invoice %s", invoice_id)
@@ -185,8 +189,10 @@ def add():
     """Put a vehicle in the queue (or straight into a bay), registering it first if it is new."""
     employee = db.session.get(Employee, _int('employee_id') or 0)
     washbay = db.session.get(WashBay, _int('washbay_id') or 0)
-    if not employee or not washbay:
-        flash("Choose who will work on it and which bay.", category='warning')
+    start_now = request.form.get('start') == 'now'
+    if start_now and not (employee and washbay):
+        flash("To start now, choose the bay and who will work on it. "
+              "Or use Add to queue and choose them later.", category='warning')
         return _here()
 
     vehicle = db.session.get(Vehicle, _int('vehicle_id') or 0)
@@ -216,7 +222,6 @@ def add():
                   category='info')
             return _here()
 
-    start_now = request.form.get('start') == 'now'
     if start_now:
         other = _bay_taken_by(washbay.id)
         if other:
@@ -244,8 +249,8 @@ def add():
         invoice = InvoiceHead(
             customer_id=vehicle.owner_id,
             vehicle_id=vehicle.id,
-            washbay_id=washbay.id,
-            employee_id=employee.id,
+            washbay_id=washbay.id if washbay else None,
+            employee_id=employee.id if employee else None,
             current_milage=mileage,
             next_milage=mileage,
             service_status=config.SERVICE_STATUS_VACUUMING if start_now else WAITING,
@@ -261,6 +266,8 @@ def add():
 
     save_start_requests(invoice)
     where = f"into {washbay.name}" if start_now else "to the queue"
+    if not start_now and not (washbay and employee):
+        where += " (choose the bay and who works on it when it goes in)"
     flash(f"{vehicle.number} added {where}.", category='success')
     if new_customer is not None:
         utils.warn_shared_phone(new_customer)

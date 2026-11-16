@@ -263,8 +263,9 @@ class InvoiceHead(DocumentState, db.Model):
     id =  db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
-    washbay_id = db.Column(db.Integer, db.ForeignKey('wash_bay.id'), nullable=False)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    # Empty while the vehicle waits in the queue; job_status.change() asks for them when work starts.
+    washbay_id = db.Column(db.Integer, db.ForeignKey('wash_bay.id'))
+    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
     current_milage = db.Column(db.Numeric(18,0))
     next_milage_in = db.Column(db.Numeric(18,0))
     next_milage = db.Column(db.Numeric(18,0))

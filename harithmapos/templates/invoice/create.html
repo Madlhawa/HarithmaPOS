@@ -8,8 +8,8 @@
     <div class="panel-body">
         {{ autocomplete('vehicle', 'Vehicle', url_for('search_blueprint.search_vehicles'), prefix='nc', value=vehicle.number if vehicle else '', id_value=vehicle.id if vehicle else '', placeholder='Type the number, owner name or phone', cls='plate-input', hint='Not registered yet? Add the customer and vehicle on the Customers page or the dashboard.') }}
         <div class="row g-3">
-            <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='nc', show_all=true, placeholder='Choose an employee', wrap='') }}</div>
-            <div class="col-sm-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='nc', value=washbay.name if washbay else '', id_value=washbay.id if washbay else '', show_all=true, placeholder='Choose a bay', wrap='') }}</div>
+            <div class="col-sm-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='nc', show_all=true, optional=true, placeholder='Choose an employee', wrap='') }}</div>
+            <div class="col-sm-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='nc', value=washbay.name if washbay else '', id_value=washbay.id if washbay else '', show_all=true, optional=true, placeholder='Choose a bay', wrap='') }}</div>
             <div class="col-sm-6">{{ field('current_milage', 'Mileage now (km)', prefix='nc', kind='whole', wrap='') }}</div>
             <div class="col-12">{{ requests_box('nc', wrap='') }}</div>
         </div>

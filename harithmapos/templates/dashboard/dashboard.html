@@ -98,8 +98,8 @@
                 </div>
                 <div class="ticket-who">{{ invoice.customer.name }}</div>
                 <div class="ticket-where">
-                    <span>{{ invoice.washbay.name }}</span>
-                    <span>{{ invoice.employee.name }}</span>
+                    <span>{{ invoice.washbay.name if invoice.washbay else 'No bay yet' }}</span>
+                    <span>{{ invoice.employee.name if invoice.employee else 'Nobody yet' }}</span>
                 </div>
                 <div class="ticket-foot">
                     {% if is_done_lane %}
@@ -148,7 +148,7 @@
         <div class="min-w-0">
             <div class="bay-name">{{ entry.bay.name }}</div>
             <div class="bay-note">
-                {% if entry.invoice %}{{ status_meta(entry.invoice.service_status).label }}, {{ entry.invoice.employee.name }}{% else %}Free{% endif %}
+                {% if entry.invoice %}{{ status_meta(entry.invoice.service_status).label }}{% if entry.invoice.employee %}, {{ entry.invoice.employee.name }}{% endif %}{% else %}Free{% endif %}
             </div>
         </div>
         {% if entry.invoice %}

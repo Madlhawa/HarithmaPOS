@@ -27,7 +27,7 @@
         <tr>
             <td class="cell-id"><a class="row-link" href="{{ link }}">#{{ inv.id }}</a></td>
             <td>{{ plate(inv.vehicle.number, size='sm', href=link) }}</td>
-            <td><div class="cell-main">{{ inv.customer.name }}</div><div class="cell-sub">{{ inv.employee.name }}, {{ inv.washbay.name }}</div></td>
+            <td><div class="cell-main">{{ inv.customer.name }}</div><div class="cell-sub">{{ inv.employee.name if inv.employee else 'Nobody assigned' }}, {{ inv.washbay.name if inv.washbay else 'no bay' }}</div></td>
             <td class="nowrap">{{ inv.created_dttm|local_dt('%d %b %Y') }}</td>
             <td>{% if not inv.is_void %}{{ status_pill(inv.service_status) }}{% endif %}</td>
             <td>{{ doc_badge(inv) }}</td>

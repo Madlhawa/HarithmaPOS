@@ -87,7 +87,7 @@ Owners see extra sections in the menu. If a staff member opens an owner-only pag
 2. **A car arrives.**
    - First visit: **New customer and vehicle** → fill in name, phone and plate → **Save and start a service**.
    - Returning customer: **New service** → type the plate, owner name or phone and pick the vehicle.
-3. **Choose the employee and wash bay**, type the mileage if you have it, note **what the customer asked for** (one request per line), and press **Open the invoice**.
+3. **Choose the employee and wash bay** if you know them (both can wait until the vehicle goes in), type the mileage if you have it, note **what the customer asked for** (one request per line), and press **Open the invoice**.
 4. **Add what you will charge for**: type "body wash", pick it from the list, press **Add**. Repeat for every service or item.
 5. **Text the customer** (optional): **Text: started** sends them a link to follow the job.
 6. **Move the car along** on the dashboard: **Start vacuuming → Start washing → Start polishing**.
@@ -146,8 +146,8 @@ Each bay shows the vehicle in it and its stage, or **Free** with a **Start a ser
 | Field | What to enter |
 |---|---|
 | Vehicle | Type the plate, owner's name or phone, then pick the vehicle. "First visit?" links to *New customer and vehicle*. |
-| Employee doing the job | Pick from the list (click the box to see everyone). |
-| Wash bay | Pick from the list. |
+| Employee doing the job | Optional. Pick from the list (click the box to see everyone), or leave it for later. |
+| Wash bay | Optional. Pick from the list, or leave it for later. The job can't move to *Vacuuming* or *Washing* until it has a bay and an employee, or to *Polishing* until it has an employee. |
 | Mileage now (km) | The odometer reading. Leave empty if you don't have it. |
 | What the customer asked for | Optional. One request per line, for example *Full wash and vacuum*, *Check the AC smell*. Each line becomes a [checklist item](#customer-asked-for) on the invoice. |
 
@@ -172,7 +172,7 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 
 | Tab | What it shows |
 |---|---|
-| **Queue** | Vehicles waiting, oldest first, with **Bring into** *bay*. |
+| **Queue** | Vehicles waiting, oldest first, with **Bring into** *bay*. A vehicle with no bay or nobody assigned shows **Choose bay and bring in** instead, which opens the change sheet to pick them. |
 | **Bays** | Each wash bay and the vehicle in it (vacuuming or washing). A free bay shows **Bring in** with the next waiting vehicle (one booked for that bay first, else the first in the queue), or **Start a vehicle here** when no one is waiting. |
 | **Polishing** | Vehicles being polished, with **Ready to collect**. |
 | **Ready** | Vehicles finished today, marked **To bill** (not completed at the counter yet), **To pay** or **Paid**. Tap one to open its invoice. |
@@ -197,10 +197,10 @@ The top bar shows how many vehicles are in the station and how many bays are fre
 | **Vehicle number** | Type the plate. Registered plates that match are listed: tap one. A plate typed in full is picked automatically. |
 | **Owner's name, Phone** | Appear when the plate is new. Fill in the name (the phone is optional) and the customer and vehicle are registered at the same time. |
 | **Wash bay** | The first free bay is chosen for you; **free** marks the empty ones. |
-| **Who will work on it** | Required. The number shows how many vehicles each person already has. |
+| **Who will work on it** | Needed only for **Start now**; **Later** leaves it empty for a queued vehicle. The number shows how many vehicles each person already has. |
 | **Mileage now (km)** | Optional. |
 | **What the customer asked for** | Optional. One request per line; each becomes a checklist item. |
-| **Add to queue** | Puts it in the queue (Waiting). |
+| **Add to queue** | Puts it in the queue (Waiting). The bay and the person can be left as **Later** and chosen when it goes in. |
 | **Start now** | Puts it straight into the chosen bay (Vacuuming). Refused if that bay already has a vehicle. |
 
 Rules the board keeps:

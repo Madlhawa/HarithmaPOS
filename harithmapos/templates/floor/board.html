@@ -12,9 +12,19 @@
 </form>
 {%- endmacro %}
 
+{% macro edit_attrs(invoice, status=none) -%}
+data-fl-edit
+data-url="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}"
+data-invoice="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}"
+data-plate="{{ invoice.vehicle.number }}" data-owner="{{ invoice.customer.name }}"
+data-status="{{ status if status is not none else (invoice.service_status or 0) }}" data-bay="{{ invoice.washbay_id or '' }}" data-emp="{{ invoice.employee_id or '' }}"
+data-requests="{{ requests_json(invoice) }}"
+{%- endmacro %}
+
 {% macro next_action(invoice) -%}
 {% set s = invoice.service_status or 0 %}
-{% if s == 0 %}{{ move_button(invoice, 1, 'Bring into ' ~ invoice.washbay.name) }}
+{% if s == 0 and not (invoice.washbay_id and invoice.employee_id) %}<div class="fl-go"><button type="button" class="btn btn-primary" {{ edit_attrs(invoice, 1) }}>Choose bay and bring in</button></div>
+{% elif s == 0 %}{{ move_button(invoice, 1, 'Bring into ' ~ invoice.washbay.name) }}
 {% elif s == 1 %}{{ move_button(invoice, 2, 'Start washing') }}
 {% elif s == 2 %}{{ move_button(invoice, 3, 'Start polishing') }}
 {% elif s == 3 %}{{ move_button(invoice, 4, 'Ready to collect', 'btn btn-finish', confirm=requests_confirm(invoice)) }}{% endif %}
@@ -23,12 +33,7 @@
 {% macro card(invoice, show_bay=true) -%}
 {% set meta = status_meta(invoice.service_status) %}
 <article class="fl-card" data-status="{{ meta.key }}">
-    <button type="button" class="fl-card-main" data-fl-edit
-            data-url="{{ url_for('floor_blueprint.move', invoice_id=invoice.id) }}"
-            data-invoice="{{ url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=invoice.id) }}"
-            data-plate="{{ invoice.vehicle.number }}" data-owner="{{ invoice.customer.name }}"
-            data-status="{{ invoice.service_status or 0 }}" data-bay="{{ invoice.washbay_id }}" data-emp="{{ invoice.employee_id }}"
-            data-requests="{{ requests_json(invoice) }}"
+    <button type="button" class="fl-card-main" {{ edit_attrs(invoice) }}
             aria-label="Change {{ invoice.vehicle.number }}">
         <span class="fl-card-top">
             {{ plate(invoice.vehicle.number) }}
@@ -37,8 +42,8 @@
         <span class="fl-card-who">{{ invoice.customer.name }}{% if invoice.vehicle.make %} · {{ invoice.vehicle.make }} {{ invoice.vehicle.model or '' }}{% endif %}</span>
         <span class="fl-card-meta">
             <span class="status" data-status="{{ meta.key }}">{{ meta.label }}</span>
-            {% if show_bay %}<span><i class="bi bi-droplet" aria-hidden="true"></i>{{ invoice.washbay.name }}</span>{% endif %}
-            <span><i class="bi bi-person" aria-hidden="true"></i>{{ invoice.employee.name }}</span>
+            {% if show_bay %}<span><i class="bi bi-droplet" aria-hidden="true"></i>{{ invoice.washbay.name if invoice.washbay else 'No bay yet' }}</span>{% endif %}
+            <span><i class="bi bi-person" aria-hidden="true"></i>{{ invoice.employee.name if invoice.employee else 'Nobody yet' }}</span>
             {% if invoice.requests %}{% set left = invoice.open_requests|length %}
             <span class="fl-req {{ 'is-open' if left else 'is-done' }}" title="Customer's requests ticked off"><i class="bi bi-list-check" aria-hidden="true"></i>{{ invoice.requests|length - left }}/{{ invoice.requests|length }}</span>
             {% endif %}
@@ -204,14 +209,17 @@
                 <fieldset class="fl-field">
                     <legend>Wash bay</legend>
                     <div class="fl-chips">
-                        {% for b in washbays %}<label class="fl-chip"><input type="radio" name="washbay_id" value="{{ b.id }}" {% if loop.first and not free_bays or (free_bays and b.id == free_bays[0].id) %}checked{% endif %} required><span>{{ b.name }}{% if b in free_bays %} <small>free</small>{% endif %}</span></label>{% endfor %}
+                        {% for b in washbays %}<label class="fl-chip"><input type="radio" name="washbay_id" value="{{ b.id }}" {% if loop.first and not free_bays or (free_bays and b.id == free_bays[0].id) %}checked{% endif %}><span>{{ b.name }}{% if b in free_bays %} <small>free</small>{% endif %}</span></label>{% endfor %}
+                        <label class="fl-chip"><input type="radio" name="washbay_id" value=""><span>Later</span></label>
                     </div>
                 </fieldset>
                 <fieldset class="fl-field">
                     <legend>Who will work on it</legend>
                     <div class="fl-chips">
-                        {% for e in employees %}<label class="fl-chip"><input type="radio" name="employee_id" value="{{ e.id }}" required><span>{{ e.name }}{% if busy.get(e.id) %} <small>{{ busy[e.id] }} on</small>{% endif %}</span></label>{% endfor %}
+                        {% for e in employees %}<label class="fl-chip"><input type="radio" name="employee_id" value="{{ e.id }}"><span>{{ e.name }}{% if busy.get(e.id) %} <small>{{ busy[e.id] }} on</small>{% endif %}</span></label>{% endfor %}
+                        <label class="fl-chip"><input type="radio" name="employee_id" value=""><span>Later</span></label>
                     </div>
+                    <div class="form-hint">Only needed to start now. A vehicle can wait in the queue without them.</div>
                 </fieldset>
                 <div class="fl-field">
                     <label class="form-label" for="fl-km">Mileage now (km) <span class="text-muted">optional</span></label>

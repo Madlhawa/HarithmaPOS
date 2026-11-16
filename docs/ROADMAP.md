@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Queue without a bay or employee.** A vehicle can wait in the queue with no bay and nobody assigned (floor board: *Later*; new invoice: leave them empty). They are asked for when work starts: vacuuming and washing need both, polishing needs someone, Ready needs neither. Unassigned cards show *Choose bay and bring in*, and reports list such jobs as *Not assigned* / *No bay*. |
 | 16 Nov 2026 | **One vehicle per plate.** A plate can be registered once: CAB-1234, CAB 1234 and cab1234 count as the same plate, and the database refuses a second vehicle with it. Typing a known plate on the floor board or quick register uses the registered vehicle (bringing back an archived owner), and the vehicle search finds plates typed without the dash. A phone number may be shared (family, company cars), so saving a customer whose number another customer has only shows a warning naming them. |
 | 16 Nov 2026 | **Archive instead of delete.** Customers, items and suppliers are archived, never deleted: they leave the lists and search boxes but stay on every invoice, order and payment, and each list has an *Archived* view with **Restore**. A returning customer or supplier comes back by itself when a job, sale, vehicle or order is made for them; archived items can't be sold or bought until restored. Employees are marked as left instead of deleted, and people who left no longer appear in the employee picker. |
 | 16 Nov 2026 | **Stock history.** Every change to an item's stock is written down with when, why (sold, sale taken back, bought in, purchase taken back, voided, stock count, opening stock), which invoice or order, who, and the stock left after. Click an item's stock figure on the Items page to see it. Each item's history starts with its stock on 16 Nov, so its quantity always equals the sum of its history. |
@@ -100,7 +101,6 @@ What is already right: CSRF on every form, role checks on every route, secure an
 
 | Item | What to do | Effort |
 |---|---|---|
-| Queue without a bay or employee | A service invoice must have a wash bay and an employee at the database level, even while the vehicle waits in the queue. Allow them to be empty until work starts. | S |
 | Gapless invoice numbers | Invoice numbers are database ids, so an abandoned draft leaves a gap. Give completed bills their own sequential number (needed for tax, and for a second station later). | M |
 | More database checks | Only the payment table has checks. Add them for quantity above zero, discount not above the price, and similar rules. | S |
 | Configurable stages | Service stages are hardcoded as 0–4 in code and data (also in section 2). | M |

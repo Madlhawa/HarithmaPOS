@@ -128,10 +128,10 @@ def insert_invoice_head():
         return utils.redirect_back('invoice_blueprint.invoice_head')
 
     vehicle = db.session.get(Vehicle, form.vehicle_id.data)
-    employee = db.session.get(Employee, form.employee_id.data)
-    washbay = db.session.get(WashBay, form.washbay_id.data)
-    if not (vehicle and employee and washbay):
-        flash("Choose the vehicle, employee and wash bay from the lists.", category='danger')
+    employee = db.session.get(Employee, form.employee_id.data) if form.employee_id.data else None
+    washbay = db.session.get(WashBay, form.washbay_id.data) if form.washbay_id.data else None
+    if not vehicle:
+        flash("Choose the vehicle from the list.", category='danger')
         return utils.redirect_back('invoice_blueprint.invoice_head')
 
     open_invoice = InvoiceHead.query.filter(
@@ -147,8 +147,8 @@ def insert_invoice_head():
         invoice = InvoiceHead(
             customer_id=vehicle.owner_id,
             vehicle_id=vehicle.id,
-            washbay_id=washbay.id,
-            employee_id=employee.id,
+            washbay_id=washbay.id if washbay else None,
+            employee_id=employee.id if employee else None,
             current_milage=form.current_milage.data,
             next_milage=form.current_milage.data,
             service_status=config.SERVICE_STATUS_WAITING,
@@ -242,6 +242,10 @@ def invoice_head_detail(invoice_head_id):
 
         try:
             _save_service_invoice(invoice_head, form)
+        except job_status.JobError as exc:
+            db.session.rollback()
+            flash(str(exc), category='warning')
+            return redirect(here)
         except Exception:
             db.session.rollback()
             logger.exception("Could not save service invoice %s", invoice_head_id)
@@ -307,6 +311,9 @@ def set_invoice_status(invoice_head_id):
                 job_status.log(invoice_head)
                 flash(f"{invoice_head.vehicle.number} is now {invoice_head.service_status_str.lower()}.",
                       category='success')
+        except job_status.JobError as exc:
+            db.session.rollback()
+            flash(f"{exc} Open the invoice to choose.", category='warning')
         except Exception:
             db.session.rollback()
             logger.exception("Could not change status of invoice %s", invoice_head_id)

@@ -38,9 +38,9 @@ class InvoiceHeadCreateForm(FlaskForm):
     vehicle = StringField("Vehicle", validators=[Optional()])
     vehicle_id = id_field("Vehicle")
     employee = StringField("Employee", validators=[Optional()])
-    employee_id = id_field("Employee")
+    employee_id = id_field("Employee", required=False)
     washbay = StringField("Wash bay", validators=[Optional()])
-    washbay_id = id_field("Wash bay")
+    washbay_id = id_field("Wash bay", required=False)
     current_milage = mileage_field("Mileage")
     submit = SubmitField('Create invoice')
 

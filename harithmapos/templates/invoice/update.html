@@ -88,8 +88,8 @@
                 <p class="form-hint mt-0">Billed {{ inv.completed_dttm|local_dt }}{% if inv.completed_by %} by {{ inv.completed_by.name }}{% endif %}. The job details below can still be corrected; the bill can't.</p>
                 {% endif %}
                 <div class="row g-3 mt-1">
-                    <div class="col-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='job', value=inv.employee.name, id_value=inv.employee_id, show_all=true, optional=true, wrap='') }}</div>
-                    <div class="col-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='job', value=inv.washbay.name, id_value=inv.washbay_id, show_all=true, optional=true, wrap='') }}</div>
+                    <div class="col-6">{{ autocomplete('employee', 'Employee', url_for('search_blueprint.search_employees'), prefix='job', value=inv.employee.name if inv.employee else '', id_value=inv.employee_id or '', show_all=true, optional=true, wrap='') }}</div>
+                    <div class="col-6">{{ autocomplete('washbay', 'Wash bay', url_for('search_blueprint.search_washbays'), prefix='job', value=inv.washbay.name if inv.washbay else '', id_value=inv.washbay_id or '', show_all=true, optional=true, wrap='') }}</div>
                     <div class="col-6">{{ field('current_milage', 'Mileage now (km)', prefix='job', kind='whole', value=inv.current_milage, wrap='') }}</div>
                     <div class="col-6">{{ field('next_milage_in', 'Next service in (km)', prefix='job', kind='whole', value=inv.next_milage_in, placeholder='e.g. 5000', wrap='') }}</div>
                 </div>

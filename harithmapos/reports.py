@@ -353,7 +353,8 @@ def _by_employee(services):
         d['revenue'] += _d(s.gross_price)
         if s.id in minutes:
             d['minutes'].append(minutes[s.id])
-    names = {e.id: e.name for e in Employee.query.filter(Employee.id.in_(list(data) or [0])).all()}
+    names = {e.id: e.name for e in Employee.query.filter(Employee.id.in_([k for k in data if k] or [0])).all()}
+    names[None] = 'Not assigned'
     rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': v['revenue'],
              'avg_minutes': (sum(v['minutes']) / len(v['minutes'])) if v['minutes'] else None}
             for k, v in data.items()]
@@ -366,7 +367,8 @@ def _by_bay(services):
     for s in services:
         data[s.washbay_id]['jobs'] += 1
         data[s.washbay_id]['revenue'] += _d(s.gross_price)
-    names = {b.id: b.name for b in WashBay.query.filter(WashBay.id.in_(list(data) or [0])).all()}
+    names = {b.id: b.name for b in WashBay.query.filter(WashBay.id.in_([k for k in data if k] or [0])).all()}
+    names[None] = 'No bay'
     rows = [{'name': names.get(k, 'Unknown'), 'jobs': v['jobs'], 'revenue': v['revenue']} for k, v in data.items()]
     rows.sort(key=lambda r: r['revenue'], reverse=True)
     return rows
