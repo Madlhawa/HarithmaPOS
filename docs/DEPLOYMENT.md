@@ -264,6 +264,8 @@ export $(grep -v '^#' .env | grep -v '^$' | xargs)
 flask create-user
 ```
 
+It asks for a name, email and password and creates an **owner**. Add `--role staff` for counter staff.
+
 ---
 
 ## 🔧 Post-Deployment

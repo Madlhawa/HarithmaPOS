@@ -17,6 +17,7 @@ The site is now on HTTPS with nightly backups, and the owner has sales reporting
 
 | Date | Change |
 |---|---|
+| 16 Nov 2026 | **Old database helper removed.** `utils/database.py` (which "repaired" id sequences after any failed insert and printed to the console) is gone; records are saved with plain inserts. Adding a customer, vehicle and job together from the floor board or the counter now saves all of them or none. `flask create-user` makes an owner by default (`--role staff` for counter staff). |
 | 16 Nov 2026 | **Keyboard-only item entry.** After a line is added on a service invoice or item sale, the cursor goes straight back to the item search. |
 | 15 Nov 2026 | **Times and money.** Every timestamp is `timestamptz` and every time in the code is aware UTC, shown in Colombo time; a day means the Colombo day. Money is Decimal end to end with one rounding rule (half up, per stored amount, totals never re-rounded); the screen formatting, payroll and reports use it, and floats appear only in chart data. |
 | 15 Nov 2026 | **Draft, completed and void.** Invoices, item sales and purchase orders have an explicit state with who and when. A finished job is not a billed one: the counter completes the bill. Completed bills are locked (items, prices, discounts); owners void instead of deleting, with a reason, after refunding any payment; voids put stock back and count nowhere. Refunds up to what was paid. |
@@ -208,7 +209,6 @@ Attendance and payroll are live. Possible follow-ups:
 | Linting and type checks | ruff (lint and format) and mypy in CI, with pre-commit hooks. | S |
 | Test coverage | Measure coverage in CI so untested code is visible. | S |
 | Browser tests | A few Playwright tests of the counter flow (add items, complete, print, void). The Void pop-up and search-focus bugs were browser behaviour no Python test could see. | M |
-| Remove the old database helper | `utils/database.py` prints with `print()` and "repairs" database sequences after a failed insert; user registration still uses it. Replace with a plain insert. | S |
 | Split the invoice routes | `views/invoice/routes.py` is 865 lines mixing pages and business rules. Move line and stock rules into a module, as `ledger.py` and `documents.py` did for payments and states. | M |
 | README | Setup, running locally, tests and deploy, at the top of the repository. | S |
 

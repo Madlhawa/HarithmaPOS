@@ -17,7 +17,6 @@ from harithmapos.models import Customer, Employee, InvoiceHead, InvoiceStatusLog
 from harithmapos.textutils import normalize_phone, normalize_plate
 from harithmapos.timeutils import local_day_bounds_utc, utcnow
 from harithmapos.views.invoice.routes import _change_status, _log_status, save_start_requests
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 floor_blueprint = Blueprint('floor_blueprint', __name__)
@@ -233,10 +232,13 @@ def add():
                 customer = Customer.query.filter(
                     Customer.contact == phone, func.lower(Customer.name) == name.lower()).first()
             if customer is None:
-                customer = safe_insert_with_sequence_check(Customer, name=name[:100], contact=phone)
-            vehicle = safe_insert_with_sequence_check(Vehicle, number=number, owner_id=customer.id)
-        invoice = safe_insert_with_sequence_check(
-            InvoiceHead,
+                customer = Customer(name=name[:100], contact=phone)
+                db.session.add(customer)
+                db.session.flush()
+            vehicle = Vehicle(number=number, owner_id=customer.id)
+            db.session.add(vehicle)
+            db.session.flush()
+        invoice = InvoiceHead(
             customer_id=vehicle.owner_id,
             vehicle_id=vehicle.id,
             washbay_id=washbay.id,
@@ -245,6 +247,8 @@ def add():
             next_milage=mileage,
             service_status=config.SERVICE_STATUS_VACUUMING if start_now else WAITING,
         )
+        db.session.add(invoice)
+        db.session.commit()   # customer, vehicle and invoice together, or none of them
         _log_status(invoice, previous_log_id=None)
     except Exception:
         db.session.rollback()

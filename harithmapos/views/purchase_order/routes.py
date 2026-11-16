@@ -15,7 +15,6 @@ from harithmapos.views.purchase_order.forms import (
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +66,14 @@ def insert_purchase_order_head():
         return utils.redirect_back('purchase_order_blueprint.purchase_order_head')
 
     try:
-        purchase_order = safe_insert_with_sequence_check(
-            PurchaseOrderHead,
+        purchase_order = PurchaseOrderHead(
             supplier_id=supplier.id,
             supplier_invoice_id=form.supplier_invoice_id.data,
         )
+        db.session.add(purchase_order)
+        db.session.commit()
     except Exception:
+        db.session.rollback()
         logger.exception("Could not create purchase order")
         flash("The purchase order could not be created. Please try again.", category='danger')
         return utils.redirect_back('purchase_order_blueprint.purchase_order_head')

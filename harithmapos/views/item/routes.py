@@ -12,7 +12,6 @@ from harithmapos.views.item.forms import ItemCreateForm, ItemUpdateForm
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -61,18 +60,19 @@ def insert_item():
     form = ItemCreateForm()
     if form.validate_on_submit():
         try:
-            safe_insert_with_sequence_check(
-                Item,
+            db.session.add(Item(
                 name=form.name.data,
                 description=form.description.data,
                 unit_of_measure=form.unit_of_measure.data,
                 quantity=form.quantity.data,
                 unit_cost=form.unit_cost.data,
                 unit_price=form.unit_price.data,
-                discount_pct=form.discount_pct.data or 0
-            )
+                discount_pct=form.discount_pct.data or 0,
+            ))
+            db.session.commit()
             flash(f"{form.name.data} added.", category='success')
         except Exception:
+            db.session.rollback()
             logger.exception("Could not add item")
             flash("The item could not be added. Please try again.", category='danger')
     else:

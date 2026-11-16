@@ -22,7 +22,6 @@ from harithmapos import documents, ledger
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +144,7 @@ def insert_invoice_head():
         return redirect(url_for('invoice_blueprint.invoice_head_detail', invoice_head_id=open_invoice.id))
 
     try:
-        invoice = safe_insert_with_sequence_check(
-            InvoiceHead,
+        invoice = InvoiceHead(
             customer_id=vehicle.owner_id,
             vehicle_id=vehicle.id,
             washbay_id=washbay.id,
@@ -155,6 +153,8 @@ def insert_invoice_head():
             next_milage=form.current_milage.data,
             service_status=config.SERVICE_STATUS_WAITING,
         )
+        db.session.add(invoice)
+        db.session.commit()
         _log_status(invoice, previous_log_id=None)
     except Exception:
         db.session.rollback()
@@ -183,9 +183,11 @@ def insert_item_invoice_head():
         return utils.redirect_back('invoice_blueprint.item_invoice_head')
 
     try:
-        item_invoice = safe_insert_with_sequence_check(
-            ItemInvoiceHead, customer_id=customer.id)
+        item_invoice = ItemInvoiceHead(customer_id=customer.id)
+        db.session.add(item_invoice)
+        db.session.commit()
     except Exception:
+        db.session.rollback()
         logger.exception("Could not create item invoice")
         flash("The invoice could not be created. Please try again.", category='danger')
         return utils.redirect_back('invoice_blueprint.item_invoice_head')
@@ -199,16 +201,19 @@ def create_quick_item_invoice():
     try:
         general_customer = db.session.get(Customer, GENERAL_CUSTOMER_ID)
         if not general_customer:
-            general_customer = safe_insert_with_sequence_check(
-                Customer,
+            # A fixed negative id, so it can never clash with the id sequence.
+            general_customer = Customer(
                 id=GENERAL_CUSTOMER_ID,
                 name="General Customer",
                 contact=None,
                 address="Walk-in customer",
             )
-        item_invoice = safe_insert_with_sequence_check(
-            ItemInvoiceHead, customer_id=general_customer.id)
+            db.session.add(general_customer)
+        item_invoice = ItemInvoiceHead(customer_id=GENERAL_CUSTOMER_ID)
+        db.session.add(item_invoice)
+        db.session.commit()
     except Exception:
+        db.session.rollback()
         logger.exception("Could not create quick item invoice")
         flash("The invoice could not be created. Please try again.", category='danger')
         return redirect(url_for('dashboard_blueprint.dashboard'))
@@ -737,14 +742,15 @@ def _log_status(invoice_head, previous_log_id='lookup'):
     try:
         if previous_log_id == 'lookup':
             previous_log_id = _latest_status_log_id(invoice_head)
-        safe_insert_with_sequence_check(
-            InvoiceStatusLog,
+        db.session.add(InvoiceStatusLog(
             previous_invoice_status_log_id=previous_log_id,
             invoice_id=invoice_head.id,
             service_status=invoice_head.service_status,
             employee_id=invoice_head.employee_id,
-        )
+        ))
+        db.session.commit()
     except Exception:
+        db.session.rollback()
         logger.exception("Could not write status log for invoice %s", invoice_head.id)
 
 

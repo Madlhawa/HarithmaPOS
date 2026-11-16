@@ -9,7 +9,6 @@ from harithmapos.views.employee.forms import EmployeeCreateForm, EmployeeUpdateF
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +40,7 @@ def insert_employee():
     form = EmployeeCreateForm()
     if form.validate_on_submit():
         try:
-            safe_insert_with_sequence_check(
-                Employee,
+            db.session.add(Employee(
                 name=form.name.data,
                 contact=form.contact.data,
                 address=form.address.data,
@@ -53,9 +51,11 @@ def insert_employee():
                 epf_enabled=form.epf_enabled.data,
                 epf_number=form.epf_number.data or None,
                 active=form.active.data,
-            )
+            ))
+            db.session.commit()
             flash(f"{form.name.data} added.", category='success')
         except Exception:
+            db.session.rollback()
             logger.exception("Could not add employee")
             flash("The employee could not be added. Please try again.", category='danger')
     else:

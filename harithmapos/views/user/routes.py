@@ -15,8 +15,6 @@ from harithmapos.views.user.forms import (
 )
 from harithmapos.permissions import owner_required
 
-from utils.database import safe_insert_with_sequence_check
-
 logger = logging.getLogger(__name__)
 
 user_blueprint = Blueprint('user_blueprint', __name__)
@@ -30,16 +28,17 @@ def register():
     if form.validate_on_submit():
         try:
             hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-            safe_insert_with_sequence_check(
-                User,
+            db.session.add(User(
                 name=form.name.data,
                 email=form.email.data,
                 password=hashed_password,
                 role=form.role.data,
-            )
+            ))
+            db.session.commit()
             flash(f"{form.name.data} can now sign in.", category='success')
             return redirect(url_for('user_blueprint.users'))
         except Exception:
+            db.session.rollback()
             logger.exception("Could not create user")
             flash("The user could not be created. Please try again.", category='danger')
     return render_template('user/register.html', title='Add user', form=form)

@@ -13,7 +13,6 @@ from harithmapos.views.customer.forms import CustomerForm, QuickRegisterForm
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +53,16 @@ def insert_customer():
     form = CustomerForm()
     if form.validate_on_submit():
         try:
-            safe_insert_with_sequence_check(
-                Customer,
+            db.session.add(Customer(
                 name=form.name.data,
                 contact=form.contact.data,
                 address=form.address.data,
-                email=form.email.data
-            )
+                email=form.email.data,
+            ))
+            db.session.commit()
             flash(f"{form.name.data} added.", category='success')
         except Exception:
+            db.session.rollback()
             logger.exception("Could not add customer")
             flash("The customer could not be added. Please try again.", category='danger')
     else:
@@ -94,17 +94,20 @@ def quick_register():
                 func.lower(Customer.name) == form.name.data.lower(),
             ).first()
         if customer is None:
-            customer = safe_insert_with_sequence_check(
-                Customer, name=form.name.data, contact=form.contact.data)
-        vehicle = safe_insert_with_sequence_check(
-            Vehicle,
+            customer = Customer(name=form.name.data, contact=form.contact.data)
+            db.session.add(customer)
+            db.session.flush()
+        vehicle = Vehicle(
             number=number,
             make=form.make.data,
             model=form.model.data,
             year=str(form.year.data) if form.year.data else None,
             owner_id=customer.id,
         )
+        db.session.add(vehicle)
+        db.session.commit()   # customer and vehicle together, or neither
     except Exception:
+        db.session.rollback()
         logger.exception("Could not register customer and vehicle")
         flash("The customer and vehicle could not be saved. Please try again.", category='danger')
         return redirect(url_for('dashboard_blueprint.dashboard'))

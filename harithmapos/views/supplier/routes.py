@@ -9,7 +9,6 @@ from harithmapos.views.supplier.forms import SupplierCreateForm, SupplierUpdateF
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +36,15 @@ def insert_supplier():
     form = SupplierCreateForm()
     if form.validate_on_submit():
         try:
-            safe_insert_with_sequence_check(
-                Supplier,
+            db.session.add(Supplier(
                 name=form.name.data,
                 contact=form.contact.data,
-                address=form.address.data
-            )
+                address=form.address.data,
+            ))
+            db.session.commit()
             flash(f"{form.name.data} added.", category='success')
         except Exception:
+            db.session.rollback()
             logger.exception("Could not add supplier")
             flash("The supplier could not be added. Please try again.", category='danger')
     else:

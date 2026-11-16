@@ -11,7 +11,6 @@ from harithmapos.views.vehicle.forms import VehicleForm
 from harithmapos.permissions import owner_required
 
 import harithmapos.views.utils as utils
-from utils.database import safe_insert_with_sequence_check
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +37,17 @@ def insert_vehicle():
             flash(f"{duplicate.number} is already registered to {duplicate.owner.name}.", category='warning')
         else:
             try:
-                safe_insert_with_sequence_check(
-                    Vehicle,
+                db.session.add(Vehicle(
                     number=form.number.data,
                     make=form.make.data,
                     model=form.model.data,
                     year=str(form.year.data) if form.year.data else None,
-                    owner_id=owner.id
-                )
+                    owner_id=owner.id,
+                ))
+                db.session.commit()
                 flash(f"{form.number.data} added for {owner.name}.", category='success')
             except Exception:
+                db.session.rollback()
                 logger.exception("Could not add vehicle")
                 flash("The vehicle could not be added. Please try again.", category='danger')
     else:
